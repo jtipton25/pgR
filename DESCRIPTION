@@ -7,5 +7,5 @@ Author: John Tipton
 Maintainer: John Tipton <jrtipton@uark.edu>
 Description: Fits Bayesian Polya-gamma Regression models
 License: What license is it under?
-Imports: Rcpp (>= 1.0.4.6), pgdraw
+Imports: Rcpp (>= 1.0.4.6), pgdraw, mvnfast
 LinkingTo: Rcpp, RcppArmadillo

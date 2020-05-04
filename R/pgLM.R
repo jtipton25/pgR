@@ -1,10 +1,11 @@
 #' Bayesian Polya-gamma regression
 #' 
 #' this function runs the Bayesian multinomial regression using Polya-gamma data augmentation
-#' @param Y is a \code{n \times d} matrix of compositional count data.
-#' @param X is a \code{n \times p} matrix of climate variables.
+#' @param Y is a \eqn{n \times J}{n x J} matrix of compositional count data.
+#' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param params is the list of parameter settings.
 #' @param priors is the list of prior settings. 
+#' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param inits is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
 
@@ -14,7 +15,7 @@ pgLM <- function(
     X,
     params,
     priors,
-    cores = 1,
+    n_cores = 1L,
     inits = NULL,
     config = NULL,
     n_chain       = 1
@@ -29,23 +30,26 @@ pgLM <- function(
     
     check_input(Y, X)
     check_params(params)
-    check_inits(params, inits)
+    # check_inits_pgLM(params, inits)
     # check_config(params, config)
     
-    N  <- nrow(y)
-    J  <- ncol(y)
-    df <- ncol(X)
+    N  <- nrow(Y)
+    J  <- ncol(Y)
+    p <- ncol(X)
     
     ## Calculate Mi
     Mi <- matrix(0, N, J-1)
     for(i in 1: N){
-        Mi[i,] <- sum(y[i, ]) - c(0, cumsum(y[i,][1:(J-2)]))
+        Mi[i,] <- sum(Y[i, ]) - c(0, cumsum(Y[i,][1:(J-2)]))
     }
+    
+    ## create an index for nonzero values
+    nonzero_idx <- Mi != 0
     
     ## initialize kappa
     kappa <- matrix(0, N, J-1)
     for (i in 1: N) {
-        kappa[i,] <- y[i, 1:(J - 1)]- Mi[i, ] / 2
+        kappa[i,] <- Y[i, 1:(J - 1)]- Mi[i, ] / 2
     }
     
     ##
@@ -54,23 +58,21 @@ pgLM <- function(
     
     ## currently using default priors
     
-    mu_beta        <- rep(0, df)
+    mu_beta        <- rep(0, p)
     
     ## do I want to change this to be a penalized spline?
-    # Q_beta <- make_Q(params$df, 1) 
-    Sigma_beta     <- 10 * diag(x = df)
-    Sigma_beta_inv <- chol2inv(chol(Sigma_beta))
+    # Q_beta <- make_Q(params$p, 1) 
+    Sigma_beta     <- 10 * diag(p)
     ## clean up this check
     if (!is.null(priors$mu_beta)) {
-        if (!is.na(priors$mu_beta)) {
+        if (all(!is.na(priors$mu_beta))) {
             mu_beta <- priors$mu_beta
         }
     }
     
-    
     ## clean up this check
     if (!is.null(priors$Sigma_beta)) {
-        if (!is.na(priors$Sigma_beta)) {
+        if (all(!is.na(priors$Sigma_beta))) {
             Sigma_beta <- priors$Sigma_beta
         }
     }
@@ -81,10 +83,10 @@ pgLM <- function(
     ## initialize beta
     ##
     
-    beta <- mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE)
+    beta <- t(mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
     ## clean up this check
     if (!is.null(inits$beta)) {
-        if (!is.na(inits$beta)) {
+        if (all(!is.na(inits$beta))) {
             beta <- inits$beta
         }
     }
@@ -96,15 +98,17 @@ pgLM <- function(
     ##
     
     omega <- matrix(0, N, J-1)
+    omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+
     
-    ## can parallelize this, see example
-    for (i in 1:N) {
-        for (j in 1:(J-1)) {
-            if (Mi[i, j] != 0) {
-                omega[i, j] <- pgdraw(Mi[i, j], eta[i, j])
-            }
-        }
-    }
+    # ## can parallelize this, see example
+    # for (i in 1:N) {
+    #     for (j in 1:(J-1)) {
+    #         if (Mi[i, j] != 0) {
+    #             omega[i, j] <- pgdraw(Mi[i, j], eta[i, j])
+    #         }
+    #     }
+    # }
     if (!is.null(inits$omega)) {
         if (!is.na(inits$omega)) {
             omega <- inits$omega
@@ -131,7 +135,7 @@ pgLM <- function(
     ##
     
     n_save    <- params$n_mcmc / params$n_thin
-    beta_save <- array(0, dim = c(n_save, df, J-1))
+    beta_save <- array(0, dim = c(n_save, p, J-1))
     eta_save  <- array(0, dim = c(n_save, N, J-1))
     
     ## 
@@ -158,17 +162,19 @@ pgLM <- function(
         ##
         ## sample Omega
         ##
+
+        omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
         
-        for (i in 1:N) {
-            for (j in 1:(J-1)) {
-                if(Mi[i, j] != 0){
-                    omega[i, j] <- pgdraw(Mi[i, j], eta[i, j])
-                }
-                else {
-                    omega[i, j] <- 0
-                }
-            }
-        }
+        # for (i in 1:N) {
+        #     for (j in 1:(J-1)) {
+        #         if(Mi[i, j] != 0){
+        #             omega[i, j] <- pgdraw(Mi[i, j], eta[i, j])
+        #         }
+        #         else {
+        #             omega[i, j] <- 0
+        #         }
+        #     }
+        # }
         
         for (j in 1:(J-1)) {
             Omega[[j]] <- diag(omega[, j])
@@ -178,12 +184,18 @@ pgLM <- function(
         ## sample beta -- double check these values
         ##
         
+        ## parallelize this update -- each group of parameteres is 
+        ## conditionally independent given omega and kappa(y)
         for (j in 1:(J-1)) {
             ## can make this much more efficient
-            Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
-            mu_tilde <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-            beta[, j] <- rmvn(1, mu_tilde, Sigma_tilde)
+            # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
+            # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
+            # beta[, j]   <- mvnfast::rmvn(1, mu_tilde, Sigma_tilde)
+            A <- Sigma_beta_inv + t(X) %*% (omega[, j] * X)
+            b <- Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]
+            beta[, j]   <- rmvn_arma(A, b)
         }
+        
         eta <- X %*% beta
         
         ##
@@ -191,8 +203,8 @@ pgLM <- function(
         ##
         if (k >= params$n_adapt) {
             if (k %% params$n_thin == 0) {
-                save_idx <- (k - params$n_adapt) / params$n_thin
-                beta_save[save_idx, , ]  <- beta
+                save_idx                <- (k - params$n_adapt) / params$n_thin
+                beta_save[save_idx, , ] <- beta
             }
         }
     }
@@ -205,7 +217,7 @@ pgLM <- function(
     
     return(
         list(
-            beta       = beta_save
+            beta = beta_save
         )
     )
 }

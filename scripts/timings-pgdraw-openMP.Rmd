@@ -1,0 +1,110 @@
+---
+title: "Testing openMP pgdraw"
+author: "John Tipton"
+date: "4/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pgR)
+library(tidyverse)
+library(microbenchmark)
+```
+
+
+```{r}
+## simulate some data
+set.seed(11)
+N <- 5000
+d <- 10
+X <- cbind(1, runif(N))
+beta <- matrix(rnorm(2 *(d-1)), 2, d-1)
+eta <- X %*% beta
+pi <- eta_to_pi(eta)
+
+Y <- matrix(0, N, d)
+for (i in 1:N) {
+    Y[i, ] <- rmultinom(1, 50, pi[i, ])
+}
+
+## Calculate Mi
+Mi <- matrix(0, N, d-1)
+for(i in 1: N){
+    Mi[i,] <- sum(Y[i, ]) - c(0, cumsum(Y[i,][1:(d-2)]))
+}
+
+nonzero_idx <- Mi != 0
+
+## initialize kappa
+kappa <- matrix(0, N, d-1)
+for (i in 1: N) {
+    kappa[i,] <- Y[i, 1:(d - 1)]- Mi[i, ] / 2
+}
+```
+
+```{r}
+fun_sequential <- function() {
+    ## can parallelize this, see example
+    tmp <- matrix(0, N, d-1)
+    for (i in 1:N) {
+        for (j in 1:(d-1)) {
+            if (Mi[i, j] != 0) {
+                tmp[i, j] <- pgdraw(Mi[i, j], eta[i, j])
+            }
+        }
+    }
+    tmp
+}
+
+fun_idx <- function(cores = 1L) {
+    tmp <- matrix(0, N, d-1)
+    tmp[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = cores)
+    tmp
+}
+
+
+
+
+update_omega <- function(Mi, eta) {
+    if (Mi != 0) {
+        return(pgdraw(Mi, eta))
+    } else {
+        return(0)
+    }
+}
+## vectorized version of the function
+update_omega_vec <- function(Mi, eta) {
+    # if (dim(Mi) != dim(eta)) {
+    #   stop ("update_omega: The dimension of Mi must be equal to the dimension of eta")
+    # }
+    idx <- Mi != 0
+    out <- rep(0, length(eta))
+    out[idx] <- pgdraw(Mi[idx], eta[idx])
+    return(out)
+}
+
+
+
+
+if (file.exists(here::here("results", "timings-pgdraw.RData"))) {
+    load(here::here("results", "timings-pgdraw.RData"))
+} else {
+    bm <- microbenchmark::microbenchmark(
+        fun_sequential(),
+        fun_idx(cores = 1L),
+        fun_idx(cores = 2L),
+        fun_idx(cores = 4L),
+        fun_idx(cores = 6L),
+        fun_idx(cores = 8L)
+)
+    save(bm, file = here::here("results", "timings-pgdraw.RData"))
+}
+
+# knitr::kable(print(bm))
+print(bm)
+```
+
+```{r, message = FALSE}
+autoplot(bm) 
+```

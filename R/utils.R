@@ -27,6 +27,3 @@ eta_to_pi <- function(eta) {
     return(pi)
 }
 
-counts_to_proportions <- function(counts){
-    return(t(apply(counts, 1, function(x) { if (sum(x)>0) {x/sum(x)} else {0} })))
-}

@@ -2,10 +2,21 @@ Package: pgR
 Type: Package
 Title: Bayesian Polya-gamma Regression
 Version: 1.0
-Date: 2020-04-29
+Date: 2020-05-04
 Author: John Tipton
 Maintainer: John Tipton <jrtipton@uark.edu>
-Description: Fits Bayesian Polya-gamma Regression models
-License: What license is it under?
-Imports: Rcpp (>= 1.0.4.6), pgdraw, mvnfast
-LinkingTo: Rcpp, RcppArmadillo
+Description: Fit Bayesian Polya-gamma regression models
+License: MIT + file LICENSE
+Imports: 
+    Rcpp (>= 1.0.4.6), 
+    mvnfast, 
+    fields,
+    geoR
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
+RoxygenNote: 7.1.0
+Suggests: 
+    testthat
+URL: https://github.com/jtipton25/pgR
+BugReports: https://github.com/jtipton25/pgR/issues

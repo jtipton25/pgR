@@ -11,6 +11,9 @@ make_Q(n, phi)
 
 \item{phi}{is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines}
 }
+\value{
+an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" (see Matrix package for details)
+}
 \description{
 A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines
 }

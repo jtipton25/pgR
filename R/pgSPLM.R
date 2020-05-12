@@ -96,6 +96,38 @@ pgSPLM <- function(
     Xbeta <- X %*% beta
     
     ##
+    ## initialize spatial Gaussian process -- share parameters across the different components
+    ##    can generalize to each component getting its own covariance
+    ##
+    
+    theta_mean <- c(priors$mean_nu, priors$mean_range)
+    theta_var  <- diag(c(priors$sd_nu, priors$sd_range)^2)
+    theta <- as.vector(rmvn(1, theta_mean, theta_var))
+    if (!is.null(inits$theta)) {
+        if (all(!is.na(inits$theta))) {
+            theta <- inits$theta
+        }
+    }
+    
+    tau2       <- min(1 / rgamma(1, priors$alpha_tau, priors$beta_tau), 10)
+    Sigma      <- tau2 * correlation_function(D, theta)
+    ## add in faster parallel cholesky as needed
+    Sigma_chol <- chol(Sigma, pivot = TRUE)
+    Sigma_inv  <- chol2inv(Sigma_chol)
+    
+    eta  <- X %*% beta + t(rmvn(d-1, rep(0, N), Sigma_chol, isChol = TRUE))
+    
+    ##
+    ## sampler config options -- to be added later
+    ## 
+    #
+    # bool sample_beta = true;
+    # if (params.containsElementNamed("sample_beta")) {
+    #     sample_beta = as<bool>(params["sample_beta"]);
+    # }
+    # 
+    
+    ##
     ## initialize omega
     ##
     
@@ -112,39 +144,6 @@ pgSPLM <- function(
     for (j in 1:(J - 1)) {
         Omega[[j]] <- diag(omega[, j])
     }
-    
-    ##
-    ## initialize spatial Gaussian process -- share parameters across the different components
-    ##    can generalize to each component getting its own covariance
-    ##
-    
-    theta_mean <- c(priors$mean_nu, priors$mean_range)
-    theta_var  <- diag(c(priors$sd_nu, priors$sd_range)^2)
-    theta <- as.vector(rmvn(1, theta_mean, theta_var))
-    if (!is.null(inits$theta)) {
-        if (!is.na(inits$theta)) {
-            theta <- inits$theta
-        }
-    }
-    
-    tau2       <- min(1 / rgamma(1, priors$alpha_tau, priors$beta_tau), 10)
-    Sigma      <- tau2 * correlation_function(D, theta)
-    ## add in faster parallel cholesky as needed
-    Sigma_chol <- chol(Sigma)
-    Sigma_inv  <- chol2inv(Sigma_chol)
-    
-    eta  <- X %*% beta + t(rmvn(d-1, rep(0, N), Sigma_chol, isChol = TRUE))
-    
-    ##
-    ## sampler config options -- to be added later
-    ## 
-    #
-    # bool sample_beta = true;
-    # if (params.containsElementNamed("sample_beta")) {
-    #     sample_beta = as<bool>(params["sample_beta"]);
-    # }
-    # 
-    
     ##
     ## setup save variables
     ##
@@ -310,6 +309,7 @@ pgSPLM <- function(
         tau2       <- 1 / rgamma(1, N * (d - 1) / 2 + priors$alpha_tau, SS / 2 + priors$beta_tau) 
         Sigma      <- tau2 * correlation_function(D, theta) 
         ## add in faster parallel cholesky as needed
+        ## see https://github.com/RfastOfficial/Rfast/blob/master/src/cholesky.cpp
         Sigma_chol <- chol(Sigma)
         Sigma_inv  <- chol2inv(Sigma_chol)
         

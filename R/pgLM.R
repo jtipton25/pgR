@@ -18,12 +18,13 @@ pgLM <- function(
     n_cores = 1L,
     inits = NULL,
     config = NULL,
-    n_chain       = 1
+    n_chain       = 1,
+    sample_rmvn = FALSE
     # pool_s2_tau2  = true,
     # file_name     = "DM-fit",
     # corr_function = "exponential"
 ) {
-    
+
     ##
     ## Run error checks
     ## 
@@ -35,7 +36,7 @@ pgLM <- function(
     
     N  <- nrow(Y)
     J  <- ncol(Y)
-    p <- ncol(X)
+    p  <- ncol(X)
     
     ## Calculate Mi
     Mi <- matrix(0, N, J-1)
@@ -62,7 +63,7 @@ pgLM <- function(
     
     ## do I want to change this to be a penalized spline?
     # Q_beta <- make_Q(params$p, 1) 
-    Sigma_beta     <- 10 * diag(p)
+    Sigma_beta     <- diag(p)
     ## clean up this check
     if (!is.null(priors$mu_beta)) {
         if (all(!is.na(priors$mu_beta))) {
@@ -82,7 +83,7 @@ pgLM <- function(
     ##
     ## initialize beta
     ##
-    
+
     beta <- t(mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
     ## clean up this check
     if (!is.null(inits$beta)) {
@@ -91,7 +92,8 @@ pgLM <- function(
         }
     }
     
-    eta  <- X %*% beta  
+    eta  <- X %*% beta 
+    
     
     ##
     ## initialize omega
@@ -115,10 +117,11 @@ pgLM <- function(
         }
     }
     
-    Omega <- vector(mode = "list", length = J-1)
-    for (j in 1:(J - 1)) {
-        Omega[[j]] <- diag(omega[, j])
-    }
+    ## don't need a diagonal matrix form
+    # Omega <- vector(mode = "list", length = J-1)
+    # for (j in 1:(J - 1)) {
+    #     Omega[[j]] <- diag(omega[, j])
+    # }
     
     ##
     ## sampler config options -- to be added later
@@ -160,25 +163,16 @@ pgLM <- function(
         }
         
         ##
-        ## sample Omega
+        ## sample omega
         ##
 
         omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+
         
-        # for (i in 1:N) {
-        #     for (j in 1:(J-1)) {
-        #         if(Mi[i, j] != 0){
-        #             omega[i, j] <- pgdraw(Mi[i, j], eta[i, j])
-        #         }
-        #         else {
-        #             omega[i, j] <- 0
-        #         }
-        #     }
+        ## don't need a diagonal matrix form
+        # for (j in 1:(J-1)) {
+        #     Omega[[j]] <- diag(omega[, j])
         # }
-        
-        for (j in 1:(J-1)) {
-            Omega[[j]] <- diag(omega[, j])
-        }
         
         ##
         ## sample beta -- double check these values
@@ -186,17 +180,57 @@ pgLM <- function(
         
         ## parallelize this update -- each group of parameteres is 
         ## conditionally independent given omega and kappa(y)
-        for (j in 1:(J-1)) {
-            ## can make this much more efficient
-            # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
-            # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-            # beta[, j]   <- mvnfast::rmvn(1, mu_tilde, Sigma_tilde)
-            A <- Sigma_beta_inv + t(X) %*% (omega[, j] * X)
-            b <- Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]
-            beta[, j]   <- rmvn_arma(A, b)
-        }
         
+        # beta <- 1:(J-1) %>%
+        #     future_map(
+        #         sample_beta,
+        #         .options = future_options(
+        #             globals = TRUE,#c(
+        #             #     "Sigma_beta_inv", 
+        #             #     "mu_beta", 
+        #             #     "X", 
+        #             #     "omega",
+        #             #     "kappa"
+        #             # ),
+        #             packages = "mvnfast"
+        #         )
+        #     ) %>%
+        #     unlist() %>%
+        #     matrix(., p, J-1)
+        
+        if (sample_rmvn) {
+            for (j in 1:(J-1)) {
+
+                ## use the efficient Cholesky sampler
+                
+                ## there is an issue in rmvn_arma(A, b) -- I don't know why as
+                ##    they are samples from the same distribution...
+                A <- Sigma_beta_inv + t(X) %*% (omega[, j] * X)
+                b <- as.vector(Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j])
+                beta[, j]   <- rmvn_arma(A, b)
+                # beta[, j]   <- rmvn_R(A, b)
+            }
+        } else {
+            ## parallelization of this using furrr is not faster
+            for (j in 1:(J-1)) {
+                ## can make this much more efficient
+                Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (omega[, j] * X)))
+                # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X)))
+                mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
+                beta[, j]   <- mvnfast::rmvn(1, mu_tilde, Sigma_tilde)
+            }
+        }
+
+        # beta <- matrix(0, 4, 9)
         eta <- X %*% beta
+        
+        message(
+            "mean beta = ", round(mean(beta), digits = 2), 
+            "    sd beta = ", round(sd(beta), digits = 2),
+            "    mean eta = ", round(mean(eta), digits = 2),
+            "    sd eta = ", round(sd(eta), digits = 2)
+        )
+        
         
         ##
         ## save variables

@@ -3,10 +3,14 @@ Type: Package
 Title: Bayesian Polya-gamma Regression
 Version: 1.0
 Date: 2020-05-04
-Author: John Tipton
-Maintainer: John Tipton <jrtipton@uark.edu>
+Authors@R: person("John", "Tipton", email = "jrtipton@uark.edu", 
+    role = c("aut", "cre"))
 Description: Fit Bayesian Polya-gamma regression models
-License: MIT + file LICENSE
+    This package contains code to fit multinomial regression, 
+    multinomial spatial regression, mutlinomial spatially varying
+    coefficient models, sparse multiresolution multinomial spatial 
+    models, and ...
+License: GPL (>= 3)
 Imports: 
     Rcpp (>= 1.0.4.6), 
     mvnfast, 
@@ -17,6 +21,6 @@ LinkingTo:
     RcppArmadillo
 RoxygenNote: 7.1.0
 Suggests: 
-    testthat
+    testthat (>= 2.1.0)
 URL: https://github.com/jtipton25/pgR
 BugReports: https://github.com/jtipton25/pgR/issues

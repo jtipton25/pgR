@@ -25,7 +25,9 @@ arma::vec rmvn_arma(arma::mat& A, arma::vec& b){
             A += arma::mat(ncols, ncols, arma::fill::eye) * 1e-6;
         }
     }
-    arma::vec devs = arma::randn(ncols);
+    // this option uses R's random number seed
+    arma::vec devs = rnorm(ncols);
+    // arma::vec devs = rnorm(ncols);
     arma::vec temp = solve(trimatl(A_chol.t()), b);
     return arma::vec(solve(trimatu(A_chol), temp + devs));
 }

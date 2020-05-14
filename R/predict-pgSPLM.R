@@ -6,7 +6,7 @@
 #' @param X_pred is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of covariates at the locations where predictions are to be made. 
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of locations where observations were taken.
 #' @param locs_pred is a \eqn{n_pred \times 2}{n_pred x 2} matrix of locations where predictions are to be made.
-#' @param X_pred is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of input variables.
+#' @param shared_covariance_params
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param verbose is a logicial input that determines whether to print output including a progress bar.
 #' 
@@ -18,6 +18,7 @@ predict_pgSPLM <- function(
     X_pred,
     locs,
     locs_pred,
+    shared_covariance_params,
     n_cores = 1L,
     verbose = TRUE
 ) {
@@ -48,21 +49,32 @@ predict_pgSPLM <- function(
     
     ## parallelize this later
     for (i in 1:n_samples) {
-        Sigma           <- tau2[i] * correlation_function(D_obs, theta[i, ])
-        Sigma_unobs     <- tau2[i] * correlation_function(D_pred, theta[i, ])
-        Sigma_unobs_obs <- tau2[i] * correlation_function(D_pred_obs, theta[i, ])
-        Sigma_inv       <- chol2inv(chol(Sigma))        
-        for (j in 1:(J - 1)) {
-            pred_mean <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[i, , j] - X %*% beta[i, , j])) + X_pred %*% beta[i, , j]
-            pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
-            eta_pred[i, , j] <- mvnfast::rmvn(1, pred_mean, pred_var)
-        } 
+        if (shared_covariance_params) {
+            Sigma           <- tau2[i] * correlation_function(D_obs, theta[i, ])
+            Sigma_unobs     <- tau2[i] * correlation_function(D_pred, theta[i, ])
+            Sigma_unobs_obs <- tau2[i] * correlation_function(D_pred_obs, theta[i, ])
+            Sigma_inv       <- chol2inv(chol(Sigma))        
+            for (j in 1:(J - 1)) {
+                pred_mean <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[i, , j] - X %*% beta[i, , j])) + X_pred %*% beta[i, , j]
+                pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
+                eta_pred[i, , j] <- mvnfast::rmvn(1, pred_mean, pred_var)
+            } 
+        } else {
+            for (j in 1:(J - 1)) {
+                Sigma           <- tau2[i, j] * correlation_function(D_obs, theta[i, j, ])
+                Sigma_unobs     <- tau2[i, j] * correlation_function(D_pred, theta[i, j, ])
+                Sigma_unobs_obs <- tau2[i, j] * correlation_function(D_pred_obs, theta[i, j, ])
+                Sigma_inv       <- chol2inv(chol(Sigma))        
+                pred_mean <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[i, , j] - X %*% beta[i, , j])) + X_pred %*% beta[i, , j]
+                pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
+                eta_pred[i, , j] <- mvnfast::rmvn(1, pred_mean, pred_var)
+            } 
+        }
         if (i %in% percentage_points && verbose) {
             setTxtProgressBar(progressBar, i / n_samples)
         }
     }
     
-
     if (verbose) {
         close(progressBar)
     }

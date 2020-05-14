@@ -136,9 +136,7 @@ update_tuning_mv <- function(k, accept, lambda, batch_samples,
 update_tuning_mv_mat <- function(k, accept, lambda, batch_samples,
                               Sigma_tune, Sigma_tune_chol) {
     arr <- c(0.44, 0.35, 0.32, 0.25, 0.234)
-    # std::vector<double> acceptance_rates (arr, arr + sizeof(arr) / sizeof(arr[0]));
     dimension <- dim(batch_samples)[2]
-    # dimension <- dim(batch_samples)[1]
     if (dimension >= 5) {
         dimension <- 5
     }
@@ -153,19 +151,12 @@ update_tuning_mv_mat <- function(k, accept, lambda, batch_samples,
     adapt_factor <- exp(gamma2 * (accept - optimal_accept))
     ## update the MV scaling parameter
     lambda_out <- lambda * adapt_factor
-    # lambda %= adapt_factor
     ## center the batch of MCMC samples
     batch_samples_tmp <- batch_samples
     Sigma_tune_tmp <- Sigma_tune
     Sigma_tune_chol_tmp <- Sigma_tune_chol
     for (l in 1:p) {
-        for (j in 1:d) {
-            batch_vec = batch_samples[, j, l]
-            mean_batch = mean(batch_vec)
-            for (i in 1:batch_size) {
-                batch_samples_tmp[i, j, l] <- batch_samples_tmp[i, j, l] - mean_batch
-            }
-        }
+        batch_samples_tmp[, , l] <- t(t(batch_samples_tmp[, , l]) - colMeans(batch_samples_tmp[, , l]))
         Sigma_tune_tmp[, , l] <- Sigma_tune[, , l] + gamma1 *
             (t(batch_samples_tmp[, , l]) %*% batch_samples_tmp[, , l] / (50.0-1.0) - Sigma_tune[, , l])
         Sigma_tune_chol_tmp[, , l] <- chol(Sigma_tune_tmp[, , l])

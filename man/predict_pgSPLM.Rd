@@ -4,14 +4,23 @@
 \alias{predict_pgSPLM}
 \title{Bayesian Polya-gamma regression prediction}
 \usage{
-predict_pgSPLM(out, X, X_pred, locs, locs_pred, n_cores = 1L, verbose = TRUE)
+predict_pgSPLM(
+  out,
+  X,
+  X_pred,
+  locs,
+  locs_pred,
+  shared_covariance_params,
+  n_cores = 1L,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{out}{is a list of MCMC outputs from pgSPLM}
 
 \item{X}{is a \eqn{n \times p}{n x p} matrix of covariates at the observed locations.}
 
-\item{X_pred}{is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of input variables.}
+\item{X_pred}{is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of covariates at the locations where predictions are to be made.}
 
 \item{locs}{is a \eqn{n \times 2}{n x 2} matrix of locations where observations were taken.}
 

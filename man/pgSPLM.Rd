@@ -13,7 +13,9 @@ pgSPLM(
   n_cores = 1L,
   inits = NULL,
   config = NULL,
-  n_chain = 1
+  n_chain = 1,
+  shared_covariance_params = TRUE,
+  verbose = FALSE
 )
 }
 \arguments{

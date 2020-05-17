@@ -1,5 +1,5 @@
 ---
-title: "pgSPLM Simulation"
+title: "pgSPLM Simulation test - exponentisal covariance function"
 bibliography: pg.bib
 output:
   bookdown::html_document2: default
@@ -11,6 +11,7 @@ nocite: '@*'
 We are testing the spatial Polya-gamma linear model `pgSPLM()`
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 16, fig.height = 9)
 library(pgR)
 library(mvnfast)
 # library(MCMCpack)
@@ -31,14 +32,10 @@ locs <- expand.grid(
   seq(0, 1, length = sqrt(N))
 )
 D <- fields::rdist(locs)
-correlation_function <- function(D, theta) {
-  ## calculate the Matern correlation using parameters theta on the log scale 
-  geoR::matern(D, exp(theta[1]), exp(theta[2]))
-}
 ## use the same parameters for each of the d-1 components
 tau2 <- 0.4
-theta <- c(log(0.1), log(1.5)) ## range and smoothness parameter
-Sigma <- tau2 * correlation_function(D, theta) 
+theta <- log(0.1) 
+Sigma <- tau2 * correlation_function(D, theta, corr_fun = "exponential") 
 psi <- t(rmvn(J-1, rep(0, N), Sigma))
 ## setup the fixed effects process
 X <- cbind(1, matrix(runif(N*p), N, p))
@@ -312,18 +309,18 @@ params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y, X)
 inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = TRUE)
 
-if (file.exists(here::here("results", "pgSPLM-shared.RData"))) {
-  load(here::here("results", "pgSPLM-shared.RData"))
+if (file.exists(here::here("results", "pgSPLM-exponential-shared.RData"))) {
+  load(here::here("results", "pgSPLM-exponential-shared.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, n_cores = 6L, shared_covariance_params = TRUE)
+  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = TRUE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-shared.RData"))
+  save(out, runtime, file = here::here("results", "pgSPLM-exponential-shared.RData"))
 }
 ```
 
@@ -443,18 +440,18 @@ params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y_s, X_s)
 inits <- default_inits_pgSPLM(Y_s, X_s, priors, shared_covariance_params = TRUE)
 
-if (file.exists(here::here("results", "pgSPLM-sample-shared.RData"))) {
-  load(here::here("results", "pgSPLM-sample-shared.RData"))
+if (file.exists(here::here("results", "pgSPLM-exponential-sample-shared.RData"))) {
+  load(here::here("results", "pgSPLM-exponential-sample-shared.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, n_cores = 6L, shared_covariance_params = TRUE)
+  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = TRUE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-sample-shared.RData"))
+  save(out, runtime, file = here::here("results", "pgSPLM-exponential-sample-shared.RData"))
 }
 ```
 
@@ -529,12 +526,12 @@ p1 + p2
 
 
 ```{r}
-if (file.exists(here::here("results", "pgSPLM-sample-preds-shared.RData"))) {
-  load(here::here("results", "pgSPLM-sample-preds-shared.RData"))
+if (file.exists(here::here("results", "pgSPLM-exponential-sample-preds-shared.RData"))) {
+  load(here::here("results", "pgSPLM-exponential-sample-preds-shared.RData"))
 } else {
   ## currently this is somewhat slow but is embarassingly parallel
-  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, shared_covariance_params = TRUE)
-  save(preds, file = here::here("results", "pgSPLM-sample-preds-shared.RData"))
+  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, corr_fun = "exponential", shared_covariance_params = TRUE)
+  save(preds, file = here::here("results", "pgSPLM-exponential-sample-preds-shared.RData"))
 }
 ```
 
@@ -588,11 +585,11 @@ D <- fields::rdist(locs)
 
 ## use the same parameters for each of the d-1 components
 tau2 <- runif(J-1, 0.25, 1.5)
-theta <- cbind(rnorm(J-1, log(0.1), 0.1), rnorm(J-1, log(1.5), 0.1)) ## range and smoothness parameter
+theta <- rnorm(J-1, log(0.1), 0.1)
 Sigma <- array(0, dim = c(J-1, N, N))
 psi   <- matrix(0, N, J-1)
 for (j in 1:(J-1)) {
-  Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ]) 
+  Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = "exponential") 
   psi[, j]     <- c(mvnfast::rmvn(1, rep(0, N), Sigma[j, , ]))
 }
 ## setup the fixed effects process
@@ -640,10 +637,10 @@ params$n_mcmc <- 1000
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y, X)
-inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = FALSE)
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
 
-if (file.exists(here::here("results", "pgSPLM.RData"))) {
-  load(here::here("results", "pgSPLM.RData"))
+if (file.exists(here::here("results", "pgSPLM-exponential.RData"))) {
+  load(here::here("results", "pgSPLM-exponential.RData"))
 } else {
   ## parallelize the Cholesky decomposition
   ## add in tryCatch checks for all Cholesky decompositions
@@ -653,11 +650,11 @@ if (file.exists(here::here("results", "pgSPLM.RData"))) {
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, n_cores = 6L, shared_covariance_params = FALSE, verbose = FALSE)
+  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = FALSE, verbose = FALSE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM.RData"))
+  save(out, runtime, file = here::here("results", "pgSPLM-exponential.RData"))
 }
 ```
 
@@ -665,11 +662,20 @@ if (file.exists(here::here("results", "pgSPLM.RData"))) {
 ```{r}
 layout(matrix(1:6, 3, 2))
 for (i in 1:5) {
-  matplot(out$beta[, , i], type = 'l', main = paste("species", i))
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i), col = 1:nrow(beta))
   abline(h = beta[, i], col = 1:nrow(beta))
 }
-matplot(out$theta, type = 'l', main = "theta")
-abline(h = theta, col = 1:2)
+```
+
+```{r}
+
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$theta[, i], type = 'l', main = "theta")
+  abline(h = theta[i], col = 1:2)
+}
+matplot(out$tau2, type = 'l')
+abline(h = tau2, col = 1:length(tau2))
 ```
 
 ```{r}
@@ -679,14 +685,11 @@ for (i in 1:5) {
   matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
   abline(h = eta[plot_idx, i], col = 1:20)
 }
-plot(out$tau2, type = 'l', main = "tau2")
-abline(h = tau2, col = "red")
 ```
 
 
 ```{r}
 runtime
-
 
 ## plot beta estimates
 dat_plot <- data.frame(
@@ -694,8 +697,8 @@ dat_plot <- data.frame(
     c(apply(out$beta, c(2, 3), mean)), 
     c(beta)
   ),
-  type = rep(c("estimate", "truth"), each = (d-1) * ncol(X)),
-  species = factor(rep(1:(d-1), each = ncol(X))),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
   variable = 1:ncol(X)
 )
 
@@ -714,8 +717,8 @@ dat_plot <- data.frame(
     c(apply(out$eta, c(2, 3), mean)), 
     c(eta)
   ),
-  type = rep(c("estimate", "truth"), each = (d-1) * N),
-  species = factor(rep(1:(d-1), each = N)),
+  type = rep(c("estimate", "truth"), each = (J-1) * N),
+  species = factor(rep(1:(J-1), each = N)),
   observations = 1:N
 )
 
@@ -755,7 +758,7 @@ dat <- data.frame(
   Y       = c(Y_prop_s),
   lon     = c(locs_s[, 1]),
   lat     = c(locs_s[, 2]),
-  species = factor(rep(1:d, each = n)), 
+  species = factor(rep(1:J, each = n)), 
   pi      = c(pi_s)
 )
 p_observed <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
@@ -774,20 +777,20 @@ params$n_mcmc <- 1000
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y_s, X_s)
-inits <- default_inits_pgSPLM(Y_s, X_s, priors, shared_covariance_params = FALSE)
+inits <- default_inits_pgSPLM(Y_s, X_s, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
 
-if (file.exists(here::here("results", "pgSPLM-sample.RData"))) {
-  load(here::here("results", "pgSPLM-sample.RData"))
+if (file.exists(here::here("results", "pgSPLM-exponential-sample.RData"))) {
+  load(here::here("results", "pgSPLM-exponential-sample.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, n_cores = 6L, shared_covariance_params = FALSE)
+  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = FALSE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-sample.RData"))
+  save(out, runtime, file = here::here("results", "pgSPLM-exponential-sample.RData"))
 }
 ```
 
@@ -795,11 +798,19 @@ if (file.exists(here::here("results", "pgSPLM-sample.RData"))) {
 ```{r}
 layout(matrix(1:6, 3, 2))
 for (i in 1:5) {
-  matplot(out$beta[, , i], type = 'l', main = paste("species", i))
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i), col = 1:nrow(beta))
   abline(h = beta[, i], col = 1:nrow(beta))
 }
-matplot(out$theta, type = 'l', main = "theta")
-abline(h = theta, col = 1:2)
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$theta[, i], type = 'l', main = "theta")
+  abline(h = theta[i], col = 1:2)
+}
+matplot(out$tau2, type = 'l')
+abline(h = tau2, col = 1:length(tau2))
 ```
 
 ```{r}
@@ -807,10 +818,8 @@ layout(matrix(1:6, 3, 2))
 plot_idx <- sample(1:n, 20)
 for (i in 1:5) {
   matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
-  abline(h = eta_s[plot_idx, i], col = 1:20)
+  abline(h = eta[plot_idx, i], col = 1:20)
 }
-plot(out$tau2, type = 'l', main = "tau2")
-abline(h = tau2, col = "red")
 ```
 
 
@@ -824,8 +833,8 @@ dat_plot <- data.frame(
     c(apply(out$beta, c(2, 3), mean)), 
     c(beta)
   ),
-  type = rep(c("estimate", "truth"), each = (d-1) * ncol(X)),
-  species = factor(rep(1:(d-1), each = ncol(X))),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
   variable = 1:ncol(X)
 )
 
@@ -844,8 +853,8 @@ dat_plot <- data.frame(
     c(apply(out$eta, c(2, 3), mean)), 
     c(eta_s)
   ),
-  type = rep(c("estimate", "truth"), each = (d-1) * n),
-  species = factor(rep(1:(d-1), each = n)),
+  type = rep(c("estimate", "truth"), each = (J-1) * n),
+  species = factor(rep(1:(J-1), each = n)),
   observations = 1:n
 )
 
@@ -862,12 +871,12 @@ p1 + p2
 
 
 ```{r}
-if (file.exists(here::here("results", "pgSPLM-sample-preds.RData"))) {
-  load(here::here("results", "pgSPLM-sample-preds.RData"))
+if (file.exists(here::here("results", "pgSPLM-exponential-sample-preds.RData"))) {
+  load(here::here("results", "pgSPLM-exponential-sample-preds.RData"))
 } else {
   ## currently this is somewhat slow but is embarassingly parallel
-  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, shared_covariance_params = FALSE)
-  save(preds, file = here::here("results", "pgSPLM-sample-preds.RData"))
+  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, corr_fun = "exponential", shared_covariance_params = FALSE)
+  save(preds, file = here::here("results", "pgSPLM-exponential-sample-preds.RData"))
 }
 ```
 
@@ -883,13 +892,13 @@ abline(0, 1, col = "red")
 
 ## Plot the simulated data
 
-```{r}
+```{r, fig.width = 2*16, fig.height = 2*9, out.width = "100%"}
 ## put data into data.frame for plotting
 dat <- data.frame(
   Y       = c(rbind(Y_prop_s, Y_prop_oos)),
   lon     = c(locs_s[, 1], locs_oos[, 1]),
   lat     = c(locs_s[, 2], locs_oos[, 2]),
-  species = factor(rep(1:d, each = N)), 
+  species = factor(rep(1:J, each = N)), 
   pi      = c(rbind(pi_s, pi_pred_mean)),
   type    = c(rep("observed", n), rep("predicted", N-n))
 )
@@ -901,5 +910,33 @@ p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
   # scale_alpha_discrete(range = c(0.6, 1)) +
   ggtitle("Predicted latent probability")
 
-p_simulated / p_observed / p_predicted
+p_simulated + p_observed + p_predicted
 ```
+
+
+## code profiling
+
+```{r, eval = FALSE}
+## not run -- diagnostic profiling-exponential
+## profile the shared covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pgSPLM(Y, X)
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 1L, shared_covariance_params = TRUE))
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = TRUE))
+
+## profile the component-specific covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pgSPLM(Y, X)
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "exponential" shared_covariance_params = FALSE)
+
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 1L, shared_covariance_params = FALSE))
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = FALSE))
+```
+
+

@@ -21,13 +21,21 @@ default_inits_pgLM <- function(Y, X, priors) {
 #' @param Y is a \eqn{n \times d}{n x d} matrix of multinomial count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of variables.
 #' @param priors
+#' @param corr_fun
 #' @param shared_covariance_params
 #' @noRd
-default_inits_pgSPLM <- function(Y, X, priors, shared_covariance_params) {
+default_inits_pgSPLM <- function(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE) {
 
     J <- ncol(Y)
-    theta_mean <- c(priors$mean_range, priors$mean_nu)
-    theta_var  <- diag(c(priors$sd_range, priors$sd_nu)^2)
+    theta_mean <- NULL
+    theta_var  <- NULL
+    if (corr_fun == "matern") {
+        theta_mean <- c(priors$mean_range, priors$mean_nu)
+        theta_var  <- diag(c(priors$sd_range, priors$sd_nu)^2)
+    } else if (corr_fun == "exponential") {
+        theta_mean <- priors$mean_range
+        theta_var  <- priors$sd_range^2
+    }
     
     inits <- list(
         beta  = t(mvnfast::rmvn(J-1, priors$mu_beta, priors$Sigma_beta)),
@@ -37,9 +45,17 @@ default_inits_pgSPLM <- function(Y, X, priors, shared_covariance_params) {
             pmin(1 / rgamma(J-1, priors$alpha_tau, priors$beta_tau), 10)
         },
         theta = if (shared_covariance_params) {
-            as.vector(pmin(pmax(mvnfast::rmvn(1, theta_mean, theta_var), 0), 0.1))
+            if (corr_fun == "matern") {
+                as.vector(pmin(pmax(mvnfast::rmvn(1, theta_mean, theta_var), -1), 0.1))
+            } else if (corr_fun == "exponential") {
+                pmin(pmax(rnorm(1, theta_mean, sqrt(theta_var)), -1), 0.1)
+            }
         } else {
-            pmin(pmax(mvnfast::rmvn(J-1, theta_mean, theta_var), 0), 0.1)
+            if (corr_fun == "matern") {
+                pmin(pmax(mvnfast::rmvn(J-1, theta_mean, theta_var), -1), 0.1)
+            } else if (corr_fun == "exponential") {
+                pmin(pmax(rnorm(J-1, theta_mean, sqrt(theta_var)), -1), 0.1)
+            }
         }
     )
     return(inits)

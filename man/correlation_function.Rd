@@ -4,12 +4,21 @@
 \alias{correlation_function}
 \title{Generate Matern covariance matrix}
 \usage{
-correlation_function(D, theta)
+correlation_function(D, theta, corr_fun = "exponential")
 }
 \arguments{
 \item{D}{is an \eqn{n \times n}{n x n} matrix of pairwise distances between locations}
 
-\item{theta}{is a \eqn{2}{2}-dimensional vector of Matern covariance parameter inputs on the log-scale with the first element the Matern smoothness parameter \code{nu} and second element the Matern \code{range} parameter}
+\item{theta}{is the correlation function parameters. If 
+\code{corr_fun} is "matern", then \code{theta} is a 
+\eqn{2}{2}-dimensional vector of Matern covariance parameter inputs
+on the log-scale with the first element the Matern range parameter
+\code{range} on the log-scale and second element the Matern smoothness parameter 
+\code{nu} on the log-scale. If \code{corr_fun} is "exponential" then \code{theta} is 
+a positive number representing the exponential correlation function
+range parameter on the log-scale.}
+
+\item{corr_fun}{is the correlation function}
 }
 \description{
 A function for generatingg the Matern covariance matrix

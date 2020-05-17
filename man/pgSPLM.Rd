@@ -10,12 +10,14 @@ pgSPLM(
   locs,
   params,
   priors,
+  corr_fun = "exponential",
+  shared_covariance_params = TRUE,
   n_cores = 1L,
   inits = NULL,
   config = NULL,
   n_chain = 1,
-  shared_covariance_params = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  progress = FALSE
 )
 }
 \arguments{
@@ -29,11 +31,17 @@ pgSPLM(
 
 \item{priors}{is the list of prior settings.}
 
+\item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
+
+\item{shared_covariance_params}{is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
+
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
 
 \item{inits}{is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.}
 
 \item{config}{is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.}
+
+\item{progress}{is a logicial input that determines whether to print a progress bar.}
 }
 \description{
 this function runs the Bayesian multinomial regression using Polya-gamma data augmentation

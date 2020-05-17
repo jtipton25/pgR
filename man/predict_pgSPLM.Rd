@@ -10,9 +10,10 @@ predict_pgSPLM(
   X_pred,
   locs,
   locs_pred,
+  corr_fun,
   shared_covariance_params,
   n_cores = 1L,
-  verbose = TRUE
+  progress = TRUE
 )
 }
 \arguments{
@@ -26,9 +27,11 @@ predict_pgSPLM(
 
 \item{locs_pred}{is a \eqn{n_pred \times 2}{n_pred x 2} matrix of locations where predictions are to be made.}
 
+\item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
+
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
 
-\item{verbose}{is a logicial input that determines whether to print output including a progress bar.}
+\item{progress}{is a logicial input that determines whether to print a progress bar.}
 }
 \description{
 this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation

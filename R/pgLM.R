@@ -224,12 +224,12 @@ pgLM <- function(
         # beta <- matrix(0, 4, 9)
         eta <- X %*% beta
         
-        message(
-            "mean beta = ", round(mean(beta), digits = 2), 
-            "    sd beta = ", round(sd(beta), digits = 2),
-            "    mean eta = ", round(mean(eta), digits = 2),
-            "    sd eta = ", round(sd(eta), digits = 2)
-        )
+        # message(
+        #     "mean beta = ", round(mean(beta), digits = 2), 
+        #     "    sd beta = ", round(sd(beta), digits = 2),
+        #     "    mean eta = ", round(mean(eta), digits = 2),
+        #     "    sd eta = ", round(sd(eta), digits = 2)
+        # )
         
         
         ##

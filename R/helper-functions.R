@@ -88,6 +88,15 @@ is_positive_integer <- function(x, n) {
 }
 
 
+#' Check if the correlation function type is valid
+#'
+#' this function checks if the correlation function type is valid
+#' @param corr_fun is the correlation function
+#' @noRd
+check_corr_fun <- function(corr_fun) {
+    if (!(corr_fun %in% c("matern", "exponential"))) 
+        stop('corr_fun must be either "matern" or "exponential"')
+}
 
     
 

@@ -1,0 +1,941 @@
+---
+title: "pgSPLM Simulation test - matern covariance function"
+bibliography: pg.bib
+output:
+  bookdown::html_document2: default
+  bookdown::pdf_document2: 
+    keep_tex: true
+nocite: '@*'  
+---
+
+We are testing the spatial Polya-gamma linear model `pgSPLM()`
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 16, fig.height = 9)
+library(pgR)
+library(mvnfast)
+# library(MCMCpack)
+library(splines)
+library(tidyverse)
+library(patchwork)
+```
+
+## simulate some data
+```{r}
+set.seed(11)
+N <- 30^2
+J <- 6
+p <- 2
+## setup the spatial process
+locs <- expand.grid(
+  seq(0, 1, length = sqrt(N)),
+  seq(0, 1, length = sqrt(N))
+)
+D <- fields::rdist(locs)
+## use the same parameters for each of the d-1 components
+tau2 <- 0.4
+theta <- c(log(0.1), log(1.5)) ## range and smoothness parameter
+Sigma <- tau2 * correlation_function(D, theta, corr_fun = "matern") 
+psi <- t(rmvn(J-1, rep(0, N), Sigma))
+## setup the fixed effects process
+X <- cbind(1, matrix(runif(N*p), N, p))
+beta <- matrix(rnorm((J-1) * ncol(X), 0, 0.25), ncol(X), (J-1))
+## make the intercepts smaller to reduce stochastic ordering effect
+beta[1, ] <- beta[1, ] - seq(from = 2, to = 0, length.out = J-1)
+eta <- X %*% beta + psi
+pi <- eta_to_pi(eta)
+
+Y <- matrix(0, N, J)
+
+for (i in 1:N) {
+  Y[i, ] <- rmultinom(1, 500, pi[i, ])
+}
+Y_prop     <- counts_to_proportions(Y)
+```
+
+## Plot the simulated data
+
+```{r}
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(Y_prop),
+  lon     = locs[, 1],
+  lat     = locs[, 2],
+  species = factor(rep(1:J, each = N)), 
+  pi      = c(pi)
+)
+p_simulated <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  ggtitle("Simulated data") +
+  theme(legend.position = "none")
+p_simulated
+```
+
+
+# Spatial Polya-gamma multinomial regression
+
+Below is a DAG for the model
+
+```{r, message = FALSE, echo = FALSE, fig.cap = "Directed acyclic graph (DAG) representation of the Polya-gamma spatial model"}
+## GGDags
+
+## https://cran.r-project.org/web/packages/ggdag/vignettes/intro-to-ggdag.html
+
+# install.packages("dagitty")
+# install.packages("ggdag")
+library(dagitty)
+library(ggdag)
+library(cowplot)
+library(tidyverse)
+library(latex2exp)
+
+## set coordinates for dag
+coords <- tibble::tribble(
+  ~name,        ~x,   ~y,
+  "Y",          3,    1, 
+  "eta",        2,    1,
+  "locs",       2.5,  1.25,
+  "tau2",       1.5,  0.75,
+  "theta",      1.5,  1.25, 
+  "beta",       1,    1,
+  "X",          0,    1,
+  "mu_beta",    0.5,  0.75,
+  "Sigma_beta", 0.5,  1.25
+)
+  
+
+dag <- dagify(
+  Y ~ eta,
+  eta ~ beta + locs + theta + tau2,
+  beta ~ X + mu_beta + Sigma_beta,
+  # exposure = "X",
+  outcome = "Y",
+  coords = coords
+)
+
+
+
+dag_tidy <- dag %>%
+  tidy_dagitty(seed = 404) %>%
+  arrange(name) %>%
+  mutate(type = case_when(
+    name %in% c("X", "Y", "locs") ~ "data",
+    name %in% c("tau2", "theta") ~ "hyperparameter",
+    name %in% c("mu_beta", "Sigma_beta") ~ "prior",
+    TRUE ~ "parameter"
+  ))
+
+## manually rearrange the values
+# dag %>%
+#   tidy_dagitty(seed = 404) %>%
+#   arrange(name)
+
+
+dag_tidy %>%
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = type)) +
+  geom_dag_point() +
+  geom_dag_edges() +
+  geom_dag_text(
+    color = "black",
+    label = c(
+      TeX("$\\beta"),
+      TeX("$\\eta"),
+      "lat/lon",
+      TeX("$\\mu_{\\beta}$"),
+      TeX("$\\Sigma_{\\beta}$"),
+      TeX("$\\tau^2"),
+      TeX("$\\theta$"),
+      "X",
+      "Y"
+    )
+  ) +
+  theme_dag() +
+  scale_color_viridis_d(begin = 0.9, end = 0.4) +
+  theme(legend.position = "bottom")
+```
+
+
+Let $\mathbf{y}_i = (y_{i, 1}, \ldots, y_{i, J})'$ be a $J$-dimensional vector of counts where $M_i = \sum_{j=1}^J y_{ij}$ is the total count and $\boldsymbol{\pi}_i = ( \pi_{i, 1}, \ldots, \pi_{i, J})'$ is a vector of probabilities with $\sum_{j=1}^J \pi_{i, j} = 1$. Then, the likelihood of $\mathbf{y}_i$ is given by
+
+\begin{align}
+[\mathbf{y}_i | M_i, \boldsymbol{\pi}_i] & = \frac{M_i!} {\prod_{j=1}^J y_{i, j}!} \pi_{i1}^{y_{i, 1}} \cdots \pi_{iJ}^{y_{i, J}}
+(\#eq:multinomial)
+\end{align}
+
+The canonical multinomial regression uses a soft-max link function where the $J$-dimensional probabilities are modeled in $\mathcal{R}^{J-1}$ with $J-1$ dimensional relative to a fixed reference category. Assigning latent variables $\boldsymbol{\eta}_i = (\eta_{i, 1}, \ldots, \eta_{i, J-1})'$ the softmax (multi-logit) function for $j = 1, \ldots, J-1$ is
+
+\begin{align*}
+\pi_{ij} = \frac{e^{\eta_{ij}}} {1 + \sum_{j=1}^{J-1} e^{\eta_{ij}}}
+\end{align*}
+
+where this can be interpreted in an $\mathcal{R}^{J}$ dimensional space with $\eta_{i,J} \equiv 0$. Multinomial regression assumes that given an $N \times q$-dimensional design matrix $\mathbf{X}$ for $j = 1, \ldots, J-1$, the latent parameter $\eta_{i, j} = \mathbf{X}_i \boldsymbol{\beta}_j$. After assigning each $j = 1, \ldots, J-1$ a $\operatorname{N}(\boldsymbol{\mu}_\beta, \boldsymbol{\Sigma}_\beta)$ prior, the posterior distribution is 
+
+\begin{align*}
+[\boldsymbol{\beta} | \mathbf{y}] & \propto \prod_{i=1}^N [\mathbf{y}_i | \boldsymbol{\beta}] \prod_{j=1}^{J-1} [\boldsymbol{\beta}_j].
+\end{align*}
+
+The difficulty in evaluating the above posterior is that the distribution is not available in closed form and sampling requires a Metropolis-Hastings update (or some other non-conjugate sampler). This motivates the following data augmentation scheme. 
+
+# The multinomial likelihood as a product of binomial distributions.
+
+We can re-write the multinomial distribution in \@ref(eq:multinomial) as a recursive product of $J-1$ binomial distributions 
+
+\begin{align*}
+[\mathbf{y}_i | M_i, \boldsymbol{\pi}_i] & = \operatorname{Mult} \left(M_i, \pi_i \right) \\
+& = \prod_{j=1}^{J-1} \operatorname{Binomial} \left( y_{i,j} \middle| \widetilde{M}_{i, j}, \widetilde{\pi}_{i, j} \right) \\
+& = \prod_{j=1}^{J-1} \binom{\widetilde{M}_{i, j}}{y_{i, j}} \widetilde{\pi}_{i, j}^{y_{i, j}} (1 - \widetilde{\pi}_{i, j})^{\widetilde{M}_{i, j} - y_{i, j}}
+\end{align*}
+
+
+where 
+
+\begin{align*}
+\widetilde{M}_{i, j} & = \begin{cases}
+\widetilde{M}_{i, j} & \mbox{ if } j = 1 \\
+\widetilde{M}_{i, j} - \sum_{k < j} y_{i, k} & \mbox{ if } 1 < j \leq J - 1
+\end{cases}
+\end{align*}
+
+and the transformed (conditional) probabilities $\widetilde{\pi}_{i, j}$ recursively defined by
+
+\begin{align*}
+\widetilde{\pi}_{i, j} & = \begin{cases}
+\pi_{i, 1} & \mbox{ if } j = 1 \\
+\frac{\pi_{i, j}}{1 - \sum_{k < j} \pi_{i, k}} & \mbox{ if } 1 < j \leq J - 1
+\end{cases}
+\end{align*}
+
+where the stick-breaking transformation $\pi_{SB} \left( \boldsymbol{\eta}_{i} \right)$ maps the $J-1$ dimensional vector $\boldsymbol{\eta}_i$ over $\mathcal{R}^{J-1}$ to the $J$-dimensional unit simplex by
+
+\begin{align*}
+\pi_{SB} \left( \eta_{i, j} \right) = 
+\frac{e^{ \eta_{i, j}} }{ \prod_{k \leq j} 1 + e^{ \eta_{i, j} } }.
+\end{align*}
+
+
+
+<!-- For compactness, we can write $\mathbf{\widetilde{M}}_i = \left( \widetilde{M}_{i, 1}, \widetilde{M}_{i, 2}, \cdots, \widetilde{M}_{i, J-1} \right)'$ and $\widetilde{\boldsymbol{\pi}}_i = (\widetilde{\pi}_{i,1}, \ldots, \widetilde{\pi}_{i,J-1})'$. -->
+
+
+
+# P&oacute;lya-gamma data augmentation
+<!-- P$\'{o}$lya-gamma -->
+<!-- # The P&oacute;lya-gamma -->
+The key idea for the P&oacute;lya-gamma data augmentation is that the multinomial likelihood can be written as
+
+\begin{align}
+[\mathbf{y}_i | \boldsymbol{\eta}_i] & = \prod_{j=1}^{J-1} \binom{\widetilde{M}_{i, j}}{y_{i, j}} \widetilde{\pi}_{i, j}^{y_{i, j}} (1 - \widetilde{\pi}_{i, j})^{\widetilde{M}_{i, j} - y_{i, j}} \nonumber \\
+& \propto \prod_{j=1}^{J-1}\frac{ (e^{\eta_{i,j}})^{a_{i, j}} }{(1 + e^{\eta_{i,j}})^{b_{i, j}}}
+(\#eq:likelihood)
+\end{align}
+
+where $\widetilde{\pi_{i,j}} = \frac{e^{\eta_{i,j}}}{1 + e^{\eta_{i,j}}}$ for some latent variable $\eta_{i, j}$ on the real line, $a_{i, j} = y_{i, j}$, and $b_{i, j} = \widetilde{M_{i, j}}$. Then, applying the identity [@polson2013bayesian]
+
+\begin{align}
+\frac{\left( e^{\eta_{i, j}} \right)^{y_{i, j}} }{ \left( 1 + e^{\eta_{i, j}} \right)^{\widetilde{M}_{i, j}  }} & = 2^{-\widetilde{M}_{i, j}} e^{\kappa_{i, j} \eta_{i, j}} \int_0^\infty e^{- \omega_{i, j} \eta_{i, j}^2 / 2}  \left[\omega_{i, j} | \widetilde{M}_{i, j}, 0 \right] \,d\omega_{i, j}
+(\#eq:pg-identity)
+\end{align}
+
+where $\kappa \left( y_{i, j} \right) = y_{i, j} - \widetilde{M}_{i, j} / 2$. <!-- $\mathbf{y}_{i, 1:(J-1)} - \mathbf{\widetilde{M}}_i / 2 = \left( y_{i, 1} - 0.5 \widetilde{M}_{i, 1},  y_{i, 2} - 0.5 \widetilde{M}_{i, 2}, \cdots, y_{i, J - 1} - 0.5 \widetilde{M}_{i, J-1} \right)'$ where $\mathbf{y}_{i, 1:(J-1)} = \left( y_{i, 1}, \ldots, y_{i, J-1} \right)'$ is a vector of the first $J-1$ counts of the vector $\mathbf{y}_i$. -->
+Equation \@ref(eq:pg-identity) allows for the expression of the likelihood in \@ref(eq:likelihood) as an infinite convolution over the density $\left[\omega_{i, j} | \widetilde{M}_{i, j}, 0 \right]$ which is the probability density function of a P&oacute;lya-gamma random variable $\operatorname{PG} \left(\widetilde{M}_{i, j}, 0 \right)$ and a component $e^{- \omega_{i, j} \eta_{i, j}^2 / 2}$ which is proportional to the kernel of a Gaussian density with precision $\omega_{i, j}$. We make the assumption that for all $i$ and $j$, $\omega_{i, j} \stackrel{iid}{\sim} \operatorname{PG} \left(\widetilde{M}_{i, j}, 0 \right)$ Therefore, we can express a multinomial likelihood as an infinite convolution of a Gaussian random variable with a P&oacute;lya-gamma density. After defining a prior $[\boldsymbol{\eta}] = \prod_{i=1}^N \prod_{j=1}^{J-1} [\eta_{i, j} | \boldsymbol{\eta}_{-i, -j}]$ where $\boldsymbol{\eta}_{-i, -j}$ is all of the elements of $\boldsymbol{\eta}$ except the $ij$th element, we can write the joint distribution $[\mathbf{y}, \boldsymbol{\eta}]$ as
+
+**Work on this notation**
+\begin{align}
+[\mathbf{y}, \boldsymbol{\eta}] & \propto \prod_{i=1}^N \prod_{j=1}^{J-1}\frac{ (e^{\eta_{i,j}})^{y_{i, j}} }{(1 + e^{\eta_{i,j}})^{\widetilde{M}_{i, j}}}  [\boldsymbol{\eta}] \nonumber \\
+& \propto \prod_{i=1}^N \prod_{j=1}^{J-1} 2^{-\widetilde{M}_{i, j}} e^{\kappa(y_{i, j}) \eta_{i, j}} \int_0^\infty e^{- \omega_{i, j} \eta_{i, j}^2 / 2}  \left[\omega_{i, j} | \widetilde{M}_{i, j}, 0 \right] \,d\omega_{i, j} [\boldsymbol{\eta}] \nonumber \\
+& \propto \prod_{i=1}^N \prod_{j=1}^{J-1} \int_0^\infty [\eta_{i, j} | \boldsymbol{\eta}_{-i,-j}] 2^{-\widetilde{M}_{i, j}} e^{\kappa(y_{i, j}) \eta_{i, j}}  e^{- \omega_{i, j} \eta_{i, j}^2 / 2}  \left[\omega_{i, j} | \widetilde{M}_{i, j}, 0 \right] \,d\omega_{i, j} \nonumber \\
+& \propto \prod_{i=1}^N \prod_{j=1}^{J-1} \int_0^\infty [\mathbf{y}, \eta_{i, j}, \omega_{i, j} | \boldsymbol{\eta}_{i, j}] \,d\omega_{i, j} \nonumber \\
+& \propto \int_0^\infty [\mathbf{y}, \boldsymbol{\eta}, \boldsymbol{\omega}] \,d\boldsymbol{\omega} 
+(\#eq:da)
+\end{align}
+
+where $[\mathbf{y}, \boldsymbol{\eta}, \boldsymbol{\omega}]$ is a joint density over the data augmented likelihood. When the prior on $\boldsymbol{\eta}$ is Gaussian, the marginal density $[\boldsymbol{\eta} | \mathbf{y}, \boldsymbol{\omega}] \propto \prod_{i=1}^N \prod_{j=1}^{J-1}  e^{\kappa(y_{i, j}) \eta_{i, j}} e^{- \omega_{i, j} \eta_{i, j}^2 / 2} [\boldsymbol{\eta}]$ induced by the integrand in \@ref(eq:da) is also Gaussian. In addition, the exponential tilting property of the P&oacute;lya-gamma distribution [@polson2013bayesian] gives the conditional distribtuion 
+
+\begin{align*}
+[\omega_{i, j} | \mathbf{y}, \boldsymbol{\eta}] & \sim \operatorname{PG}(\widetilde{M}_{i, j}, \eta_{i, j})
+\end{align*}
+
+
+# P&oacute;lya-gamma regression
+
+To perform regression on the multinomial vector given an $N \times q$ design matrix $\mathbf{X}$, we assume that $\eta_{i j} = \mathbf{X}_i \boldsymbol{\beta}_j$ and $\boldsymbol{\beta}_j \sim \operatorname{N}(\boldsymbol{\mu}_\beta, \boldsymbol{\Sigma}_\beta)$. 
+
+<!-- **Check this -- not sure I follow this...** -->
+
+Defining $\boldsymbol{\Omega}_i = \operatorname{diag}(\omega_{i, 1}, \ldots, \omega_{i, J-1})$, we can calculate the full conditional distributions.
+
+<!-- the density $[\mathbf{y}_i, \boldsymbol{\Omega}_i | \boldsymbol{\eta}_i] = \prod_{j=1}^{J-1} [y_{i, j} | \eta_{i, j}, \omega_{i, j}] \sim \operatorname{N}(\boldsymbol{\Omega}^{-1} \kappa(\mathbf{y}_i), \boldsymbol{\Omega})$ -->
+
+
+## Full Conditionals
+
+### Full Conditional for $\boldsymbol{\beta}_{j}$
+
+\begin{align*}
+\boldsymbol{\beta}_{j} | \mathbf{y}, \boldsymbol{\omega} & \propto \prod_{i=1}^N \operatorname{N} \left( \boldsymbol{\beta}_{j} | \boldsymbol{\Omega}_i^{-1} \kappa \left( \mathbf{y}_{i} \right), \boldsymbol{\Omega}_j^{-1} \right)  \operatorname{N} \left( \boldsymbol{\beta}_{\cdot, j} | \boldsymbol{\mu}_{\beta_j}, \boldsymbol{\Sigma}_{\beta_j} \right) \\
+& \propto  \operatorname{N} \left( \boldsymbol{\beta}_{\cdot, j} |  \tilde{\boldsymbol{\mu}}_j, \tilde{\boldsymbol{\Sigma}}_j \right) 
+\end{align*}
+
+where 
+
+\begin{align*}
+\tilde{\boldsymbol{\mu}}_j & = \tilde{\boldsymbol{\Sigma}}_j \left( {\boldsymbol{\Sigma}_{\beta}}^{-1} \boldsymbol{\mu}_\beta + \sum_{i=1}^N \mathbf{x}_i' \kappa \left( \mathbf{y}_{i, j} \right) \right), \mbox{ and }\\
+\tilde{\boldsymbol{\Sigma}}_j & = \left( {\boldsymbol{\Sigma}_{\beta}}^{-1} + \sum_{i=1}^N \mathbf{x}_i' \omega_{i, j} \mathbf{x}_i \right)^{-1}
+\end{align*}
+
+where $\mathbf{x}_i$ is the $i$th row of $\mathbf{X}$.
+
+
+### Full Conditional for $\omega_{i, j}$
+
+If $\widetilde{M}_{i, j} = 0$, then $\omega_{i, j} | \mathbf{y}, \boldsymbol{\beta} \equiv 0$. Otherwise, for $\widetilde{M}_{i, j} > 0$, we have
+
+\begin{align*}
+\omega_{i, j} | \mathbf{y}, \boldsymbol{\beta} & \propto \frac{e^{- \frac{1}{2} \omega_{i, j} \mathbf{x}_i' \boldsymbol{\beta}_j}[\omega_{i, j}]}{\int_{0}^{\infty} e^{- \frac{1}{2} \omega_{i, j} \mathbf{x}_i' \boldsymbol{\beta}_j}[\omega_{i, j}] \,d\omega_{i, j}}
+%\operatorname{N} \left( \mathbf{y}_{i} | \boldsymbol{\Omega}_i^{-1} \kappa \left( \mathbf{y}_{i} \right), \boldsymbol{\Omega}_i^{-1} \right)  \operatorname{N} \left( \boldsymbol{\beta}_{\cdot, j} | \boldsymbol{\mu}_{\beta_j}, \boldsymbol{\Sigma}_{\beta_j} \right) \\
+\end{align*}
+
+which is $\operatorname{PG} \left( \widetilde{M}_{i, j}, \eta_{i, j} \equiv \mathbf{x}_i' \boldsymbol{\beta}_j\right)$ by the exponential tilting property of the P&oacute;lya-gamma distribution.
+
+
+```{r, message = FALSE}
+params <- default_params()
+params$n_adapt <- 1000
+params$n_mcmc <- 1000
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
+inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = TRUE, corr_fun = "matern")
+
+if (file.exists(here::here("results", "pgSPLM-matern-shared.RData"))) {
+  load(here::here("results", "pgSPLM-matern-shared.RData"))
+} else {
+  ## need to parallelize the polya-gamma random variables
+  ## can I do this efficiently using openMP?
+  ## Q: faster to parallelize using openMP or foreach?
+  start <- Sys.time()
+  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE)
+  stop <- Sys.time()
+  runtime <- stop - start
+  
+  save(out, runtime, file = here::here("results", "pgSPLM-matern-shared.RData"))
+}
+```
+
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i))
+  abline(h = beta[, i], col = 1:nrow(beta))
+}
+matplot(out$theta, type = 'l', main = "theta")
+abline(h = theta, col = 1:2)
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+plot_idx <- sample(1:N, 20)
+for (i in 1:5) {
+  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
+  abline(h = eta[plot_idx, i], col = 1:20)
+}
+plot(out$tau2, type = 'l', main = "tau2")
+abline(h = tau2, col = "red")
+```
+
+
+```{r}
+runtime
+
+
+## plot beta estimates
+dat_plot <- data.frame(
+  beta = c(
+    c(apply(out$beta, c(2, 3), mean)), 
+    c(beta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
+  variable = 1:ncol(X)
+)
+
+p1 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = beta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated beta")
+
+## plot eeta estimates
+dat_plot <- data.frame(
+  eta = c(
+    c(apply(out$eta, c(2, 3), mean)), 
+    c(eta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * N),
+  species = factor(rep(1:(J-1), each = N)),
+  observations = 1:N
+)
+
+p2 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = eta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated eta")
+p1 + p2
+```
+
+## predictions
+
+```{r, message = FALSE}
+set.seed(111)
+n <- 400
+s <- sample(N, n)
+Y_s      <- Y[s, ]
+Y_oos    <- Y[-s, ]
+X_s      <- X[s, ]
+X_oos    <- X[-s, ]
+eta_s    <- eta[s, ]
+eta_oos  <- eta[-s, ]
+pi_s     <- pi[s, ]
+pi_oos   <- pi[-s, ]
+locs_s   <- locs[s, ]
+locs_oos <- locs[-s, ]
+Y_prop_s   <- Y_prop[s, ]
+Y_prop_oos <- Y_prop[-s, ]
+
+
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(Y_prop_s),
+  lon     = c(locs_s[, 1]),
+  lat     = c(locs_s[, 2]),
+  species = factor(rep(1:J, each = n)), 
+  pi      = c(pi_s)
+)
+p_observed <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  ggtitle("Sampled simulated probabilities") +
+  theme(legend.position = "none")
+p_observed
+```
+
+
+```{r}
+params <- default_params()
+params$n_adapt <- 1000
+params$n_mcmc <- 1000
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pgSPLM(Y_s, X_s, corr_fun = "matern")
+inits <- default_inits_pgSPLM(Y_s, X_s, priors, shared_covariance_params = TRUE, corr_fun = "matern")
+
+if (file.exists(here::here("results", "pgSPLM-matern-sample-shared.RData"))) {
+  load(here::here("results", "pgSPLM-matern-sample-shared.RData"))
+} else {
+  ## need to parallelize the polya-gamma random variables
+  ## can I do this efficiently using openMP?
+  ## Q: faster to parallelize using openMP or foreach?
+  start <- Sys.time()
+  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE)
+  stop <- Sys.time()
+  runtime <- stop - start
+  
+  save(out, runtime, file = here::here("results", "pgSPLM-matern-sample-shared.RData"))
+}
+```
+
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i))
+  abline(h = beta[, i], col = 1:nrow(beta))
+}
+matplot(out$theta, type = 'l', main = "theta")
+abline(h = theta, col = 1:2)
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+plot_idx <- sample(1:n, 20)
+for (i in 1:5) {
+  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
+  abline(h = eta_s[plot_idx, i], col = 1:20)
+}
+plot(out$tau2, type = 'l', main = "tau2")
+abline(h = tau2, col = "red")
+```
+
+
+```{r}
+runtime
+
+## plot beta estimates
+dat_plot <- data.frame(
+  beta = c(
+    c(apply(out$beta, c(2, 3), mean)), 
+    c(beta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
+  variable = 1:ncol(X)
+)
+
+p1 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = beta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated beta")
+
+## plot eeta estimates
+dat_plot <- data.frame(
+  eta = c(
+    c(apply(out$eta, c(2, 3), mean)), 
+    c(eta_s)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * n),
+  species = factor(rep(1:(J-1), each = n)),
+  observations = 1:n
+)
+
+p2 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = eta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated eta")
+p1 + p2
+```
+
+
+```{r}
+if (file.exists(here::here("results", "pgSPLM-matern-sample-preds-shared.RData"))) {
+  load(here::here("results", "pgSPLM-matern-sample-preds-shared.RData"))
+} else {
+  ## currently this is somewhat slow but is embarassingly parallel
+  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, corr_fun = "matern", shared_covariance_params = TRUE)
+  save(preds, file = here::here("results", "pgSPLM-matern-sample-preds-shared.RData"))
+}
+```
+
+```{r}
+pi_pred_mean <- apply(preds$pi, c(2, 3), mean)
+eta_pred_mean <- apply(preds$eta, c(2, 3), mean)
+layout(matrix(1:2, 1, 2))
+plot(eta_oos, eta_pred_mean)
+abline(0, 1, col = "red")
+plot(pi_oos, pi_pred_mean)
+abline(0, 1, col = "red")
+```
+
+## Plot the simulated data
+
+```{r}
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(rbind(Y_prop_s, Y_prop_oos)),
+  lon     = c(locs_s[, 1], locs_oos[, 1]),
+  lat     = c(locs_s[, 2], locs_oos[, 2]),
+  species = factor(rep(1:J, each = N)), 
+  pi      = c(rbind(pi_s, pi_pred_mean)),
+  type    = c(rep("observed", n), rep("predicted", N-n))
+)
+p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  # p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi, alpha = type)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  # scale_alpha_discrete(range = c(0.6, 1)) +
+  ggtitle("Predicted latent probability") +
+  theme(legend.position = "none")
+
+p_simulated + p_observed + p_predicted 
+```
+
+# Each component gets its own covariance parameters
+
+```{r}
+set.seed(11)
+N <- 30^2
+J <- 6
+p <- 2
+## setup the spatial process
+locs <- expand.grid(
+  seq(0, 1, length = sqrt(N)),
+  seq(0, 1, length = sqrt(N))
+)
+D <- fields::rdist(locs)
+
+## use the same parameters for each of the d-1 components
+tau2 <- runif(J-1, 0.25, 1.5)
+theta <- cbind(rnorm(J-1, log(0.1), 0.1), rnorm(J-1, log(1.5), 0.1)) ## range and smoothness parameter
+Sigma <- array(0, dim = c(J-1, N, N))
+psi   <- matrix(0, N, J-1)
+for (j in 1:(J-1)) {
+  Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = "matern") 
+  psi[, j]     <- c(mvnfast::rmvn(1, rep(0, N), Sigma[j, , ]))
+}
+## setup the fixed effects process
+X <- cbind(1, matrix(runif(N*p), N, p))
+beta <- matrix(rnorm((J-1) * ncol(X), 0, 0.25), ncol(X), (J-1))
+## make the intercepts smaller to reduce stochastic ordering effect
+beta[1, ] <- beta[1, ] - seq(from = 2, to = 0, length.out = J-1)
+eta <- X %*% beta + psi
+pi <- eta_to_pi(eta)
+
+Y <- matrix(0, N, J)
+
+for (i in 1:N) {
+  Y[i, ] <- rmultinom(1, 500, pi[i, ])
+}
+Y_prop     <- counts_to_proportions(Y)
+```
+
+## Plot the simulated data
+
+```{r}
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(Y_prop),
+  lon     = locs[, 1],
+  lat     = locs[, 2],
+  species = factor(rep(1:J, each = N)), 
+  pi      = c(pi)
+)
+p_simulated <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  ggtitle("Simulated data")
+p_simulated
+```
+
+
+## fit the model
+
+```{r, message = FALSE}
+params <- default_params()
+params$n_adapt <- 1000
+params$n_mcmc <- 1000
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
+
+if (file.exists(here::here("results", "pgSPLM-matern.RData"))) {
+  load(here::here("results", "pgSPLM-matern.RData"))
+} else {
+  ## parallelize the Cholesky decomposition
+  ## add in tryCatch checks for all Cholesky decompositions
+  ## add in option to count the number of Cholesky decomposition failures and add a single warning message at the end of the MCMC and add in a stopping rule if the number of warnings (as a % of MCMC iterations) gets too large
+  
+  ## need to parallelize the polya-gamma random variables
+  ## can I do this efficiently using openMP?
+  ## Q: faster to parallelize using openMP or foreach?
+  start <- Sys.time()
+  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE, verbose = FALSE)
+  stop <- Sys.time()
+  runtime <- stop - start
+  
+  save(out, runtime, file = here::here("results", "pgSPLM-matern.RData"))
+}
+```
+
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i), col = 1:nrow(beta))
+  abline(h = beta[, i], col = 1:nrow(beta))
+}
+```
+
+```{r}
+
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$theta[, i, ], type = 'l', main = "theta")
+  abline(h = theta[i,], col = 1:2)
+}
+matplot(out$tau2, type = 'l')
+abline(h = tau2, col = 1:length(tau2))
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+plot_idx <- sample(1:N, 20)
+for (i in 1:5) {
+  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
+  abline(h = eta[plot_idx, i], col = 1:20)
+}
+```
+
+
+```{r}
+runtime
+
+## plot beta estimates
+dat_plot <- data.frame(
+  beta = c(
+    c(apply(out$beta, c(2, 3), mean)), 
+    c(beta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
+  variable = 1:ncol(X)
+)
+
+p1 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = beta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated beta")
+
+## plot eeta estimates
+dat_plot <- data.frame(
+  eta = c(
+    c(apply(out$eta, c(2, 3), mean)), 
+    c(eta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * N),
+  species = factor(rep(1:(J-1), each = N)),
+  observations = 1:N
+)
+
+p2 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = eta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated eta")
+p1 + p2
+```
+
+## predictions
+
+```{r, message = FALSE}
+set.seed(111)
+n <- 400
+s <- sample(N, n)
+Y_s      <- Y[s, ]
+Y_oos    <- Y[-s, ]
+X_s      <- X[s, ]
+X_oos    <- X[-s, ]
+eta_s    <- eta[s, ]
+eta_oos  <- eta[-s, ]
+pi_s     <- pi[s, ]
+pi_oos   <- pi[-s, ]
+locs_s   <- locs[s, ]
+locs_oos <- locs[-s, ]
+Y_prop_s   <- Y_prop[s, ]
+Y_prop_oos <- Y_prop[-s, ]
+
+
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(Y_prop_s),
+  lon     = c(locs_s[, 1]),
+  lat     = c(locs_s[, 2]),
+  species = factor(rep(1:J, each = n)), 
+  pi      = c(pi_s)
+)
+p_observed <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  ggtitle("Sampled simulated probabilities")
+p_observed
+```
+
+
+```{r}
+params <- default_params()
+params$n_adapt <- 1000
+params$n_mcmc <- 1000
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pgSPLM(Y_s, X_s, corr_fun = "matern")
+inits <- default_inits_pgSPLM(Y_s, X_s, priors, corr_fun = "matern", shared_covariance_params = FALSE)
+
+if (file.exists(here::here("results", "pgSPLM-matern-sample.RData"))) {
+  load(here::here("results", "pgSPLM-matern-sample.RData"))
+} else {
+  ## need to parallelize the polya-gamma random variables
+  ## can I do this efficiently using openMP?
+  ## Q: faster to parallelize using openMP or foreach?
+  start <- Sys.time()
+  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE)
+  stop <- Sys.time()
+  runtime <- stop - start
+  
+  save(out, runtime, file = here::here("results", "pgSPLM-matern-sample.RData"))
+}
+```
+
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i), col = 1:nrow(beta))
+  abline(h = beta[, i], col = 1:nrow(beta))
+}
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$theta[, i, ], type = 'l', main = "theta")
+  abline(h = theta[i,], col = 1:2)
+}
+matplot(out$tau2, type = 'l')
+abline(h = tau2, col = 1:length(tau2))
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+plot_idx <- sample(1:n, 20)
+for (i in 1:5) {
+  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
+  abline(h = eta[plot_idx, i], col = 1:20)
+}
+```
+
+
+```{r}
+runtime
+
+
+## plot beta estimates
+dat_plot <- data.frame(
+  beta = c(
+    c(apply(out$beta, c(2, 3), mean)), 
+    c(beta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
+  variable = 1:ncol(X)
+)
+
+p1 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = beta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated beta")
+
+## plot eeta estimates
+dat_plot <- data.frame(
+  eta = c(
+    c(apply(out$eta, c(2, 3), mean)), 
+    c(eta_s)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * n),
+  species = factor(rep(1:(J-1), each = n)),
+  observations = 1:n
+)
+
+p2 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = eta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated eta")
+p1 + p2
+```
+
+
+```{r}
+if (file.exists(here::here("results", "pgSPLM-matern-sample-preds.RData"))) {
+  load(here::here("results", "pgSPLM-matern-sample-preds.RData"))
+} else {
+  ## currently this is somewhat slow but is embarassingly parallel
+  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, corr_fun = "matern", shared_covariance_params = FALSE)
+  save(preds, file = here::here("results", "pgSPLM-matern-sample-preds.RData"))
+}
+```
+
+```{r}
+pi_pred_mean <- apply(preds$pi, c(2, 3), mean)
+eta_pred_mean <- apply(preds$eta, c(2, 3), mean)
+layout(matrix(1:2, 1, 2))
+plot(eta_oos, eta_pred_mean)
+abline(0, 1, col = "red")
+plot(pi_oos, pi_pred_mean)
+abline(0, 1, col = "red")
+```
+
+## Plot the simulated data
+
+```{r, fig.width = 2*16, fig.height = 2*9, out.width = "100%"}
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(rbind(Y_prop_s, Y_prop_oos)),
+  lon     = c(locs_s[, 1], locs_oos[, 1]),
+  lat     = c(locs_s[, 2], locs_oos[, 2]),
+  species = factor(rep(1:J, each = N)), 
+  pi      = c(rbind(pi_s, pi_pred_mean)),
+  type    = c(rep("observed", n), rep("predicted", N-n))
+)
+p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  # p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi, alpha = type)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  # scale_alpha_discrete(range = c(0.6, 1)) +
+  ggtitle("Predicted latent probability")
+
+p_simulated + p_observed + p_predicted
+```
+
+
+## code profiling
+
+```{r, eval = FALSE}
+## not run -- diagnostic profiling
+## profile the shared covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "matern" shared_covariance_params = TRUE)
+
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = TRUE))
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE))
+
+## profile the component-specific covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "matern" shared_covariance_params = FALSE)
+
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = FALSE))
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE))
+```
+
+

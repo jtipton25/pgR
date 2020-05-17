@@ -53,43 +53,28 @@ double aterm(int, double, double);
 // [[Rcpp::export]]
 NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1)
 {
-	int m = b.size();
-	int n = c.size();
+	int const m = b.size();
+	int const n = c.size();
 	NumericVector y(n);
 
-	// Setup
-	int i, j, bi = 1;
-	if (m == 1)
-	{
-		bi = b[0];
+	if (m > 1 && n > m) {
+		stop("Inadmissible input: when b is a vector, it must be as long as c.");
 	}
+
 #ifdef _OPENMP
 	omp_set_num_threads(cores);
-#pragma omp parallel shared(y)
-{
-# endif
-    
-#ifdef _OPENMP
-#pragma omp for schedule(dynamic)
-#endif  
-	// Sample
-	for (i = 0; i < n; i++)
+#pragma omp parallel for schedule(dynamic)
+#endif
+	for (int i = 0; i < n; i++)
 	{
-		if (m > 1)
-		{
-			bi = b[i];
-		}
+		int bi = (int) ((m > 1) ? b[i] : b[0]);
 
-		// Sample
 		y[i] = 0;
-		for (j = 0; j < (int)bi; j++)
+		for (int j = 0; j < bi; j++)
 		{
 			y[i] += samplepg(c[i]);
 		}
 	}
-#ifdef _OPENMP
-} 
-#endif  
 
 	return y;
 }

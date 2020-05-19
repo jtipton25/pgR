@@ -710,7 +710,7 @@ pgSPLM <- function(
                                   SS / 2 + priors$beta_tau)
 
             for (j in 1:(J-1)) {
-                Sigma[j, , ] <- tau2 * correlation_function(D, theta[j, ])
+                Sigma[j, , ] <- tau2 * correlation_function(D, theta[j, ], corr_fun=corr_fun)
                 ## add in faster parallel cholesky as needed
                 ## see https://github.com/RfastOfficial/Rfast/blob/master/src/cholesky.cpp
                 Sigma_chol[j, , ] <- tryCatch(

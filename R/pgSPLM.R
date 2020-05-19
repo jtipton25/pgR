@@ -26,8 +26,10 @@ pgSPLM <- function(
     inits = NULL,
     config = NULL,
     n_chain       = 1,
-    verbose = FALSE,
-    progress = FALSE
+    theta_min = .Machine$double.xmin,
+    theta_max = .Machine$double.xmax,
+    progress = FALSE,
+    verbose = FALSE
     # pool_s2_tau2  = true,
     # file_name     = "DM-fit",
     # corr_function = "exponential"
@@ -136,15 +138,15 @@ pgSPLM <- function(
     theta <- NULL
     if (shared_covariance_params) {
         if (corr_fun == "matern") {
-            theta <- as.vector(pmin(pmax(mvnfast::rmvn(1, theta_mean, theta_var), -2), 0.1))            
+            theta <- as.vector(pmin(pmax(mvnfast::rmvn(1, theta_mean, theta_var), theta_min), theta_max))
         } else if (corr_fun == "exponential") {
-            theta <- pmin(pmax(rnorm(1, theta_mean, sqrt(theta_var)), -2), 0.1)
+            theta <- pmin(pmax(rnorm(1, theta_mean, sqrt(theta_var)), theta_min), theta_max)
         }
     } else {
         if (corr_fun == "matern") {
-            theta <- pmin(pmax(mvnfast::rmvn(J-1, theta_mean, theta_var), -2), 0.1)
+            theta <- pmin(pmax(mvnfast::rmvn(J-1, theta_mean, theta_var), theta_min), theta_max)
         } else if (corr_fun == "exponential") {
-            theta <- pmin(pmax(rnorm(J-1, theta_mean, sqrt(theta_var)), -2), 0.1)
+            theta <- pmin(pmax(rnorm(J-1, theta_mean, sqrt(theta_var)), theta_min), theta_max)
         }
         
     }

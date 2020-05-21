@@ -901,5 +901,32 @@ p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
   # scale_alpha_discrete(range = c(0.6, 1)) +
   ggtitle("Predicted latent probability")
 
-p_simulated / p_observed / p_predicted
+p_simulated + p_observed + p_predicted
+
+```
+
+
+## code profiling
+
+```{r, eval = FALSE}
+## not run -- diagnostic profiling-exponential
+## profile the shared covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pgSPLM(Y, X)
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 1L, shared_covariance_params = TRUE))
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = TRUE))
+
+## profile the component-specific covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pgSPLM(Y, X)
+inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "exponential" shared_covariance_params = FALSE)
+
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 1L, shared_covariance_params = FALSE))
+profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = FALSE))
 ```

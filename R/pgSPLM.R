@@ -574,7 +574,7 @@ pgSPLM <- function(
                 theta_tune         <- out_tuning$tune
                 theta_accept_batch <- out_tuning$accept
             }
-        } else {
+        } else if (!shared_theta) {
             ##
             ## theta or tau varies for each component
             ##
@@ -593,11 +593,11 @@ pgSPLM <- function(
                     theta_star <- rnorm(1, theta[j], theta_tune)
                 }
 
-		if (shared_tau) {
+                if (shared_tau) {
                     Sigma_star      <- tau2 * correlation_function(D, theta_star, corr_fun = corr_fun)
-		} else {
+                } else {
                     Sigma_star      <- tau2[j] * correlation_function(D, theta_star, corr_fun = corr_fun)
-		}
+                }
 
                 ## add in faster parallel cholesky as needed
                 Sigma_chol_star <- tryCatch(
@@ -670,6 +670,8 @@ pgSPLM <- function(
                     }
                 }
             }
+        } else if (shared_theta & !shared_tau){
+            # error
         }
 
         ##
@@ -707,7 +709,7 @@ pgSPLM <- function(
                 SS <- SS + t(devs) %*% (tau2 * Sigma_inv[j,,] %*% devs)
             }
             tau2 <- 1 / rgamma(1, N * (J - 1) / 2 + priors$alpha_tau,
-                                  SS / 2 + priors$beta_tau)
+                               SS / 2 + priors$beta_tau)
 
             for (j in 1:(J-1)) {
                 Sigma[j, , ] <- tau2 * correlation_function(D, theta[j, ], corr_fun=corr_fun)
@@ -827,7 +829,7 @@ pgSPLM <- function(
                     tau2_save[save_idx] <- tau2
                 } else {
                     tau2_save[save_idx, ] <- tau2
-		}
+                }
                 eta_save[save_idx, , ]  <- eta
             }
 

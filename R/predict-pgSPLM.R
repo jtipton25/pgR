@@ -21,6 +21,7 @@ predict_pgSPLM <- function(
     locs_pred,
     corr_fun,
     shared_covariance_params,
+    diag_adjust = 0,
     n_cores = 1L,
     progress = TRUE
 ) {
@@ -65,7 +66,7 @@ predict_pgSPLM <- function(
             Sigma_inv       <- chol2inv(chol(Sigma))        
             for (j in 1:(J - 1)) {
                 pred_mean <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[k, , j] - X %*% beta[k, , j])) + X_pred %*% beta[k, , j]
-                pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
+                pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs) + diag(diag_adjust, nrow=n_pred, ncol=n_pred)
                 eta_pred[k, , j] <- mvnfast::rmvn(1, pred_mean, pred_var)
             } 
         } else {
@@ -82,7 +83,7 @@ predict_pgSPLM <- function(
                 
                 Sigma_inv       <- chol2inv(chol(Sigma))        
                 pred_mean <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[k, , j] - X %*% beta[k, , j])) + X_pred %*% beta[k, , j]
-                pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
+                pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs) + diag(diag_adjust, nrow=n_pred, ncol=n_pred)
                 eta_pred[k, , j] <- mvnfast::rmvn(1, pred_mean, pred_var)
             } 
         }

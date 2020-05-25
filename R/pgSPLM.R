@@ -12,6 +12,7 @@
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
 #' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
 #' @param progress is a logicial input that determines whether to print a progress bar.
+#' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' 
 ## polya-gamma spatial linear regression model
 pgSPLM <- function(
@@ -26,8 +27,8 @@ pgSPLM <- function(
     inits = NULL,
     config = NULL,
     n_chain       = 1,
-    verbose = FALSE,
-    progress = FALSE
+    progress = FALSE,
+    verbose = FALSE
     # pool_s2_tau2  = true,
     # file_name     = "DM-fit",
     # corr_function = "exponential"

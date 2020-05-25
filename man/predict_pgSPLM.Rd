@@ -13,7 +13,8 @@ predict_pgSPLM(
   corr_fun,
   shared_covariance_params,
   n_cores = 1L,
-  progress = TRUE
+  progress = TRUE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ predict_pgSPLM(
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
 
 \item{progress}{is a logicial input that determines whether to print a progress bar.}
+
+\item{verbose}{is a logicial input that determines whether to print more detailed messages.}
 }
 \description{
 this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation

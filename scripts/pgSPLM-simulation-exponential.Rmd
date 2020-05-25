@@ -1,5 +1,5 @@
 ---
-title: "pgSPLM Simulation test - exponentisal covariance function"
+title: "pgSPLM Simulation test - exponential covariance function"
 bibliography: pg.bib
 output:
   bookdown::html_document2: default
@@ -32,7 +32,7 @@ locs <- expand.grid(
   seq(0, 1, length = sqrt(N))
 )
 D <- fields::rdist(locs)
-## use the same parameters for each of the d-1 components
+## use the same parameters for each of the J-1 components
 tau2 <- 0.4
 theta <- log(0.1) 
 Sigma <- tau2 * correlation_function(D, theta, corr_fun = "exponential") 
@@ -251,7 +251,7 @@ Equation \@ref(eq:pg-identity) allows for the expression of the likelihood in \@
 (\#eq:da)
 \end{align}
 
-where $[\mathbf{y}, \boldsymbol{\eta}, \boldsymbol{\omega}]$ is a joint density over the data augmented likelihood. When the prior on $\boldsymbol{\eta}$ is Gaussian, the marginal density $[\boldsymbol{\eta} | \mathbf{y}, \boldsymbol{\omega}] \propto \prod_{i=1}^N \prod_{j=1}^{J-1}  e^{\kappa(y_{i, j}) \eta_{i, j}} e^{- \omega_{i, j} \eta_{i, j}^2 / 2} [\boldsymbol{\eta}]$ induced by the integrand in \@ref(eq:da) is also Gaussian. In addition, the exponential tilting property of the P&oacute;lya-gamma distribution [@polson2013bayesian] gives the conditional distribtuion 
+where $[\mathbf{y}, \boldsymbol{\eta}, \boldsymbol{\omega}]$ is a joint density over the data augmented likelihood. When the prior on $\boldsymbol{\eta}$ is Gaussian, the marginal density $[\boldsymbol{\eta} | \mathbf{y}, \boldsymbol{\omega}] \propto \prod_{i=1}^N \prod_{j=1}^{J-1}  e^{\kappa(y_{i, j}) \eta_{i, j}} e^{- \omega_{i, j} \eta_{i, j}^2 / 2} [\boldsymbol{\eta}]$ induced by the integrand in \@ref(eq:da) is also Gaussian. In addition, the exponential tilting property of the P&oacute;lya-gamma distribution [@polson2013bayesian] gives the conditional distribution 
 
 \begin{align*}
 [\omega_{i, j} | \mathbf{y}, \boldsymbol{\eta}] & \sim \operatorname{PG}(\widetilde{M}_{i, j}, \eta_{i, j})
@@ -302,8 +302,8 @@ which is $\operatorname{PG} \left( \widetilde{M}_{i, j}, \eta_{i, j} \equiv \mat
 
 ```{r, message = FALSE}
 params <- default_params()
-params$n_adapt <- 1000
-params$n_mcmc <- 1000
+params$n_adapt <- 500
+params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y, X)
@@ -431,10 +431,10 @@ p_observed
 ```
 
 
-```{r}
+```{r, message = FALSE}
 params <- default_params()
-params$n_adapt <- 1000
-params$n_mcmc <- 1000
+params$n_adapt <- 500
+params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y_s, X_s)
@@ -525,7 +525,7 @@ p1 + p2
 ```
 
 
-```{r}
+```{r, message = FALSE}
 if (file.exists(here::here("results", "pgSPLM-exponential-sample-preds-shared.RData"))) {
   load(here::here("results", "pgSPLM-exponential-sample-preds-shared.RData"))
 } else {
@@ -583,7 +583,7 @@ locs <- expand.grid(
 )
 D <- fields::rdist(locs)
 
-## use the same parameters for each of the d-1 components
+## use the same parameters for each of the J-1 components
 tau2 <- runif(J-1, 0.25, 1.5)
 theta <- rnorm(J-1, log(0.1), 0.1)
 Sigma <- array(0, dim = c(J-1, N, N))
@@ -632,8 +632,8 @@ p_simulated
 
 ```{r, message = FALSE}
 params <- default_params()
-params$n_adapt <- 1000
-params$n_mcmc <- 1000
+params$n_adapt <- 500
+params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y, X)
@@ -770,10 +770,10 @@ p_observed
 ```
 
 
-```{r}
+```{r, message = FALSE}
 params <- default_params()
-params$n_adapt <- 1000
-params$n_mcmc <- 1000
+params$n_adapt <- 500
+params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSPLM(Y_s, X_s)
@@ -870,7 +870,7 @@ p1 + p2
 ```
 
 
-```{r}
+```{r, message = FALSE}
 if (file.exists(here::here("results", "pgSPLM-exponential-sample-preds.RData"))) {
   load(here::here("results", "pgSPLM-exponential-sample-preds.RData"))
 } else {

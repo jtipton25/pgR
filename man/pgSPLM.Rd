@@ -16,8 +16,8 @@ pgSPLM(
   inits = NULL,
   config = NULL,
   n_chain = 1,
-  verbose = FALSE,
-  progress = FALSE
+  progress = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -42,6 +42,8 @@ pgSPLM(
 \item{config}{is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.}
 
 \item{progress}{is a logicial input that determines whether to print a progress bar.}
+
+\item{verbose}{is a logicial input that determines whether to print more detailed messages.}
 }
 \description{
 this function runs the Bayesian multinomial regression using Polya-gamma data augmentation

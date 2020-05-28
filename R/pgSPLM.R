@@ -57,8 +57,8 @@ pgSPLM <- function(
     
     ## Calculate Mi
     Mi <- matrix(0, N, J-1)
-    for(i in 1: N){
-        Mi[i,] <- sum(Y[i, ]) - c(0, cumsum(Y[i,][1:(J-2)]))
+    for (i in 1:N){
+        Mi[i,] <- sum(Y[i, ]) - c(0, cumsum(Y[i, ][1:(J - 2)]))
     }
     
     ## create an index for nonzero values
@@ -66,8 +66,8 @@ pgSPLM <- function(
     
     ## initialize kappa
     kappa <- matrix(0, N, J-1)
-    for (i in 1: N) {
-        kappa[i,] <- Y[i, 1:(J - 1)]- Mi[i, ] / 2
+    for (i in 1:N) {
+        kappa[i, ] <- Y[i, 1:(J - 1)] - Mi[i, ] / 2
     }
     
     ##

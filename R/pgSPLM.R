@@ -368,7 +368,7 @@ pgSPLM <- function(
             Sigma_theta_tune_chol <- array(0, dim = c(2, 2, J-1))
             for (j in 1:(J-1)) {
                 Sigma_theta_tune_chol[, , j] <- tryCatch(
-                    chol(Sigma_theta_tune),
+                    chol(Sigma_theta_tune[,,j]),
                     error = function(e) {
                         if (verbose)
                             message("The Cholesky decomposition of the Metroplois-Hastings adaptive tuning matrix for Matern parameters theta was ill-conditioned and mildy regularized.")

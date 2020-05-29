@@ -5,8 +5,7 @@
 #' @param Y is a \eqn{n \times d}{n x d} matrix of compositional count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of spatial locations.
-#' @noRd
-#' 
+
 check_input_spatial <- function(Y, X, locs) {
     ## check the mcmc inputs
     if (!is.matrix(Y)) 

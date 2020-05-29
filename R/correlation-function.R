@@ -13,6 +13,7 @@
 #' range parameter on the log-scale.
 #' @param corr_fun is the correlation function
 #' @export
+ 
 correlation_function <- function(D, theta, corr_fun = "exponential") {
     R <- NULL
     check_corr_fun(corr_fun)

@@ -5,22 +5,26 @@ Version: 1.0
 Date: 2020-05-04
 Authors@R: person("John", "Tipton", email = "jrtipton@uark.edu", 
     role = c("aut", "cre"))
-Description: Fit Bayesian Polya-gamma regression models
+Description: Fit Bayesian Polya-gamma regression models.
     This package contains code to fit multinomial regression, 
     multinomial spatial regression, mutlinomial spatially varying
     coefficient models, sparse multiresolution multinomial spatial 
     models, and ...
 License: GPL (>= 3)
+Depends: R (>= 3.5.0)
 Imports: 
-    Rcpp (>= 1.0.4.6), 
-    mvnfast, 
     fields,
-    geoR
+    geoR,
+    igraph,
+    Matrix,
+    mvnfast, 
+    Rcpp (>= 1.0.4.6)
 LinkingTo:
     Rcpp,
     RcppArmadillo
 RoxygenNote: 7.1.0
 Suggests: 
+    LaplacesDemon,
     testthat (>= 2.1.0)
 URL: https://github.com/jtipton25/pgR
 BugReports: https://github.com/jtipton25/pgR/issues

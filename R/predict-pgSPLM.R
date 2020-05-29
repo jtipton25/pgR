@@ -7,7 +7,7 @@
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of locations where observations were taken.
 #' @param locs_pred is a \eqn{n_pred \times 2}{n_pred x 2} matrix of locations where predictions are to be made.
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
-#' @param shared_covariance_params
+#' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
@@ -51,7 +51,7 @@ predict_pgSPLM <- function(
     
     if (progress) {
         message("Beginning Kriging estimates")
-        progressBar <- txtProgressBar(style = 3)
+        progressBar <- utils::txtProgressBar(style = 3)
     }
     percentage_points <- round((1:100 / 100) * n_samples)   
     
@@ -129,7 +129,7 @@ predict_pgSPLM <- function(
             } 
         }
         if (k %in% percentage_points && progress) {
-            setTxtProgressBar(progressBar, k / n_samples)
+            utils::setTxtProgressBar(progressBar, k / n_samples)
         }
     }
     

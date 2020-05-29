@@ -3,6 +3,7 @@
 #' this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation
 #' @param out is a list of MCMC outputs from pgLM
 #' @param X_pred is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of climate variables.
+#' @param n_cores is the number of cores for parallel computation using openMP.
 #' 
 #' @export 
 

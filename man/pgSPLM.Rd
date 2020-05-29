@@ -41,6 +41,8 @@ pgSPLM(
 
 \item{config}{is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.}
 
+\item{n_chain}{is the MCMC chain id. The default is 1.}
+
 \item{progress}{is a logicial input that determines whether to print a progress bar.}
 
 \item{verbose}{is a logicial input that determines whether to print more detailed messages.}

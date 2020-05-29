@@ -6,6 +6,7 @@
 #' @param phi is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines
 #' @return an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" (see Matrix package for details)
 #' @export
+
 make_Q <- function(n, phi) {
     if (n <= 2)
         stop("n must be an integer larger or equal to 2")

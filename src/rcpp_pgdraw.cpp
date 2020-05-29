@@ -50,7 +50,14 @@ double truncgamma();
 double randinvg(double);
 double aterm(int, double, double);
 
-// [[Rcpp::export]]
+//' A function for evaluating drawing random Polya-gamma random variables in parallel
+//'
+//' @param b An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+//' @param c An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+//' @param cores An integer that gives the number of cores for openMP parallelization
+//'   
+//' @export
+//[[Rcpp::export]]
 NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1)
 {
 	int const m = b.size();

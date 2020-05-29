@@ -11,9 +11,11 @@
 #' @param inits is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
 #' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
+#' @param n_chain is the MCMC chain id. The default is 1.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
-#' 
+#' @importFrom stats rnorm rgamma runif dnorm
+
 ## polya-gamma spatial linear regression model
 pgSPLM <- function(
     Y, 
@@ -252,11 +254,11 @@ pgSPLM <- function(
     
     eta  <- NULL
     if (shared_covariance_params) {
-        eta <- Xbeta + t(rmvn(J-1, rep(0, N), Sigma_chol, isChol = TRUE))
+        eta <- Xbeta + t(mvnfast::rmvn(J-1, rep(0, N), Sigma_chol, isChol = TRUE))
     } else{
         eta <- matrix(0, N, J-1)
         for (j in 1:(J-1)) {
-            eta[, j] <- Xbeta[, j] + t(rmvn(1, rep(0, N), Sigma_chol[j, , ], isChol = TRUE))
+            eta[, j] <- Xbeta[, j] + t(mvnfast::rmvn(1, rep(0, N), Sigma_chol[j, , ], isChol = TRUE))
         }
     }
     
@@ -387,7 +389,7 @@ pgSPLM <- function(
     
     message("Starting MCMC for chain ", n_chain, ", running for ", params$n_adapt, " adaptive iterations and ", params$n_mcmc, " fitting iterations \n")
     if (progress) {
-        progressBar <- txtProgressBar(style = 3)
+        progressBar <- utils::txtProgressBar(style = 3)
     }
     percentage_points <- round((1:100 / 100) * (params$n_adapt + params$n_mcmc))
     
@@ -479,7 +481,7 @@ pgSPLM <- function(
             theta_star <- NULL
             if (corr_fun == "matern") {
                 theta_star <- as.vector(
-                    rmvn( 
+                    mvnfast::rmvn( 
                         n      = 1,
                         mu     = theta,
                         sigma  = lambda_theta * Sigma_theta_tune_chol,
@@ -572,7 +574,7 @@ pgSPLM <- function(
                 theta_star <- NULL
                 if (corr_fun == "matern") {
                     theta_star <- as.vector(
-                        rmvn( 
+                        mvnfast::rmvn( 
                             n      = 1,
                             mu     = theta[j, ],
                             sigma  = lambda_theta[j] * Sigma_theta_tune_chol[, , j],
@@ -793,7 +795,7 @@ pgSPLM <- function(
         ##
         
         if (k %in% percentage_points && progress) {
-            setTxtProgressBar(progressBar, k / (params$n_adapt + params$n_mcmc))
+            utils::setTxtProgressBar(progressBar, k / (params$n_adapt + params$n_mcmc))
         }
     }
     

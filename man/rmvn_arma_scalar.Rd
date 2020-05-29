@@ -7,9 +7,9 @@
 rmvn_arma_scalar(a, b)
 }
 \arguments{
-\item{\code{A}}{A scalar for the Gaussian full conditional distribution precision.}
+\item{a}{\code{a} A scalar for the Gaussian full conditional distribution precision.}
 
-\item{\code{b}}{A \eqn{d} \code{vector} for the Gaussian full conditional distribution mean.}
+\item{b}{\code{b} A \eqn{d} \code{vector} for the Gaussian full conditional distribution mean.}
 }
 \description{
 A function for sampling from conditional multivariate normal distributions with mean A^{-1}b and covariance matrix A^{-1}.

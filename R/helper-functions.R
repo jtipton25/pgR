@@ -2,17 +2,17 @@
 #'
 #' this function checks if the input is a scalar (double)
 #' @param x is the input
-#' @noRd
+#' @param n is the input length
 
 is_numeric <- function(x, n) {
-    (typeof(x) == "double" || typeof(x) == "integer")  && length(x) == n && !is.na(x)
+    (typeof(x) == "double" || typeof(x) == "integer")  && length(x) == n && all(!is.na(x))
 }
 
 #' Check if a positive numeric value
 #'
 #'  this function checks if the input is a positive scalar (double)
 #' @param x is the input
-#' @noRd
+#' @param n is the input length
 
 is_positive_numeric <- function(x, n) {
     is_numeric(x, n) && all(x > 0)
@@ -23,7 +23,6 @@ is_positive_numeric <- function(x, n) {
 #' this function checks if the input is a numeric (double) vector
 #' @param x is the input
 #' @param n is the input vector length
-#' @noRd
 
 is_numeric_vector <- function(x, n) {
     is_numeric(x, n) && is.vector(x)
@@ -35,10 +34,9 @@ is_numeric_vector <- function(x, n) {
 #' @param x is the input
 #' @param n is the input matrix rows
 #' @param m is the input matrix columns
-#' @noRd
 
 is_numeric_matrix <- function(x, n, m) {
-    is_numeric(x, n * m) && is.matrix(x) && dim(x) == c(n, m)
+    is_numeric(x, n * m) && is.matrix(x) && all(dim(x) == c(n, m))
     
 }
 #' Check if a symmetric positive definite numeric matrix of dimension \eqn{n \times n}{n x n}
@@ -46,7 +44,6 @@ is_numeric_matrix <- function(x, n, m) {
 #' this function checks if the input is a symmetrix positive definite matrix
 #' @param x is the input
 #' @param n is the input matrix dimension (assuming a square matrix)
-#' @noRd
 
 is_sympd_matrix <- function(x, n) {
     # if(!is.matrix(x))
@@ -61,7 +58,6 @@ is_sympd_matrix <- function(x, n) {
 #' this function checks if the input is an integer scalar (integer-like value -- i.e., both 1L and 1.0 pass this check)
 #' @param x is the input
 #' @param n is the number of inputs
-#' @noRd
 
 is_integer <- function(x, n) {
     if (is_numeric(x, n) && length(x) == n) {
@@ -81,7 +77,6 @@ is_integer <- function(x, n) {
 #' this function checks if the input is a positive integer scalar (integer-like value -- i.e., both 1L and 1.0 pass this check)
 #' @param x is the input
 #' @param n is the number of inputs
-#' @noRd
 
 is_positive_integer <- function(x, n) {
     is_integer(x, n) && all(x > 0)
@@ -92,7 +87,7 @@ is_positive_integer <- function(x, n) {
 #'
 #' this function checks if the correlation function type is valid
 #' @param corr_fun is the correlation function
-#' @noRd
+
 check_corr_fun <- function(corr_fun) {
     if (!(corr_fun %in% c("matern", "exponential"))) 
         stop('corr_fun must be either "matern" or "exponential"')

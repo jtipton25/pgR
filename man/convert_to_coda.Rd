@@ -11,7 +11,7 @@ convert_to_coda(out)
 is an MCMC chain}
 }
 \value{
-
+fill out later XXX
 }
 \description{
 This function  process custom MCMC output from Rcpp into an R coda

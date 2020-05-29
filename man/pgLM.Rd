@@ -30,6 +30,10 @@ pgLM(
 \item{inits}{is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.}
 
 \item{config}{is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.}
+
+\item{n_chain}{is the MCMC chain id. The default is 1.}
+
+\item{sample_rmvn}{is an indicator whether the faster multivariate normal sampler is used.}
 }
 \description{
 this function runs the Bayesian multinomial regression using Polya-gamma data augmentation

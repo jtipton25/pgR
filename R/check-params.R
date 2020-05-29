@@ -2,7 +2,7 @@
 #'
 #'  this function check that the parameter values are properly specified
 #' @param params is the list of current parameter settings
-#' @noRd
+
 
 check_params <- function(params) {
     
@@ -19,7 +19,6 @@ check_params <- function(params) {
     
     # }
 }
-
 
 
 

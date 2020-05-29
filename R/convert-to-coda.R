@@ -6,9 +6,9 @@
 #' @param out is a list of MCMC output where each element of the list 
 #' is an MCMC chain
 #'
-#' @return
+#' @return fill out later XXX
 #' @export
-#' 
+
 convert_to_coda <- function(out) {
     n_chains <- length(out)
     

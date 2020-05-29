@@ -30,6 +30,8 @@ predict_pgSPLM(
 
 \item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
 
+\item{shared_covariance_params}{is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
+
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
 
 \item{progress}{is a logicial input that determines whether to print a progress bar.}

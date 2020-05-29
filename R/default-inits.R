@@ -4,7 +4,8 @@
 #'
 #' @param Y is a \eqn{n \times d}{n x d} matrix of multinomial count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of variables.
-#' @noRd
+#' @param priors is the list of prior settings. 
+
 default_inits_pgLM <- function(Y, X, priors) {
     
     inits <- list(
@@ -20,10 +21,10 @@ default_inits_pgLM <- function(Y, X, priors) {
 #'
 #' @param Y is a \eqn{n \times d}{n x d} matrix of multinomial count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of variables.
-#' @param priors
-#' @param corr_fun
-#' @param shared_covariance_params
-#' @noRd
+#' @param priors is the list of prior settings. 
+#' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
+#' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
+
 default_inits_pgSPLM <- function(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE) {
 
     J <- ncol(Y)
@@ -40,21 +41,21 @@ default_inits_pgSPLM <- function(Y, X, priors, corr_fun = "exponential", shared_
     inits <- list(
         beta  = t(mvnfast::rmvn(J-1, priors$mu_beta, priors$Sigma_beta)),
         tau2  = if (shared_covariance_params) {
-            min(1 / rgamma(1, priors$alpha_tau, priors$beta_tau), 10)
+            min(1 / stats::rgamma(1, priors$alpha_tau, priors$beta_tau), 10)
         } else {
-            pmin(1 / rgamma(J-1, priors$alpha_tau, priors$beta_tau), 10)
+            pmin(1 / stats::rgamma(J-1, priors$alpha_tau, priors$beta_tau), 10)
         },
         theta = if (shared_covariance_params) {
             if (corr_fun == "matern") {
                 as.vector(pmin(pmax(mvnfast::rmvn(1, theta_mean, theta_var), -1), 0.1))
             } else if (corr_fun == "exponential") {
-                pmin(pmax(rnorm(1, theta_mean, sqrt(theta_var)), -1), 0.1)
+                pmin(pmax(stats::rnorm(1, theta_mean, sqrt(theta_var)), -1), 0.1)
             }
         } else {
             if (corr_fun == "matern") {
                 pmin(pmax(mvnfast::rmvn(J-1, theta_mean, theta_var), -1), 0.1)
             } else if (corr_fun == "exponential") {
-                pmin(pmax(rnorm(J-1, theta_mean, sqrt(theta_var)), -1), 0.1)
+                pmin(pmax(stats::rnorm(J-1, theta_mean, sqrt(theta_var)), -1), 0.1)
             }
         }
     )

@@ -2,7 +2,7 @@
 #' 
 #' A function to calculate Gelman-Rubin R-hat statistics for 
 #' custom coded model MCMC output=
-#' @param \code{out} is a list object where each element of
+#' @param out \code{out} is a list object where each element of
 #' the list is the results from a single MCMC chain. Within
 #' each MCMC chain, there will be a list of objects of various
 #' sizes where the first dimension of each of these objects 

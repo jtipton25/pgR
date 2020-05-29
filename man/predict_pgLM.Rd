@@ -10,6 +10,8 @@ predict_pgLM(out, X_pred, n_cores = 1L)
 \item{out}{is a list of MCMC outputs from pgLM}
 
 \item{X_pred}{is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of climate variables.}
+
+\item{n_cores}{is the number of cores for parallel computation using openMP.}
 }
 \description{
 this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation

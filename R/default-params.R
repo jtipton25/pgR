@@ -2,7 +2,6 @@
 #' 
 #' A function for setting up the default model parameters
 #'
-#' @noRd
 
 default_params <- function() {
     return(

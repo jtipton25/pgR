@@ -3,6 +3,7 @@
 #'  this function takes a matrix of compositional count data and converts the data to a proportion
 #' @param Y is a \eqn{n \times d}{n x d} matrix of compositional count data where each of the \eqn{n}{n} rows represents a compositional count observation.
 #' @export
+ 
 counts_to_proportions <- function(Y) {
     
     ## take a N times d matrix y of counts and return an N times d matrix 

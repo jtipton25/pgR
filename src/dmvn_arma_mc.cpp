@@ -18,7 +18,16 @@ void inplace_tri_mat_mult(arma::rowvec &x, arma::mat const &trimat){
     }
 }
 
-// [[Rcpp::export]]
+//' A function for evaluating a multivariate normal density in parallel
+//'
+//' @param x An \eqn{N \times d}{N x d} \code{matrix} of multivariate Gaussian observations.
+//' @param mean \code{mean} A \eqn{d} \code{vector} of the Gaussian distribution mean
+//' @param sigma A \eqn{d \times d}{d x d} positive definite covariance \code{matrix} 
+//' @param logd A logical value indicating whether the funtion should return the density on the log scale
+//' @param cores An integer that gives the number of cores for openMP parallelization
+//'   
+//' @export
+//[[Rcpp::export]]
 arma::vec dmvnrm_arma_mc(arma::mat const &x,  
                          arma::rowvec const &mean,  
                          arma::mat const &sigma, 

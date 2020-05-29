@@ -7,9 +7,9 @@
 rmvn_arma(A, b)
 }
 \arguments{
-\item{\code{A}}{A \eqn{d \times d} \code{matrix} for the Gaussian full conditional distribution precision matrix.}
+\item{A}{\code{A} A \eqn{d \times d} \code{matrix} for the Gaussian full conditional distribution precision matrix.}
 
-\item{\code{b}}{A \eqn{d} \code{vector} for the Gaussian full conditional distribution mean.}
+\item{b}{\code{b} A \eqn{d} \code{vector} for the Gaussian full conditional distribution mean.}
 }
 \description{
 A function for sampling from conditional multivariate normal distributions with mean A^{-1}b and covariance matrix A^{-1}.

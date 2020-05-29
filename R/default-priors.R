@@ -4,7 +4,6 @@
 #'
 #' @param Y is a \eqn{n \times d}{n x d} matrix of compositional count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
-#' @noRd
 
 default_priors_pgLM <- function(Y, X) {
     
@@ -25,7 +24,6 @@ default_priors_pgLM <- function(Y, X) {
 #' @param Y is a \eqn{n \times d}{n x d} matrix of compositional count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
-#' @noRd
 
 default_priors_pgSPLM <- function(Y, X, corr_fun = "exponential") {
     check_corr_fun(corr_fun)

@@ -4,7 +4,6 @@
 #' @param Y is a \eqn{n \times d}{n x d} matrix of multinomial count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of variables.
 #' @param inits is the list of current initial values
-#' @noRd
 
 check_inits_pgLM <- function(Y, X, inits) {
     ## check initial conditions for regression parameters

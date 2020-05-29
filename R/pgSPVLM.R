@@ -9,6 +9,7 @@
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param inits is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
+#' @param n_chain is the MCMC chain id. The default is 1.
 
 ## polya-gamma spatially varying linear regression model
 pgSPVLM <- function(
@@ -120,20 +121,20 @@ pgSPVLM <- function(
     
     theta_mean <- c(priors$mean_nu, priors$mean_range)
     theta_var  <- diag(c(priors$sd_nu, priors$sd_range)^2)
-    theta <- as.vector(rmvn(1, theta_mean, theta_var))
+    theta <- as.vector(mvnfast::rmvn(1, theta_mean, theta_var))
     if (!is.null(inits$theta)) {
         if (!is.na(inits$theta)) {
             theta <- inits$theta
         }
     }
     
-    tau2       <- min(1 / rgamma(1, priors$alpha_tau, priors$beta_tau), 10)
+    tau2       <- min(1 / stats::rgamma(1, priors$alpha_tau, priors$beta_tau), 10)
     Sigma      <- tau2 * correlation_function(D, theta)
     ## add in faster parallel cholesky as needed
     Sigma_chol <- chol(Sigma)
     Sigma_inv  <- chol2inv(Sigma_chol)
     
-    eta  <- X %*% beta + t(rmvn(d-1, rep(0, N), Sigma_chol, isChol = TRUE))
+    eta  <- X %*% beta + t(mvnfast::rmvn(J-1, rep(0, N), Sigma_chol, isChol = TRUE))
     
     ##
     ## sampler config options -- to be added later
@@ -233,7 +234,7 @@ pgSPVLM <- function(
         ## sample spatial correlation parameters theta
         ##
         
-        theta_star <- rmvn( 
+        theta_star <- mvnfast::rmvn( 
             n      = 1,
             mu     = theta,
             sigma  = lambda_theta * Sigma_theta_tune_chol,
@@ -246,7 +247,7 @@ pgSPVLM <- function(
         ## parallelize this
         mh1 <- sum(
             sapply(
-                1:(d-1), 
+                1:(J-1), 
                 function(j) {
                     mvnfast::dmvn(eta[, j], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) }
             )
@@ -256,7 +257,7 @@ pgSPVLM <- function(
         ## parallelize this        
         mh2 <- sum(
             sapply( 
-                1:(d-1),
+                1:(J-1),
                 function(j) {
                     mvnfast::dmvn(eta[, j], Xbeta[, j], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
                 }
@@ -266,7 +267,7 @@ pgSPVLM <- function(
             mvnfast::dmvn(theta, theta_mean, theta_var, log = TRUE)
         
         mh <- exp(mh1 - mh2)
-        if(mh > runif(1, 0, 1)) {
+        if(mh > stats::runif(1, 0, 1)) {
             theta      <- theta_star
             Sigma      <- Sigma_star
             Sigma_chol <- Sigma_chol_star
@@ -307,7 +308,7 @@ pgSPVLM <- function(
         
         devs       <- eta - Xbeta
         SS         <- sum(devs * (tau2 * Sigma_inv %*% devs))
-        tau2       <- 1 / rgamma(1, N * (d - 1) / 2 + priors$alpha_tau, SS / 2 + priors$beta_tau) 
+        tau2       <- 1 / stats::rgamma(1, N * (J - 1) / 2 + priors$alpha_tau, SS / 2 + priors$beta_tau) 
         Sigma      <- tau2 * correlation_function(D, theta) 
         ## add in faster parallel cholesky as needed
         Sigma_chol <- chol(Sigma)
@@ -319,7 +320,7 @@ pgSPVLM <- function(
         ##
         
         ## double check this and add in fixed effects X %*% beta
-        for (j in 1:(d-1)) {
+        for (j in 1:(J-1)) {
             ## can make this much more efficient
             ## can this be parallelized? seems like it
             A        <- Sigma_inv + Omega[[j]]

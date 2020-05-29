@@ -3,7 +3,6 @@
 #' this function check that the prior values are properly specified
 #' @param params is the list of current parameter settings
 #' @param priors is the list of current prior values
-#' @noRd
 
 check_priors <- function(params, priors) {
 

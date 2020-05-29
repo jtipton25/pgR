@@ -2,7 +2,6 @@
 #' @param k is a positive integer that is the current MCMC iteration.
 #' @param accept is a number between 0 and 1 that represents the batch accpetance rate. The target of this adaptive tuning algorithm is an acceptance rate of 0.44.
 #' @param tune is a positive number that is the univariate Gaussian random walk proposal standard deviation.
-#' @noRd
 
 update_tuning <- function(k, accept, tune) {
     delta = 1.0 / sqrt(k)
@@ -25,7 +24,6 @@ update_tuning <- function(k, accept, tune) {
 #' @param k is a positive integer that is the current MCMC iteration.
 #' @param accept is a vector of positive numbers between 0 and 1 that represents the batch accpetance rate. The target of this adaptive tuning algorithm is an acceptance rate of 0.44.
 #' @param tune is a vector of positive numbers that are the univariate Gaussian random walk proposal standard deviation.
-#' @noRd
 
 update_tuning_vec <- function(k, accept, tune) {
     delta <- 1.0 / sqrt(k)
@@ -51,7 +49,6 @@ update_tuning_vec <- function(k, accept, tune) {
 #' @param k is a positive integer that is the current MCMC iteration.
 #' @param accept is a matrix of positive numbers between 0 and 1 that represents the batch accpetance rate. The target of this adaptive tuning algorithm is an acceptance rate of 0.44.
 #' @param tune is a matrix of positive numbers that are the univariate Gaussian random walk proposal standard deviation.
-#' @noRd
 
 update_tuning_mat <- function(k, accept, tune) {
     delta <- 1.0 / sqrt(k)
@@ -83,7 +80,6 @@ update_tuning_mat <- function(k, accept, tune) {
 #' @param batch_samples is a \eqn{50 \times d}{50 x d} dimensional matrix that consists of the 50 batch samples of the d-dimensional parameter being sampled.
 #' @param Sigma_tune is a \eqn{d \times d}{d x d} positive definite covariance matrix of the batch samples used to generate the multivariate Gaussian random walk proposal.
 #' @param Sigma_tune_chol is the \eqn{d \times d}{d x d}  Cholesky decomposition of Sigma_tune.
-#' @noRd
 
 update_tuning_mv <- function(k, accept, lambda, batch_samples,
                            Sigma_tune, Sigma_tune_chol) {
@@ -127,12 +123,12 @@ update_tuning_mv <- function(k, accept, lambda, batch_samples,
 
 #' this function updates multiple block Gaussian random walk proposal Metropolis-Hastings tuning parameters
 #' @param k is a positive integer that is the current MCMC iteration.
-#' @param accept is a \eqn{\ell}{\ell}-dimensional vector of positive number between 0 and 1 that represents the batch accpetance rate. The target of this adaptive tuning algorithm is an acceptance rate of between 0.44 (a univariate update) and 0.234 (5+ dimensional upate).
-#' @param lambda is a is a \eqn{\ell}{\ell}-dimensional vector of positive scalars that scales the covariance matrix Sigma_tune and diminishes towards 0 as k increases.
-#' @param batch_samples is a \eqn{50 \times d \times \ell}{50 x d x \ell} dimensional array that consists of the 50 batch samples of the d-dimensional for each of the \code{\ell}{\ell} parameter groups being sampled.
-#' @param Sigma_tune is a \eqn{d \times d \times \ell}{d x d x \ell} array of \eqn{d \times d}{d x d} positive definite covariance matrix of the batch samples used to generate the multivariate Gaussian random walk proposal.
-#' @param Sigma_tune_chol is the \eqn{d \times d \times \ell}{d x d x \ell} array of \eqn{d \times d}{d x d} Cholesky decompositions of Sigma_tune.
-#' @noRd
+#' @param accept is a \eqn{p}{p}-dimensional vector of positive number between 0 and 1 that represents the batch accpetance rate. The target of this adaptive tuning algorithm is an acceptance rate of between 0.44 (a univariate update) and 0.234 (5+ dimensional upate).
+#' @param lambda is a is a \eqn{p}{p}-dimensional vector of positive scalars that scales the covariance matrix Sigma_tune and diminishes towards 0 as k increases.
+#' @param batch_samples is a \eqn{50 \times d \times p}{50 x d x p} dimensional array that consists of the 50 batch samples of the d-dimensional for each of the \code{p}{p} parameter groups being sampled.
+#' @param Sigma_tune is a \eqn{d \times d \times p}{d x d x p} array of \eqn{d \times d}{d x d} positive definite covariance matrix of the batch samples used to generate the multivariate Gaussian random walk proposal.
+#' @param Sigma_tune_chol is the \eqn{d \times d \times p}{d x d x p} array of \eqn{d \times d}{d x d} Cholesky decompositions of Sigma_tune.
+
 update_tuning_mv_mat <- function(k, accept, lambda, batch_samples,
                               Sigma_tune, Sigma_tune_chol) {
     arr <- c(0.44, 0.35, 0.32, 0.25, 0.234)
@@ -155,11 +151,11 @@ update_tuning_mv_mat <- function(k, accept, lambda, batch_samples,
     batch_samples_tmp <- batch_samples
     Sigma_tune_tmp <- Sigma_tune
     Sigma_tune_chol_tmp <- Sigma_tune_chol
-    for (l in 1:p) {
-        batch_samples_tmp[, , l] <- t(t(batch_samples_tmp[, , l]) - colMeans(batch_samples_tmp[, , l]))
-        Sigma_tune_tmp[, , l] <- Sigma_tune[, , l] + gamma1 *
-            (t(batch_samples_tmp[, , l]) %*% batch_samples_tmp[, , l] / (50.0-1.0) - Sigma_tune[, , l])
-        Sigma_tune_chol_tmp[, , l] <- chol(Sigma_tune_tmp[, , l])
+    for (j in 1:p) {
+        batch_samples_tmp[, , j] <- t(t(batch_samples_tmp[, , j]) - colMeans(batch_samples_tmp[, , j]))
+        Sigma_tune_tmp[, , j] <- Sigma_tune[, , j] + gamma1 *
+            (t(batch_samples_tmp[, , j]) %*% batch_samples_tmp[, , j] / (50.0-1.0) - Sigma_tune[, , j])
+        Sigma_tune_chol_tmp[, , j] <- chol(Sigma_tune_tmp[, , j])
     }
     ## 50 is an MCMC batch size, can make this function more general later...
     accept_out <- rep(0, length(accept))

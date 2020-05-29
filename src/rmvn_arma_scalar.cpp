@@ -8,8 +8,8 @@ using namespace arma;
 
 //' A function for sampling from conditional multivariate normal distributions with mean A^{-1}b and covariance matrix A^{-1}.
 //'
-//' @param \code{A} A scalar for the Gaussian full conditional distribution precision.
-//' @param \code{b} A \eqn{d} \code{vector} for the Gaussian full conditional distribution mean.
+//' @param a \code{a} A scalar for the Gaussian full conditional distribution precision.
+//' @param b \code{b} A \eqn{d} \code{vector} for the Gaussian full conditional distribution mean.
 //' 
 //' @export
 //[[Rcpp::export]]

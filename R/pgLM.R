@@ -10,8 +10,8 @@
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
 #' @param n_chain is the MCMC chain id. The default is 1.
 #' @param sample_rmvn is an indicator whether the faster multivariate normal sampler is used. 
+#' @export
 
-## polya-gamma linear regression model
 pgLM <- function(
     Y, 
     X,

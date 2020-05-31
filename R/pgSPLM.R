@@ -15,8 +15,11 @@
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' @importFrom stats rnorm rgamma runif dnorm
+#' @importFrom fields rdist
+#' @importFrom mvnfast rmvn dmvn
+#' 
+#' @export
 
-## polya-gamma spatial linear regression model
 pgSPLM <- function(
     Y, 
     X,
@@ -55,7 +58,7 @@ pgSPLM <- function(
     N  <- nrow(Y)
     J  <- ncol(Y)
     p <- ncol(X)
-    D <- fields::rdist(locs)
+    D <- rdist(locs)
     
     ## Calculate Mi
     Mi <- matrix(0, N, J-1)
@@ -110,7 +113,7 @@ pgSPLM <- function(
     ## initialize beta
     ##
     
-    beta <- t(mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
+    beta <- t(rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
     ## clean up this check
     if (!is.null(inits$beta)) {
         if (all(!is.na(inits$beta))) {
@@ -139,13 +142,13 @@ pgSPLM <- function(
     theta <- NULL
     if (shared_covariance_params) {
         if (corr_fun == "matern") {
-            theta <- as.vector(pmin(pmax(mvnfast::rmvn(1, theta_mean, theta_var), -2), 0.1))            
+            theta <- as.vector(pmin(pmax(rmvn(1, theta_mean, theta_var), -2), 0.1))            
         } else if (corr_fun == "exponential") {
             theta <- pmin(pmax(rnorm(1, theta_mean, sqrt(theta_var)), -2), 0.1)
         }
     } else {
         if (corr_fun == "matern") {
-            theta <- pmin(pmax(mvnfast::rmvn(J-1, theta_mean, theta_var), -2), 0.1)
+            theta <- pmin(pmax(rmvn(J-1, theta_mean, theta_var), -2), 0.1)
         } else if (corr_fun == "exponential") {
             theta <- pmin(pmax(rnorm(J-1, theta_mean, sqrt(theta_var)), -2), 0.1)
         }
@@ -209,7 +212,6 @@ pgSPLM <- function(
                 Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun)
             }
         }
-        # Sigma <- sapply(1:(J-1), function(j) tau2[j] * correlation_function(D, theta[j, ]))        
     }
     
     
@@ -254,11 +256,11 @@ pgSPLM <- function(
     
     eta  <- NULL
     if (shared_covariance_params) {
-        eta <- Xbeta + t(mvnfast::rmvn(J-1, rep(0, N), Sigma_chol, isChol = TRUE))
+        eta <- Xbeta + t(rmvn(J-1, rep(0, N), Sigma_chol, isChol = TRUE))
     } else{
         eta <- matrix(0, N, J-1)
         for (j in 1:(J-1)) {
-            eta[, j] <- Xbeta[, j] + t(mvnfast::rmvn(1, rep(0, N), Sigma_chol[j, , ], isChol = TRUE))
+            eta[, j] <- Xbeta[, j] + t(rmvn(1, rep(0, N), Sigma_chol[j, , ], isChol = TRUE))
         }
     }
     
@@ -445,7 +447,7 @@ pgSPLM <- function(
                 ## can make this much more efficient
                 # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
                 # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-                # beta[, j]   <- mvnfast::rmvn(1, mu_tilde, Sigma_tilde)
+                # beta[, j]   <- rmvn(1, mu_tilde, Sigma_tilde)
                 tXSigma_inv <- t(X) %*% Sigma_inv
                 A <- tXSigma_inv %*% X + Sigma_beta_inv
                 ## guarantee a symmetric matrix
@@ -458,7 +460,7 @@ pgSPLM <- function(
                 ## can make this much more efficient
                 # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
                 # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-                # beta[, j]   <- mvnfast::rmvn(1, mu_tilde, Sigma_tilde)
+                # beta[, j]   <- rmvn(1, mu_tilde, Sigma_tilde)
                 tXSigma_inv <- t(X) %*% Sigma_inv[j, , ]
                 A <- tXSigma_inv %*% X + Sigma_beta_inv
                 ## guarantee a symmetric matrix
@@ -481,7 +483,7 @@ pgSPLM <- function(
             theta_star <- NULL
             if (corr_fun == "matern") {
                 theta_star <- as.vector(
-                    mvnfast::rmvn( 
+                    rmvn( 
                         n      = 1,
                         mu     = theta,
                         sigma  = lambda_theta * Sigma_theta_tune_chol,
@@ -505,25 +507,20 @@ pgSPLM <- function(
             Sigma_inv_star  <- chol2inv(Sigma_chol_star)
             ## parallelize this
             mh1 <- sum(
-                sapply(
-                    1:(J-1), 
-                    function(j) {
-                        mvnfast::dmvn(eta[, j], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) }
-                )
+                sapply(1:(J-1), function(j) {
+                    dmvn(eta[, j], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                })
             ) +
                 ## prior
-                mvnfast::dmvn(theta_star, theta_mean, theta_var, log = TRUE)
+                dmvn(theta_star, theta_mean, theta_var, log = TRUE)
             ## parallelize this        
             mh2 <- sum(
-                sapply( 
-                    1:(J-1),
-                    function(j) {
-                        mvnfast::dmvn(eta[, j], Xbeta[, j], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
-                    }
-                )
+                sapply(1:(J-1), function(j) {
+                    dmvn(eta[, j], Xbeta[, j], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
+                })
             ) +
                 ## prior
-                mvnfast::dmvn(theta, theta_mean, theta_var, log = TRUE)
+                dmvn(theta, theta_mean, theta_var, log = TRUE)
             
             mh <- exp(mh1 - mh2)
             if (mh > runif(1, 0, 1)) {
@@ -574,7 +571,7 @@ pgSPLM <- function(
                 theta_star <- NULL
                 if (corr_fun == "matern") {
                     theta_star <- as.vector(
-                        mvnfast::rmvn( 
+                        rmvn( 
                             n      = 1,
                             mu     = theta[j, ],
                             sigma  = lambda_theta[j] * Sigma_theta_tune_chol[, , j],
@@ -598,14 +595,14 @@ pgSPLM <- function(
                 )
                 Sigma_inv_star  <- chol2inv(Sigma_chol_star)
                 ## parallelize this
-                mh1 <- mvnfast::dmvn(eta[, j], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) +
+                mh1 <- dmvn(eta[, j], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) +
                     ## prior
-                    mvnfast::dmvn(theta_star, theta_mean, theta_var, log = TRUE)
+                    dmvn(theta_star, theta_mean, theta_var, log = TRUE)
                 ## parallelize this        
-                mh2 <- mvnfast::dmvn(eta[, j], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
+                mh2 <- dmvn(eta[, j], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
                     ## prior
                     if (corr_fun == "matern") {
-                        mvnfast::dmvn(theta[j, ], theta_mean, theta_var, log = TRUE)
+                        dmvn(theta[j, ], theta_mean, theta_var, log = TRUE)
                     } else if (corr_fun == "exponential") {
                         dnorm(theta[j], theta_mean, sqrt(theta_var), log = TRUE)
                     }
@@ -720,45 +717,45 @@ pgSPLM <- function(
             for (j in 1:(J-1)) {
                 ## can make this much more efficient
                 ## can this be parallelized? seems like it
-                # A        <- Sigma_inv + Omega[[j]]
-                # b        <- Sigma_inv %*% Xbeta[, j] + kappa[, j]
-                # eta[, j] <- rmvn_arma(A, b) 
-                A <- Sigma_inv + Omega[[j]]
-                A_chol <- tryCatch(
-                    chol(A),
-                    error = function(e) {
-                        if (verbose)
-                            message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
-                        num_chol_failures <- num_chol_failures + 1
-                        chol(A + 1e-8 * diag(N))                    
-                    }
-                )
-                A_inv <- chol2inv(A_chol)
-                # A_inv <- chol2inv(chol(Sigma_inv + Omega[[j]]))
-                b     <- Sigma_inv %*% Xbeta[, j] + kappa[, j]
-                eta[, j]   <- mvnfast::rmvn(1, A_inv %*% b, A_inv)                
+                A        <- Sigma_inv + Omega[[j]]
+                b        <- Sigma_inv %*% Xbeta[, j] + kappa[, j]
+                eta[, j] <- rmvn_arma(A, b)
+                # A <- Sigma_inv + Omega[[j]]
+                # A_chol <- tryCatch(
+                #     chol(A),
+                #     error = function(e) {
+                #         if (verbose)
+                #             message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
+                #         num_chol_failures <- num_chol_failures + 1
+                #         chol(A + 1e-8 * diag(N))                    
+                #     }
+                # )
+                # A_inv <- chol2inv(A_chol)
+                # # A_inv <- chol2inv(chol(Sigma_inv + Omega[[j]]))
+                # b     <- Sigma_inv %*% Xbeta[, j] + kappa[, j]
+                # eta[, j]   <- rmvn(1, A_inv %*% b, A_inv)                
             }
         } else {      
             for (j in 1:(J-1)) {
                 ## can make this much more efficient
                 ## can this be parallelized? seems like it
                 
-                # A        <- Sigma_inv[j, , ] + Omega[[j]]
-                # b        <- Sigma_inv[j, , ] %*% Xbeta[, j] + kappa[, j]
-                # eta[, j] <- rmvn_arma(A, b) 
-                A <- Sigma_inv[j, , ] + Omega[[j]]
-                A_chol <- tryCatch(
-                    chol(A),
-                    error = function(e) {
-                        if (verbose)
-                            message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
-                        num_chol_failures <- num_chol_failures + 1
-                        chol(A + 1e-8 * diag(N))                    
-                    }
-                )
-                A_inv <- chol2inv(A_chol)
-                b     <- Sigma_inv[j, , ] %*% Xbeta[, j] + kappa[, j]
-                eta[, j]   <- mvnfast::rmvn(1, A_inv %*% b, A_inv)
+                A        <- Sigma_inv[j, , ] + Omega[[j]]
+                b        <- Sigma_inv[j, , ] %*% Xbeta[, j] + kappa[, j]
+                eta[, j] <- rmvn_arma(A, b)
+                # A <- Sigma_inv[j, , ] + Omega[[j]]
+                # A_chol <- tryCatch(
+                #     chol(A),
+                #     error = function(e) {
+                #         if (verbose)
+                #             message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
+                #         num_chol_failures <- num_chol_failures + 1
+                #         chol(A + 1e-8 * diag(N))                    
+                #     }
+                # )
+                # A_inv <- chol2inv(A_chol)
+                # b     <- Sigma_inv[j, , ] %*% Xbeta[, j] + kappa[, j]
+                # eta[, j]   <- rmvn(1, A_inv %*% b, A_inv)
                 
             }
         }

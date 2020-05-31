@@ -1,7 +1,7 @@
 #' Initialized default values of parameters
 #' 
 #' A function for setting up the default model parameters
-#'
+#' @export
 
 default_params <- function() {
     return(

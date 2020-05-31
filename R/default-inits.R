@@ -5,6 +5,7 @@
 #' @param Y is a \eqn{n \times d}{n x d} matrix of multinomial count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of variables.
 #' @param priors is the list of prior settings. 
+#' @export
 
 default_inits_pgLM <- function(Y, X, priors) {
     
@@ -24,6 +25,7 @@ default_inits_pgLM <- function(Y, X, priors) {
 #' @param priors is the list of prior settings. 
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
 #' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
+#' @export
 
 default_inits_pgSPLM <- function(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE) {
 

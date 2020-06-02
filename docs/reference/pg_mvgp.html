@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Generate CAR precision matrix — make_Q • pgR</title>
+<title>Bayesian Polya-gamma regression — pg_mvgp • pgR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Generate CAR precision matrix — make_Q" />
-<meta property="og:description" content="A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines" />
+<meta property="og:title" content="Bayesian Polya-gamma regression — pg_mvgp" />
+<meta property="og:description" content="this function runs the Bayesian multinomial regression using Polya-gamma data augmentation" />
 
 
 
@@ -108,33 +108,83 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Generate CAR precision matrix</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/make-Q.R'><code>R/make-Q.R</code></a></small>
-    <div class="hidden name"><code>make_Q.Rd</code></div>
+    <h1>Bayesian Polya-gamma regression</h1>
+    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pg-mvgp.R'><code>R/pg-mvgp.R</code></a></small>
+    <div class="hidden name"><code>pg_mvgp.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines</p>
+    <p>this function runs the Bayesian multinomial regression using Polya-gamma data augmentation</p>
     </div>
 
-    <pre class="usage"><span class='fu'>make_Q</span>(<span class='no'>n</span>, <span class='no'>phi</span>)</pre>
+    <pre class="usage"><span class='fu'>pg_mvgp</span>(
+  <span class='no'>Y</span>,
+  <span class='no'>X</span>,
+  <span class='no'>Z</span>,
+  <span class='no'>locs</span>,
+  <span class='no'>site_idx</span>,
+  <span class='no'>year_idx</span>,
+  <span class='no'>params</span>,
+  <span class='no'>priors</span>,
+  <span class='kw'>n_cores</span> <span class='kw'>=</span> <span class='fl'>1L</span>,
+  <span class='kw'>inits</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>config</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>n_chain</span> <span class='kw'>=</span> <span class='fl'>1</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>n</th>
-      <td><p>is the length of the coefficient vector for the penalized bspline model</p></td>
+      <th>Y</th>
+      <td><p>is a \(n \times J\) matrix of compositional count data.</p></td>
     </tr>
     <tr>
-      <th>phi</th>
-      <td><p>is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines</p></td>
+      <th>X</th>
+      <td><p>is a \(n \times p\) matrix of fixed effects (like latitude, elevation, etc)</p></td>
+    </tr>
+    <tr>
+      <th>Z</th>
+      <td><p>is Z</p></td>
+    </tr>
+    <tr>
+      <th>locs</th>
+      <td><p>is a \(n \times 2\) matrix of observation locations.</p></td>
+    </tr>
+    <tr>
+      <th>site_idx</th>
+      <td><p>is site_idx</p></td>
+    </tr>
+    <tr>
+      <th>year_idx</th>
+      <td><p>is year_idx</p></td>
+    </tr>
+    <tr>
+      <th>params</th>
+      <td><p>is the list of parameter settings.</p></td>
+    </tr>
+    <tr>
+      <th>priors</th>
+      <td><p>is the list of prior settings.</p></td>
+    </tr>
+    <tr>
+      <th>n_cores</th>
+      <td><p>is the number of cores for parallel computation using openMP.</p></td>
+    </tr>
+    <tr>
+      <th>inits</th>
+      <td><p>is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.</p></td>
+    </tr>
+    <tr>
+      <th>config</th>
+      <td><p>is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.</p></td>
+    </tr>
+    <tr>
+      <th>n_chain</th>
+      <td><p>is the MCMC chain id. The default is 1.</p></td>
     </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>an \(n \times n\) sparse Matrix of class "dgCMatrix" (see Matrix package for details)</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

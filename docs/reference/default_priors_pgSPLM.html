@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Generate CAR precision matrix — make_Q • pgR</title>
+<title>Initialized default values of priors — default_priors_pgSPLM • pgR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Generate CAR precision matrix — make_Q" />
-<meta property="og:description" content="A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines" />
+<meta property="og:title" content="Initialized default values of priors — default_priors_pgSPLM" />
+<meta property="og:description" content="A function for setting up the default pgSPLM priors" />
 
 
 
@@ -108,33 +108,34 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Generate CAR precision matrix</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/make-Q.R'><code>R/make-Q.R</code></a></small>
-    <div class="hidden name"><code>make_Q.Rd</code></div>
+    <h1>Initialized default values of priors</h1>
+    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/default-priors.R'><code>R/default-priors.R</code></a></small>
+    <div class="hidden name"><code>default_priors_pgSPLM.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines</p>
+    <p>A function for setting up the default pgSPLM priors</p>
     </div>
 
-    <pre class="usage"><span class='fu'>make_Q</span>(<span class='no'>n</span>, <span class='no'>phi</span>)</pre>
+    <pre class="usage"><span class='fu'>default_priors_pgSPLM</span>(<span class='no'>Y</span>, <span class='no'>X</span>, <span class='kw'>corr_fun</span> <span class='kw'>=</span> <span class='st'>"exponential"</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>n</th>
-      <td><p>is the length of the coefficient vector for the penalized bspline model</p></td>
+      <th>Y</th>
+      <td><p>is a \(n \times d\) matrix of compositional count data.</p></td>
     </tr>
     <tr>
-      <th>phi</th>
-      <td><p>is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines</p></td>
+      <th>X</th>
+      <td><p>is a \(n \times p\) matrix of climate variables.</p></td>
+    </tr>
+    <tr>
+      <th>corr_fun</th>
+      <td><p>is a character that denotes the correlation function form. Current options include "matern" and "exponential".</p></td>
     </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>an \(n \times n\) sparse Matrix of class "dgCMatrix" (see Matrix package for details)</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

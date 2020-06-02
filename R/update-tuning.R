@@ -14,8 +14,8 @@ update_tuning <- function(k, accept, tune) {
     accept_out <- 0.0
     return(
         list(
-            tune   = tune_out,
-            accept = accept_out
+            accept = accept_out,
+            tune   = tune_out
         )
     )
 }
@@ -39,8 +39,8 @@ update_tuning_vec <- function(k, accept, tune) {
     accept_out <- rep(0, n)
     return(
         list(
-            tune   = tune_out,
-            accept = accept_out
+            accept = accept_out,
+            tune   = tune_out
         )
     )
 }
@@ -67,8 +67,8 @@ update_tuning_mat <- function(k, accept, tune) {
     accept_out <- matrix(0, n, p)
     return(
         list(
-            tune   = tune_out,
-            accept = accept_out
+            accept = accept_out,
+            tune   = tune_out
         )
     )
 }
@@ -112,13 +112,15 @@ update_tuning_mv <- function(k, accept, lambda, batch_samples,
     Sigma_tune_chol_out <- chol(Sigma_tune)
     accept_out <- 0.0
     batch_samples_out <- matrix(0, batch_size, d)
-    return(list(
-        batch_samples   = batch_samples_out,
-        Sigma_tune      = Sigma_tune_out,
-        Sigma_tune_chol = Sigma_tune_chol_out,
-        lambda          = lambda_out,
-        accept          = accept_out
-    ))
+    return(
+        list(
+            accept          = accept_out,
+            lambda          = lambda_out,
+            batch_samples   = batch_samples_out,
+            Sigma_tune      = Sigma_tune_out,
+            Sigma_tune_chol = Sigma_tune_chol_out
+        )
+    )
 }
 
 #' this function updates multiple block Gaussian random walk proposal Metropolis-Hastings tuning parameters
@@ -162,11 +164,13 @@ update_tuning_mv_mat <- function(k, accept, lambda, batch_samples,
     batch_samples_out <- array(0, dim = dim(batch_samples))
     Sigma_tune_out <- Sigma_tune_tmp
     Sigma_tune_chol_out <- Sigma_tune_chol_tmp
-    return(list(
-        batch_samples   = batch_samples_out,
-        Sigma_tune      = Sigma_tune_out,
-        Sigma_tune_chol = Sigma_tune_chol_out,
-        lambda          = lambda_out,
-        accept          = accept_out
-    ))
+    return(
+        list(
+            accept          = accept_out,
+            lambda          = lambda_out,
+            batch_samples   = batch_samples_out,
+            Sigma_tune      = Sigma_tune_out,
+            Sigma_tune_chol = Sigma_tune_chol_out
+        )
+    )
 }

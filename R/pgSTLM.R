@@ -8,12 +8,14 @@
 #' @param priors is the list of prior settings. 
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
 #' @param n_cores is the number of cores for parallel computation using openMP.
+#' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
 #' @param inits is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
-#' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
+#' @param n_chain is the MCMC chain id. The default is 1.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
-#' @param n_chain is the MCMC chain id. The default is 1.
+#' @importFrom stats rmultinom
+#' @importFrom hms as_hms
 #' @export
 
 ## polya-gamma spatial linear regression model
@@ -24,8 +26,8 @@ pgSTLM <- function(
     params,
     priors,
     corr_fun = "exponential",
-    shared_covariance_params = TRUE,
     n_cores = 1L,
+    shared_covariance_params = TRUE,
     inits = NULL,
     config = NULL,
     n_chain       = 1,
@@ -35,11 +37,14 @@ pgSTLM <- function(
     sample_theta = TRUE, 
     sample_eta = TRUE,
     sample_tau2 = TRUE,
-    sample_rho = TRUE
+    sample_rho = TRUE,
+    n_impute = 1
     # pool_s2_tau2  = true,
     # file_name     = "DM-fit",
     # corr_function = "exponential"
 ) {
+   
+    start <- Sys.time()
     
     ##
     ## Run error checks
@@ -63,8 +68,7 @@ pgSTLM <- function(
     p <- ncol(X)
     D <- fields::rdist(locs)
     
-    ## add function to check if entire row of Y is NA
-    ## for now, we assume a partially missing observation is the same as fully missing
+    ## we assume a partially missing observation is the same as fully missing
     missing_idx <- matrix(FALSE, N, n_time)
     for (i in 1:N) {
         for (tt in 1:n_time) {
@@ -72,31 +76,40 @@ pgSTLM <- function(
             if (missing_idx[i, tt]) {
                 ## initialize a missing observation to ensure complete data
                 Y[i, , tt] <-
-                    rmultinom(1, 1, rep(1 / J, J))
+                    rmultinom(1, n_impute, rep(1 / J, J))
             }
         }
     }
     
     message("There are ", ifelse(any(missing_idx), sum(missing_idx), "no"), " observations with missing count vectors")
     
-    ## Calculate Mi
+    # ## Calculate Mi and kappa
+    # Mi <- array(0, dim = c(N, J-1, n_time))
+    # kappa <- array(0, dim = c(N, J - 1, n_time))
+    # for (i in 1:N){
+    #     for (tt in 1:n_time) {
+    #         Mi[i, , tt] <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
+    #         kappa[i, , tt] <- Y[i, 1:(J - 1), tt] - Mi[i, , tt] / 2
+    #     }
+    # }
+    
+    ## Calculate Mi and kappa
     Mi <- array(0, dim = c(N, J-1, n_time))
+    kappa <- array(0, dim = c(N, J - 1, n_time))
     for (i in 1:N){
         for (tt in 1:n_time) {
-            Mi[i, , tt] <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
+            if (missing_idx[i, tt]) {
+                Mi[i, , tt] <- 0
+                kappa[i, , tt] <- 0
+            } else {
+                Mi[i, , tt] <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
+                kappa[i, , tt] <- Y[i, 1:(J - 1), tt] - Mi[i, , tt] / 2
+            }
         }
     }
     
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
-    
-    ## initialize kappa
-    kappa <- array(0, dim = c(N, J - 1, n_time))
-    for (i in 1: N) {
-        for (tt in 1:n_time) {
-            kappa[i, , tt] <- Y[i, 1:(J - 1), tt] - Mi[i, , tt] / 2
-        }
-    }
     
     ##
     ## initial values
@@ -364,6 +377,7 @@ pgSTLM <- function(
         }
     }
     eta_save   <- array(0, dim = c(n_save, N, J-1, n_time))
+    # Y_save     <- array(0, dim = c(n_save, N, J, n_time))
     rho_save   <- rep(0, n_save)
     
     ## 
@@ -463,14 +477,24 @@ pgSTLM <- function(
         ## Sample missing Y variables to get complete data
         ##
         
-        for (i in 1:N) {
-            for (tt in 1:n_time) {
-                if (missing_idx[i, tt]) {
-                    ## initialize a missing observation to ensure complete data
-                    Y[i, , tt] <- rmultinom(1, 1, eta_to_pi(matrix(eta[i, , tt], 1, J-1)))
-                }
-            }
-        }
+        # ## update Y, Mi, and kappa for missing Y
+        # for (i in 1:N){
+        #     for (tt in 1:n_time) {
+        #         message("updating i = ", i, " tt = ", tt)
+        #         if (missing_idx[i, tt]) {
+        #             message("updating Missing i = ", i, " tt = ", tt)
+        #             ## update the missing observation to ensure complete data
+        #             Y[i, , tt]     <- rmultinom(1, n_impute, eta_to_pi(matrix(eta[i, , tt], 1, J-1)))
+        #             Mi[i, , tt]    <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
+        #             kappa[i, , tt] <- Y[i, 1:(J - 1), tt] - Mi[i, , tt] / 2
+        #         }
+        #     }
+        # }
+        # 
+        # ## update the index for nonzero values
+        # nonzero_idx <- Mi != 0
+        
+        ## instead of updating Y, why don't we try setting Mi = 0 and kappa = 0 when Y is missing
         
         ##
         ## sample Omega
@@ -628,7 +652,7 @@ pgSTLM <- function(
                         } 
                     }   
                 } else if (corr_fun == "exponential") {
-                    out_tuning <- update_tuning(k, theta_accept_batch, theta_tune)
+                    out_tuning         <- update_tuning(k, theta_accept_batch, theta_tune)
                     theta_tune         <- out_tuning$tune
                     theta_accept_batch <- out_tuning$accept
                 }
@@ -737,7 +761,7 @@ pgSTLM <- function(
                             lambda_theta          <- out_tuning$lambda
                             theta_accept_batch    <- out_tuning$accept
                         } else if (corr_fun == "exponential") {
-                            out_tuning <- update_tuning_vec(k, theta_accept_batch, theta_tune)
+                            out_tuning         <- update_tuning_vec(k, theta_accept_batch, theta_tune)
                             theta_tune         <- out_tuning$tune
                             theta_accept_batch <- out_tuning$accept
                         } 
@@ -940,8 +964,9 @@ pgSTLM <- function(
                     }
                     tau2_save[save_idx, ]     <- tau2
                 }
-                eta_save[save_idx, , , ]  <- eta
-                rho_save[save_idx]      <- rho
+                eta_save[save_idx, , , ] <- eta
+                # Y_save[save_idx, , , ]   <- Y
+                rho_save[save_idx]       <- rho
             }
             
         }
@@ -964,6 +989,7 @@ pgSTLM <- function(
     message("Acceptance rate for theta is ", mean(theta_accept))
     message("Acceptance rate for rho is ", mean(rho_accept))
     
+    
     ##
     ## return the MCMC output -- think about a better way to make this a class
     ## 
@@ -972,13 +998,19 @@ pgSTLM <- function(
         close(progressBar)
     }
     
+    stop    <- Sys.time()
+    runtime <- stop - start
+    
+    message("MCMC took ", as_hms(runtime))
+    
     return(
         list(
             beta  = beta_save,
             theta = theta_save,
             tau2  = tau2_save,
             eta   = eta_save,
-            rho   = rho_save
+            rho   = rho_save#,
+            # Y     = Y_save
         )
     )
 }

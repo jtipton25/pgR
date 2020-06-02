@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Generate CAR precision matrix — make_Q • pgR</title>
+<title>this function updates a vector block of univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters — update_tuning_vec • pgR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Generate CAR precision matrix — make_Q" />
-<meta property="og:description" content="A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines" />
+<meta property="og:title" content="this function updates a vector block of univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters — update_tuning_vec" />
+<meta property="og:description" content="this function updates a vector block of univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters" />
 
 
 
@@ -108,33 +108,34 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Generate CAR precision matrix</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/make-Q.R'><code>R/make-Q.R</code></a></small>
-    <div class="hidden name"><code>make_Q.Rd</code></div>
+    <h1>this function updates a vector block of univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters</h1>
+    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/update-tuning.R'><code>R/update-tuning.R</code></a></small>
+    <div class="hidden name"><code>update_tuning_vec.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines</p>
+    <p>this function updates a vector block of univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters</p>
     </div>
 
-    <pre class="usage"><span class='fu'>make_Q</span>(<span class='no'>n</span>, <span class='no'>phi</span>)</pre>
+    <pre class="usage"><span class='fu'>update_tuning_vec</span>(<span class='no'>k</span>, <span class='no'>accept</span>, <span class='no'>tune</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>n</th>
-      <td><p>is the length of the coefficient vector for the penalized bspline model</p></td>
+      <th>k</th>
+      <td><p>is a positive integer that is the current MCMC iteration.</p></td>
     </tr>
     <tr>
-      <th>phi</th>
-      <td><p>is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines</p></td>
+      <th>accept</th>
+      <td><p>is a vector of positive numbers between 0 and 1 that represents the batch accpetance rate. The target of this adaptive tuning algorithm is an acceptance rate of 0.44.</p></td>
+    </tr>
+    <tr>
+      <th>tune</th>
+      <td><p>is a vector of positive numbers that are the univariate Gaussian random walk proposal standard deviation.</p></td>
     </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>an \(n \times n\) sparse Matrix of class "dgCMatrix" (see Matrix package for details)</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

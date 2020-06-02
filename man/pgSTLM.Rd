@@ -11,8 +11,8 @@ pgSTLM(
   params,
   priors,
   corr_fun = "exponential",
-  shared_covariance_params = TRUE,
   n_cores = 1L,
+  shared_covariance_params = TRUE,
   inits = NULL,
   config = NULL,
   n_chain = 1,
@@ -22,7 +22,8 @@ pgSTLM(
   sample_theta = TRUE,
   sample_eta = TRUE,
   sample_tau2 = TRUE,
-  sample_rho = TRUE
+  sample_rho = TRUE,
+  n_impute = 1
 )
 }
 \arguments{
@@ -38,9 +39,9 @@ pgSTLM(
 
 \item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
 
-\item{shared_covariance_params}{is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
-
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
+
+\item{shared_covariance_params}{is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
 
 \item{inits}{is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.}
 

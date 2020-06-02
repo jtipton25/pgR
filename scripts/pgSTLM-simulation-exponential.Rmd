@@ -338,8 +338,8 @@ which is $\operatorname{PG} \left( \widetilde{M}_{i, j}, \eta_{i, j} \equiv \mat
 
 ```{r, message = FALSE}
 params <- default_params()
-params$n_adapt <- 1000
-params$n_mcmc <- 1000
+params$n_adapt <- 500#1000
+params$n_mcmc <- 500#1000
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSTLM(Y, X)
@@ -378,15 +378,18 @@ if (file.exists(here::here("results", "pgSTLM-exponential-shared.RData"))) {
                   TRUE,
                 # FALSE,
                 sample_rho = 
-                  TRUE
-                # FALSE
-                )
+                  TRUE,
+                # FALSE,
+                n_impute = 10000
+  )
   stop <- Sys.time()
   runtime <- stop - start
+  message("MCMC took ", as_hms(runtime))
   
   save(out, runtime, file = here::here("results", "pgSTLM-exponential-shared.RData"))
 }
 ```
+
 
 
 ```{r}
@@ -448,10 +451,6 @@ dat_eta_post_mean <- as.data.frame.table(eta_post_mean, responseName = "mean")
 dat_eta_post_lower <- as.data.frame.table(eta_post_lower, responseName = "lower")
 dat_eta_post_upper <- as.data.frame.table(eta_post_upper, responseName = "upper")
 
-# dat_plot <- Reduce(
-#   function(x, y) merge(x, y, all = TRUE), 
-#   list(dat_eta, dat_eta_post_mean)
-# )
 dat_plot <- Reduce(
   function(x, y) merge(x, y, all = TRUE),
   list(dat_eta, dat_eta_post_mean, dat_eta_post_lower, dat_eta_post_upper)
@@ -467,9 +466,48 @@ dat_plot %>%
   ggtitle("Estimated vs. predicted eta")
 ```
 
+
+```{r}
+## plot alpha estimates
+pi_post_mean <- array(0, dim = c(N, J, n_time))
+for (tt in 1:n_time) {
+  pi_post_mean[, , tt] <- eta_to_pi(eta_post_mean[, , tt])
+}
+dimnames(pi_post_mean) <- list(
+  site = 1:N,
+  species = 1:J,
+  time = 1:n_time
+)
+
+dimnames(pi) <- list(
+  site = 1:N,
+  species = 1:J,
+  time = 1:n_time
+)
+dat_pi           <- as.data.frame.table(pi, responseName = "truth")
+dat_pi_post_mean <- as.data.frame.table(pi_post_mean, responseName = "mean")
+
+# dat_plot <- Reduce(
+#   function(x, y) merge(x, y, all = TRUE), 
+#   list(dat_eta, dat_eta_post_mean)
+# )
+dat_plot <- Reduce(
+  function(x, y) merge(x, y, all = TRUE),
+  list(dat_pi, dat_pi_post_mean)
+)
+
+dat_plot %>% 
+  ggplot(aes(x = truth, y = mean, color = species)) +
+  scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_grid(time ~ species) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. predicted pi")
+```
+
 ```{r}
 ## put data into data.frame for plotting
-dat_Y_prop <- as.data.frame.table(Y_prop, responseName = "Y_prop")
+dat_pi  <- as.data.frame.table(pi, responseName = "truth")
 pi_post <- array(0, dim = c(length(out$rho), N, J, n_time),
                  dimnames = list(sample = 1:length(out$rho), site = 1:N, species = 1:J, time = 1:n_time)) 
 for (k in 1:length(out$rho)) {
@@ -477,7 +515,11 @@ for (k in 1:length(out$rho)) {
     pi_post[k, , , tt] <- eta_to_pi(out$eta[k, , , tt])
   }
 }
-dat_pi_post     <- as.data.frame.table(pi, responseName = "pi")
+dat_pi_post     <- as.data.frame.table(pi_post, responseName = "pi")
+dat_pi_post_mean <- dat_pi_post %>%
+  group_by(site, species, time) %>%
+  summarize(pi_mean = mean(pi))
+
 dat_locs <- data.frame(
   lon     = locs[, 1],
   lat     = locs[, 2],
@@ -486,7 +528,7 @@ dat_locs <- data.frame(
 
 dat_plot <- Reduce(
   function(x, y) merge(x, y, all = TRUE), 
-  list(dat_Y_prop, dat_pi, dat_locs)
+  list(dat_pi_post_mean, dat_pi, dat_locs)
 )
 
 
@@ -497,11 +539,22 @@ p_estimated <- dat_plot %>%
   geom_raster() +
   scale_fill_viridis_c() +
   facet_grid(time ~ species) +
-  ggtitle("Esimated eta over time") +
+  ggtitle("Esimated pi over time") +
   theme(legend.position = "none")
 p_simulated + p_estimated
 ```
 
+
+
+```{r}
+Y_post <- apply(out$Y, c(2, 3, 4), mean)
+Y_prop_post <- Y_post
+for (tt in 1:n_time) {
+  Y_prop_post[, , tt] <- counts_to_proportions(Y_post[, , tt])
+}
+ 
+plot(Y_prop_post, pi)
+```
 
 ```{r}
 layout(matrix(1:6, 3, 2))

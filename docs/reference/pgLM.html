@@ -125,7 +125,8 @@
   <span class='kw'>n_cores</span> <span class='kw'>=</span> <span class='fl'>1L</span>,
   <span class='kw'>inits</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>config</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>n_chain</span> <span class='kw'>=</span> <span class='fl'>1</span>
+  <span class='kw'>n_chain</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>sample_rmvn</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -158,6 +159,14 @@
     <tr>
       <th>config</th>
       <td><p>is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.</p></td>
+    </tr>
+    <tr>
+      <th>n_chain</th>
+      <td><p>is the MCMC chain id. The default is 1.</p></td>
+    </tr>
+    <tr>
+      <th>sample_rmvn</th>
+      <td><p>is an indicator whether the faster multivariate normal sampler is used.</p></td>
     </tr>
     </table>
 

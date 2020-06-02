@@ -117,7 +117,7 @@
     <p>A function for generatingg the Matern covariance matrix</p>
     </div>
 
-    <pre class="usage"><span class='fu'>correlation_function</span>(<span class='no'>D</span>, <span class='no'>theta</span>)</pre>
+    <pre class="usage"><span class='fu'>correlation_function</span>(<span class='no'>D</span>, <span class='no'>theta</span>, <span class='kw'>corr_fun</span> <span class='kw'>=</span> <span class='st'>"exponential"</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -128,7 +128,18 @@
     </tr>
     <tr>
       <th>theta</th>
-      <td><p>is a \(2\)-dimensional vector of Matern covariance parameter inputs on the log-scale with the first element the Matern smoothness parameter <code>nu</code> and second element the Matern <code>range</code> parameter</p></td>
+      <td><p>is the correlation function parameters. If 
+<code>corr_fun</code> is "matern", then <code>theta</code> is a 
+\(2\)-dimensional vector of Matern covariance parameter inputs
+on the log-scale with the first element the Matern range parameter
+<code>range</code> on the log-scale and second element the Matern smoothness parameter 
+<code>nu</code> on the log-scale. If <code>corr_fun</code> is "exponential" then <code>theta</code> is 
+a positive number representing the exponential correlation function
+range parameter on the log-scale.</p></td>
+    </tr>
+    <tr>
+      <th>corr_fun</th>
+      <td><p>is the correlation function</p></td>
     </tr>
     </table>
 

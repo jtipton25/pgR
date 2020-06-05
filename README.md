@@ -19,4 +19,4 @@ and copy the token into your .Renviron file as
 GITHUB_PAT=XXXXX
 ```
 
-where the XXXX is the PAT copied from github. If you are on a Mac, make sure you have an openMP supported compiler -- see [here](https://thecoatlessprofessor.com/programming/cpp/r-compiler-tools-for-rcpp-on-macos/) for instructions on how to get this setup. For other systems, I think this is pretty straightforward.
+where the XXXX is the PAT copied from github. If you are on a Mac, make sure you have an openMP supported compiler -- see [here](https://thecoatlessprofessor.com/programming/cpp/r-compiler-tools-for-rcpp-on-macos/) for instructions on how to get this setup. For Windows, download and install RTools. For R (>=4.0.0) follow the instructions [here](https://cran.r-project.org/bin/windows/Rtools/) -- older versions of R follow the instructions [here](https://cran.r-project.org/bin/windows/Rtools/history.html)

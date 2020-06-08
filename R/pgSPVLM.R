@@ -354,12 +354,15 @@ pgSPVLM <- function(
     ## return the MCMC output -- think about a better way to make this a class
     ## 
     
-    return(
-        list(
-            beta  = beta_save,
-            theta = theta_save,
-            tau2  = tau2_save,
-            eta   = eta_save
-        )
+    out <- list(
+        beta  = beta_save,
+        theta = theta_save,
+        tau2  = tau2_save,
+        eta   = eta_save
     )
+    class(out) <- "pgSPVLM"
+    
+    return(out)
 }
+
+

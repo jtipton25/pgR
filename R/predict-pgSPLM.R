@@ -26,9 +26,18 @@ predict_pgSPLM <- function(
     progress = TRUE, 
     verbose = FALSE
 ) {
+    
+    ##
+    ## check the inputs
+    ##
+    if (class(out) != "pgSPLM")
+        stop("THe MCMC object out must be of class pgSPLM which is the output of the pgSPLM() function.")
+    
     check_corr_fun(corr_fun)
-    ## add in a counter for the number of regularized Cholesky
-    num_chol_failures <- 0
+    
+    ## 
+    ## extract the parameters 
+    ##
     
     beta      <- out$beta
     theta     <- out$theta
@@ -42,6 +51,9 @@ predict_pgSPLM <- function(
     if (n_pred > 10000) {
         stop("Number of prediction points must be less than 10000")
     }
+    
+    ## add in a counter for the number of regularized Cholesky
+    num_chol_failures <- 0
     
     D_obs      <- fields::rdist(locs)
     D_pred     <- fields::rdist(locs_pred)

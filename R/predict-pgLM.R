@@ -12,7 +12,17 @@ predict_pgLM <- function(
     X_pred,
     n_cores = 1L
 ) {
-
+   
+    ##
+    ## check the inputs 
+    ##
+    if (class(out) != "pgLM")
+        stop("THe MCMC object out must be of class pgLM which is the output of the pgLM() function.")
+    
+    ## 
+    ## extract the parameters 
+    ##
+    
     beta      <- out$beta
     n_samples <- nrow(beta)    
     n_pred    <- nrow(X_pred)

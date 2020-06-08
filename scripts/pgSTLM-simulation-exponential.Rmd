@@ -23,7 +23,7 @@ library(patchwork)
 ## simulate some data
 ```{r}
 set.seed(11)
-N <- 20^2#30^2
+N <- 40^2
 J <- 6
 p <- 2
 n_time <- 10#20
@@ -104,7 +104,7 @@ p_simulated <- dat_plot %>%
   geom_raster() +
   scale_fill_viridis_c() +
   facet_grid(time ~ species) +
-  ggtitle("Simulated eta over time") +
+  ggtitle("Simulated pi over time") +
   theme(legend.position = "none")
 p_simulated
 ```
@@ -176,12 +176,12 @@ dag_tidy %>%
   geom_dag_text(
     color = "black",
     label = c(
-      TeX("$\\beta"),
-      TeX("$\\eta"),
+      TeX("$\\beta$"),
+      TeX("$\\eta$"),
       "lat/lon",
       TeX("$\\mu_{\\beta}$"),
       TeX("$\\Sigma_{\\beta}$"),
-      TeX("$\\tau^2"),
+      TeX("$\\tau^2$"),
       TeX("$\\theta$"),
       "X",
       "Y"
@@ -337,18 +337,31 @@ which is $\operatorname{PG} \left( \widetilde{M}_{i, j}, \eta_{i, j} \equiv \mat
 
 
 ```{r, message = FALSE}
-params <- default_params()
-params$n_adapt <- 500#1000
-params$n_mcmc <- 500#1000
-params$n_message <- 50
-params$n_thin <- 1
-priors <- default_priors_pgSTLM(Y, X)
-# inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = TRUE)
+##
+## subsample the data
+##
+set.seed(111)
+n_sites <- 400
+s        <- sample(N, n_sites)
+Y_s      <- Y[s, , ]
+Y_oos    <- Y[ - s, , ]
+X_s      <- X[s, ]
+X_oos    <- X[ - s, ]
+locs_s   <- locs[s, ]
+locs_oos <- locs[ - s, ]
 
-missing_idx <- matrix(FALSE, N, n_time)
-N_missing <- 1000 ## 25% of observations missing
-missing_idx[sample(1:(N*n_time), N_missing)] <- TRUE
-Y_missing <- Y
+eta_s    <- eta[s, , ]
+eta_oos  <- eta[ - s, , ]
+pi_s     <- pi[s, , ]
+pi_oos   <- pi[ - s, , ]
+
+##
+## make some of the data missing
+##
+missing_idx <- matrix(FALSE, n_sites, n_time)
+N_missing <- ceiling(n_sites * n_time * 0.25) ## 25% of observations missing
+missing_idx[sample(1:(n_sites * n_time), N_missing)] <- TRUE
+Y_missing <- Y_s
 # mean(missing_idx)
 for (i in 1:nrow(missing_idx)) {
   for (j in 1:ncol(missing_idx)) {
@@ -358,13 +371,44 @@ for (i in 1:nrow(missing_idx)) {
   }
 }
 
+
+dat_pi_s     <- as.data.frame.table(pi_s, responseName = "pi")
+dat_locs_s <- data.frame(
+  lon     = locs_s[, 1],
+  lat     = locs_s[, 2],
+  site    = factor(1:n_sites)
+)
+
+dat_plot <- merge(dat_pi_s, dat_locs_s)
+
+p_sampled <- dat_plot %>%
+  ggplot(aes(x = lon, y = lat, fill = pi)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_grid(time ~ species) +
+  ggtitle("Sampled eta over time") +
+  theme(legend.position = "none")
+p_sampled
+
+```
+
+
+```{r}
+params <- default_params()
+params$n_adapt <- 500#1000
+params$n_mcmc <- 500#1000
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pgSTLM(Y, X)
+# inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = TRUE)
+
 if (file.exists(here::here("results", "pgSTLM-exponential-shared.RData"))) {
   load(here::here("results", "pgSTLM-exponential-shared.RData"))
 } else {
 
 
   start <- Sys.time()
-  out <- pgSTLM(Y_missing, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential",  n_cores = 6L, shared_covariance_params = TRUE, 
+  out <- pgSTLM(Y_missing, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "exponential",  n_cores = 6L, shared_covariance_params = TRUE, 
                 sample_beta = 
                   TRUE,
                 # FALSE,
@@ -378,13 +422,13 @@ if (file.exists(here::here("results", "pgSTLM-exponential-shared.RData"))) {
                   TRUE,
                 # FALSE,
                 sample_rho = 
-                  TRUE,
-                # FALSE,
-                n_impute = 10000
+                  TRUE
+                # FALSE
+                # n_impute = 10000
   )
   stop <- Sys.time()
   runtime <- stop - start
-  message("MCMC took ", as_hms(runtime))
+  message("MCMC took ", hms::as_hms(runtime))
   
   save(out, runtime, file = here::here("results", "pgSTLM-exponential-shared.RData"))
 }
@@ -422,31 +466,31 @@ abline(0, 1, col = "red")
 
 
 ```{r}
-## plot alpha estimates
+## plot eta estimates
 eta_post_mean <- apply(out$eta, c(2, 3, 4), mean)
 dimnames(eta_post_mean) <- list(
-  site = 1:N,
+  site = 1:n_sites,
   species = 1:(J-1),
   time = 1:n_time
 )
 eta_post_lower <- apply(out$eta, c(2, 3, 4), quantile, prob = 0.025)
 dimnames(eta_post_lower) <- list(
-  site = 1:N,
+  site = 1:n_sites,
   species = 1:(J-1),
   time = 1:n_time
 )
 eta_post_upper <- apply(out$eta, c(2, 3, 4), quantile, prob = 0.975)
 dimnames(eta_post_upper) <- list(
-  site = 1:N,
+  site = 1:n_sites,
   species = 1:(J-1),
   time = 1:n_time
 )
-dimnames(eta) <- list(
-  site = 1:N,
+dimnames(eta_s) <- list(
+  site = 1:n_sites,
   species = 1:(J-1),
   time = 1:n_time
 )
-dat_eta           <- as.data.frame.table(eta, responseName = "truth")
+dat_eta           <- as.data.frame.table(eta_s, responseName = "truth")
 dat_eta_post_mean <- as.data.frame.table(eta_post_mean, responseName = "mean")
 dat_eta_post_lower <- as.data.frame.table(eta_post_lower, responseName = "lower")
 dat_eta_post_upper <- as.data.frame.table(eta_post_upper, responseName = "upper")
@@ -469,22 +513,19 @@ dat_plot %>%
 
 ```{r}
 ## plot alpha estimates
-pi_post_mean <- array(0, dim = c(N, J, n_time))
-for (tt in 1:n_time) {
-  pi_post_mean[, , tt] <- eta_to_pi(eta_post_mean[, , tt])
-}
+pi_post_mean <- apply(out$pi, c(2, 3, 4), mean)
 dimnames(pi_post_mean) <- list(
-  site = 1:N,
+  site = 1:n_sites,
   species = 1:J,
   time = 1:n_time
 )
 
-dimnames(pi) <- list(
-  site = 1:N,
+dimnames(pi_s) <- list(
+  site = 1:n_sites,
   species = 1:J,
   time = 1:n_time
 )
-dat_pi           <- as.data.frame.table(pi, responseName = "truth")
+dat_pi           <- as.data.frame.table(pi_s, responseName = "truth")
 dat_pi_post_mean <- as.data.frame.table(pi_post_mean, responseName = "mean")
 
 # dat_plot <- Reduce(
@@ -505,43 +546,190 @@ dat_plot %>%
   ggtitle("Estimated vs. predicted pi")
 ```
 
-```{r}
-## put data into data.frame for plotting
-dat_pi  <- as.data.frame.table(pi, responseName = "truth")
-pi_post <- array(0, dim = c(length(out$rho), N, J, n_time),
-                 dimnames = list(sample = 1:length(out$rho), site = 1:N, species = 1:J, time = 1:n_time)) 
-for (k in 1:length(out$rho)) {
-  for (tt in 1:n_time) {
-    pi_post[k, , , tt] <- eta_to_pi(out$eta[k, , , tt])
-  }
-}
-dat_pi_post     <- as.data.frame.table(pi_post, responseName = "pi")
-dat_pi_post_mean <- dat_pi_post %>%
-  group_by(site, species, time) %>%
-  summarize(pi_mean = mean(pi))
 
-dat_locs <- data.frame(
-  lon     = locs[, 1],
-  lat     = locs[, 2],
-  site    = factor(1:N)
+```{r, message = FALSE}
+## predict the unobserved locations
+if (file.exists(here::here("results", "pgSTLM-exponential-sample-preds-shared.RData"))) {
+  load(here::here("results", "pgSTLM-exponential-sample-preds-shared.RData"))
+} else {
+  ## currently this is somewhat slow but is embarassingly parallel
+  preds <- predict_pgSTLM(out, X_s, X_oos, locs_s, locs_oos, corr_fun = "exponential", shared_covariance_params = TRUE)
+  save(preds, file = here::here("results", "pgSTLM-exponential-sample-preds-shared.RData"))
+}
+```
+
+
+
+```{r}
+## plot predicted eta estimates
+eta_pred_mean <- apply(preds$eta, c(2, 3, 4), mean)
+dimnames(eta_pred_mean) <- list(
+  site = 1:(N-n_sites),
+  species = 1:(J-1),
+  time = 1:n_time
 )
+eta_pred_lower <- apply(preds$eta, c(2, 3, 4), quantile, prob = 0.025)
+dimnames(eta_pred_lower) <- list(
+  site = 1:(N-n_sites),
+  species = 1:(J-1),
+  time = 1:n_time
+)
+eta_pred_upper <- apply(preds$eta, c(2, 3, 4), quantile, prob = 0.975)
+dimnames(eta_pred_upper) <- list(
+  site = 1:(N-n_sites),
+  species = 1:(J-1),
+  time = 1:n_time
+)
+dimnames(eta_oos) <- list(
+  site = 1:(N-n_sites),
+  species = 1:(J-1),
+  time = 1:n_time
+)
+dat_eta_oos           <- as.data.frame.table(eta_oos, responseName = "truth")
+dat_eta_pred_mean <- as.data.frame.table(eta_pred_mean, responseName = "mean")
+dat_eta_pred_lower <- as.data.frame.table(eta_pred_lower, responseName = "lower")
+dat_eta_pred_upper <- as.data.frame.table(eta_pred_upper, responseName = "upper")
 
 dat_plot <- Reduce(
-  function(x, y) merge(x, y, all = TRUE), 
-  list(dat_pi_post_mean, dat_pi, dat_locs)
+  function(x, y) merge(x, y, all = TRUE),
+  list(dat_eta_oos, dat_eta_pred_mean, dat_eta_pred_lower, dat_eta_pred_upper)
+)
+
+dat_plot %>% 
+  ggplot(aes(x = truth, y = mean, color = species)) +
+  scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  facet_grid(time ~ species) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Kriging estimate vs. simulated eta")
+```
+
+
+```{r}
+## plot predicited pi
+pi_pred_mean <- array(0, dim = c(N-n_sites, J, n_time))
+for (tt in 1:n_time) {
+  pi_pred_mean[, , tt] <- eta_to_pi(eta_pred_mean[, , tt])
+}
+dimnames(pi_pred_mean) <- list(
+  site = 1:(N-n_sites),
+  species = 1:J,
+  time = 1:n_time
+)
+
+dimnames(pi_oos) <- list(
+  site = 1:(N-n_sites),
+  species = 1:J,
+  time = 1:n_time
+)
+dat_pi_oos       <- as.data.frame.table(pi_oos, responseName = "truth")
+dat_pi_pred_mean <- as.data.frame.table(pi_pred_mean, responseName = "mean")
+
+# dat_plot <- Reduce(
+#   function(x, y) merge(x, y, all = TRUE), 
+#   list(dat_eta, dat_eta_pred_mean)
+# )
+dat_plot <- Reduce(
+  function(x, y) merge(x, y, all = TRUE),
+  list(dat_pi_oos, dat_pi_pred_mean)
+)
+
+dat_plot %>% 
+  ggplot(aes(x = truth, y = mean, color = species)) +
+  scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_grid(time ~ species) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Kriging estimate vs. simulated pi")
+```
+
+
+
+
+```{r}
+##
+## prediction mean
+##
+pi_post_mean <- apply(out$pi, c(2, 3, 4), mean)
+dimnames(pi_post_mean) <- list(
+  site = 1:n_sites,
+  species = 1:J,
+  time = 1:n_time
+)
+pi_pred_mean <- apply(preds$pi, c(2, 3, 4), mean)
+dimnames(pi_pred_mean) <- list(
+  site = 1:(N-n_sites),
+  species = 1:J,
+  time = 1:n_time
+)
+
+dat_pi_mean_s   <- as.data.frame.table(pi_post_mean, responseName = "mean")
+dat_pi_mean_oos <- as.data.frame.table(pi_pred_mean, responseName = "mean")
+dat_pi_mean_s$in_sample <- TRUE
+dat_pi_mean_oos$in_sample <- FALSE
+dat_pi_mean_full <- rbind(dat_pi_mean_s, dat_pi_mean_oos)
+
+##
+## prediction variance
+##
+
+pi_post_var <- apply(out$pi, c(2, 3, 4), var)
+dimnames(pi_post_var) <- list(
+  site = 1:n_sites,
+  species = 1:J,
+  time = 1:n_time
+)
+pi_pred_var <- apply(preds$pi, c(2, 3, 4), var)
+dimnames(pi_pred_var) <- list(
+  site = 1:(N-n_sites),
+  species = 1:J,
+  time = 1:n_time
+)
+
+dat_pi_var_s   <- as.data.frame.table(pi_post_var, responseName = "var")
+dat_pi_var_oos <- as.data.frame.table(pi_pred_var, responseName = "var")
+dat_pi_var_s$in_sample <- TRUE
+dat_pi_var_oos$in_sample <- FALSE
+dat_pi_var_full <- rbind(dat_pi_var_s, dat_pi_var_oos)
+
+
+dat_locs_s <- data.frame(
+  lon       = locs_s[, 1],
+  lat       = locs_s[, 2],
+  site      = factor(1:n_sites),
+  in_sample = TRUE
+)
+dat_locs_oos <- data.frame(
+  lon       = locs_oos[, 1],
+  lat       = locs_oos[, 2],
+  site      = factor(1:(N-n_sites)),
+  in_sample = FALSE
+)
+dat_locs_full <- rbind(dat_locs_s, dat_locs_oos)
+
+dat_plot <- Reduce(
+  function(x, y) merge(x, y, all = TRUE),
+  list(dat_pi_mean_full, dat_pi_var_full, dat_locs_full)
 )
 
 
-p_estimated <- dat_plot %>%
-  group_by(site, species, time, lat, lon) %>%
-  summarize(pi_mean = mean(pi)) %>%
-  ggplot(aes(x = lon, y = lat, fill = pi_mean)) +
+p_mean <- dat_plot %>%
+  ggplot(aes(x = lon, y = lat, fill = mean)) +
   geom_raster() +
   scale_fill_viridis_c() +
   facet_grid(time ~ species) +
-  ggtitle("Esimated pi over time") +
+  ggtitle("Esimated mean pi over time") +
   theme(legend.position = "none")
-p_simulated + p_estimated
+
+p_var <- dat_plot %>%
+  ggplot(aes(x = lon, y = lat, fill = var)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_grid(time ~ species) +
+  ggtitle("Esimated variance in pi over time") +
+  theme(legend.position = "none") 
+(p_simulated + p_sampled) / (p_mean + p_var)
 ```
 
 

@@ -37,8 +37,8 @@ pgSTLM <- function(
     sample_theta = TRUE, 
     sample_eta = TRUE,
     sample_tau2 = TRUE,
-    sample_rho = TRUE,
-    n_impute = 1
+    sample_rho = TRUE
+    # n_impute = 1
     # pool_s2_tau2  = true,
     # file_name     = "DM-fit",
     # corr_function = "exponential"
@@ -73,11 +73,11 @@ pgSTLM <- function(
     for (i in 1:N) {
         for (tt in 1:n_time) {
             missing_idx[i, tt] <- any(is.na(Y[i, , tt]))
-            if (missing_idx[i, tt]) {
-                ## initialize a missing observation to ensure complete data
-                Y[i, , tt] <-
-                    rmultinom(1, n_impute, rep(1 / J, J))
-            }
+            # if (missing_idx[i, tt]) {
+            #     ## initialize a missing observation to ensure complete data
+            #     Y[i, , tt] <-
+            #         rmultinom(1, n_impute, rep(1 / J, J))
+            # }
         }
     }
     
@@ -99,7 +99,7 @@ pgSTLM <- function(
     for (i in 1:N){
         for (tt in 1:n_time) {
             if (missing_idx[i, tt]) {
-                Mi[i, , tt] <- 0
+                Mi[i, , tt]    <- 0
                 kappa[i, , tt] <- 0
             } else {
                 Mi[i, , tt] <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
@@ -377,7 +377,7 @@ pgSTLM <- function(
         }
     }
     eta_save   <- array(0, dim = c(n_save, N, J-1, n_time))
-    # Y_save     <- array(0, dim = c(n_save, N, J, n_time))
+    pi_save    <- array(0, dim = c(n_save, N, J, n_time))
     rho_save   <- rep(0, n_save)
     
     ## 
@@ -965,6 +965,9 @@ pgSTLM <- function(
                     tau2_save[save_idx, ]     <- tau2
                 }
                 eta_save[save_idx, , , ] <- eta
+                for (tt in 1:n_time) {
+                    pi_save[save_idx, , , tt]  <- eta_to_pi(eta[, , tt])
+                }
                 # Y_save[save_idx, , , ]   <- Y
                 rho_save[save_idx]       <- rho
             }
@@ -1001,18 +1004,20 @@ pgSTLM <- function(
     stop    <- Sys.time()
     runtime <- stop - start
     
-    message("MCMC took ", as_hms(runtime))
+    message("MCMC took ", hms::as_hms(runtime))
     
-    return(
-        list(
-            beta  = beta_save,
-            theta = theta_save,
-            tau2  = tau2_save,
-            eta   = eta_save,
-            rho   = rho_save#,
-            # Y     = Y_save
-        )
+    
+    out <- list(
+        beta  = beta_save,
+        theta = theta_save,
+        tau2  = tau2_save,
+        eta   = eta_save,
+        pi    = pi_save,
+        rho   = rho_save
     )
+    class(out) <- "pgSTLM"
+
+    return(out)
 }
 
 

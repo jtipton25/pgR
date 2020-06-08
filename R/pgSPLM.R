@@ -804,22 +804,24 @@ pgSPLM <- function(
     ## eventually create a model class and include this as a variable in the class
     message("Acceptance rate for theta is ", mean(theta_accept))
     
-    ##
-    ## return the MCMC output -- think about a better way to make this a class
-    ## 
-    
     if (progress) {
         close(progressBar)
     }
     
-    return(
-        list(
-            beta  = beta_save,
-            theta = theta_save,
-            tau2  = tau2_save,
-            eta   = eta_save
-        )
+    ##
+    ## return the MCMC output -- think about a better way to make this a class
+    ## 
+    
+    out <- list(
+        beta  = beta_save,
+        theta = theta_save,
+        tau2  = tau2_save,
+        eta   = eta_save
     )
+    class(out) <- "pgSPLM"
+    
+    return(out)
+    
 }
 
 

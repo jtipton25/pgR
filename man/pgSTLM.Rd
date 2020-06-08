@@ -22,8 +22,7 @@ pgSTLM(
   sample_theta = TRUE,
   sample_eta = TRUE,
   sample_tau2 = TRUE,
-  sample_rho = TRUE,
-  n_impute = 1
+  sample_rho = TRUE
 )
 }
 \arguments{

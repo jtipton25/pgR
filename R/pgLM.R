@@ -251,9 +251,8 @@ pgLM <- function(
     ## return the MCMC output -- think about a better way to make this a class
     ## 
     
-    return(
-        list(
-            beta = beta_save
-        )
-    )
+    out <- list(beta = beta_save)
+    class(out) <- "pgLM"
+    
+    return(out)
 }

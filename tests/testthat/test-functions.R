@@ -264,54 +264,58 @@ test_that("make_alpha function", {
     expect_equal(make_alpha(Xbs, beta, params), pmax(Xbs %*% beta, params$tol))
 })
 
-test_that("setup_splines function", {
-    params <- default_params()
-    params$type = "GP"
-    expect_error(setup_splines(params), "the model type must be bspline to run setup_splines")
-})
+# test_that("setup_splines function", {
+#     params <- default_params()
+#     params$type = "GP"
+#     expect_error(setup_splines(params), "the model type must be bspline to run setup_splines")
+# })
 # expect_error(make_alpha(Y, X, params))
 
 
 
 
-test_that("dvmn_arma_mc function", {
-    ## add in error checking and type checking
-    N     <- 100
-    d     <- 6
-    mu    <- stats::rnorm(6)
-    Sigma <- LaplacesDemon::rwishart(d+2, diag(d))
-    X     <- mvnfast::rmvn(N, mu, Sigma)
-    
-    expect_equal(
-        mvnfast::dmvn(X, mu, Sigma, log = TRUE),
-        as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE))
-    )
-    expect_equal(
-        mvnfast::dmvn(X, mu, Sigma, log = TRUE),
-        as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE, cores = 4))
-    )
-    
-    # expect_error(setup_splines(params), "the model type must be bspline to run setup_splines")
-})
+if (require(LaplacesDemon)) {
+    test_that("dvmn_arma_mc function", {
+        ## add in error checking and type checking
+        N     <- 100
+        d     <- 6
+        mu    <- stats::rnorm(6)
+        Sigma <- LaplacesDemon::rwishart(d+2, diag(d))
+        X     <- mvnfast::rmvn(N, mu, Sigma)
+        
+        expect_equal(
+            mvnfast::dmvn(X, mu, Sigma, log = TRUE),
+            as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE))
+        )
+        expect_equal(
+            mvnfast::dmvn(X, mu, Sigma, log = TRUE),
+            as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE, cores = 4))
+        )
+        
+        # expect_error(setup_splines(params), "the model type must be bspline to run setup_splines")
+    })
+}
 
 
-test_that("rmvn_arma function", {
-    ## check that the rmvn_arma function generates draws from the
-    ## same distribution -- verify Monte Carlo mean and covariance
-    ## are the same up to Monte Carlo error
-    set.seed(11)
-    N     <- 10000
-    d     <- 6
-    mu    <- stats::rnorm(6)
-    Sigma <- LaplacesDemon::rwishart(d + 2, diag(d))
-    
-    X <- mvnfast::rmvn(N, solve(Sigma) %*% mu, solve(Sigma))
-    Y <- t(sapply(1:N, function(i) rmvn_arma(Sigma, mu)))
-    expect_equal(
-        colMeans(X), colMeans(Y), tol = 0.05
-    )
-    
-    expect_equal(
-        var(X), var(Y), tol = 0.05
-    )
-})
+if (require(LaplacesDemon)) {
+    test_that("rmvn_arma function", {
+        ## check that the rmvn_arma function generates draws from the
+        ## same distribution -- verify Monte Carlo mean and covariance
+        ## are the same up to Monte Carlo error
+        set.seed(11)
+        N     <- 10000
+        d     <- 6
+        mu    <- stats::rnorm(6)
+        Sigma <- LaplacesDemon::rwishart(d + 2, diag(d))
+        
+        X <- mvnfast::rmvn(N, solve(Sigma) %*% mu, solve(Sigma))
+        Y <- t(sapply(1:N, function(i) rmvn_arma(Sigma, mu)))
+        expect_equal(
+            colMeans(X), colMeans(Y), tol = 0.05
+        )
+        
+        expect_equal(
+            var(X), var(Y), tol = 0.05
+        )
+    })
+}

@@ -5,10 +5,11 @@ Version: 1.0
 Date: 2020-05-04
 Authors@R: person("John", "Tipton", email = "jrtipton@uark.edu", 
     role = c("aut", "cre"))
-Description: Fit Bayesian Polya-gamma regression models.
-    This package contains code to fit multinomial regression, 
-    multinomial spatial regression, mutlinomial spatially varying
-    coefficient models, sparse multiresolution multinomial spatial 
+Description: Software for fitting Bayesian Polya-gamma regression
+    models including multinomial regression, multinomial spatial
+    regression, mutlinomial spatially varying coefficient models,
+    multinomial spatio-temporal regression models, sparse
+    multiresolution multinomial spatial models, and ...
     models, and ...
 License: GPL (>= 3)
 Depends: R (>= 3.5.0)

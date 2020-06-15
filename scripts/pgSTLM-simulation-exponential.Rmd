@@ -546,6 +546,15 @@ dat_plot %>%
   ggtitle("Estimated vs. predicted pi")
 ```
 
+## Predicting at unobserved locations during observed time periods
+
+Notation: $s$ represents the observed (sampled) locations and $oos$ represents the unobserved (out of sample) locations.
+
+$$
+\begin{align*}
+\begin{pmatrix} \boldsymbol{\eta}_o \\ \boldsymbol{\eta}_{oos} \end{pmatrix} & \sim \operatorname{N} \left( \begin{pmatrix} \mathbf{X}_o \\ \mathbf{X}_{oos}  \end{pmatrix} \boldsymbol{\beta}, \boldsymbol{\Sigma}_{time} \otimes \begin{pmatrix} \boldsymbol{\Sigma}_o & \boldsymbol{\Sigma}_{o, oos} \\ \boldsymbol{\Sigma}_{oos, o} & \boldsymbol{\Sigma}_{oos} \end{pmatrix} \right)
+\end{align*}
+$$
 
 ```{r, message = FALSE}
 ## predict the unobserved locations

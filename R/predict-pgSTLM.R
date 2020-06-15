@@ -69,6 +69,11 @@ predict_pgSTLM <- function(
     percentage_points <- round((1:100 / 100) * n_samples)   
     
     ## parallelize this later
+    
+    ## the comments below are to verify that the faster calculations are equivalent
+    ## to the slower but simpler mathematical representations
+    ## \begin{pmatrix} \boldsymbol{\eta}_o \\ \boldsymbol{\eta}_{oos} \end{pmatrix} & \sim \operatorname{N} \left( \begin{pmatrix} \mathbf{X}_o \\ \mathbf{X}_{oos}  \end{pmatrix} \boldsymbol{\beta}, \boldsymbol{\Sigma}_{time} \otimes \begin{pmatrix} \boldsymbol{\Sigma}_o & \boldsymbol{\Sigma}_{o, oos} \\ \boldsymbol{\Sigma}_{oos, o} & \boldsymbol{\Sigma}_{oos} \end{pmatrix} \right)
+    
     for (k in 1:n_samples) {
         if (shared_covariance_params) {
             if (corr_fun == "matern") {
@@ -281,11 +286,7 @@ predict_pgSTLM <- function(
             pi_pred[k, , , tt] <- eta_to_pi(eta_pred[k, , , tt])
         }
     }
-    # pi_pred <- sapply(1:n_samples, function(i) eta_to_pi(eta_pred[i, , ]), simplify = "array")
-    ## permute to be in order of MCMC samples (rows), 
-    ##    observations (columns), components (slices)
-    # pi_pred <- aperm(pi_pred, c(3, 1, 2))
-    
+
     if (num_chol_failures > 0)
         warning("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized ", num_chol_failures, " times. If this warning is rare, this should be safe to ignore. To better aid in diagnosing the problem, run with vebose = TRUE")
     

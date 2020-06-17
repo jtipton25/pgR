@@ -26,20 +26,36 @@ devtools::install_github("jtipton25/pgR")
 
 Installation from a cloned repository is preferred for those who are actively contributing to package development. To install from a cloned repository, first open the repository on gitHub at [https://github.com/jtipton25/pgR](https://github.com/jtipton25/pgR). Then click on the clone repository button
 
-XXX Insert graphic XXX
+<p align="center">
+<img src="./images/github-clone.png" width="75%">
+</p>
 
 and clone copy the output to the clipboard. Then open up a terminal window and type 
 
 ```
-git clone XXXX
+git clone git@github.com:jtipton25/pgR.git
 ```
+
+<p align="center">
+<img src="./images/terminal-clone.png" width="50%">
+</p>
+
 
 Once the gitHub repo has finished downloading, open the project in RStudio by finding and selecting the `pgR.Rproj` file 
 
-XXX Insert graphic XXX
+<p align="center">
+<img src="./images/open-project-1.png" width="33%">
+<img src="./images/open-project-2.png" width="33%">
+<img src="./images/open-project-3.png" width="33%">
+</p>
+
 
 Once the project file has been opened, you can use the build tab to "Install and Restart" or "More -> Clean and Rebuild" to install the package. If you add or modify `R` code, you can reinstall the updated package using "Install and Restart". If you add or modify `c++` code using `Rcpp`, use the "More -> Clean and Rebuild" option in the build tab to recompile the `c++` code.
 
+<p align="center">
+<img src="./images/install-and-restart.png" width="49%">
+<img src="./images/clean-and-rebuild.png" width="49%">
+</p>
 
 or you can clone the project and install it locally using RStudio. 
 

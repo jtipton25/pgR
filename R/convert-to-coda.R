@@ -8,7 +8,8 @@
 #'
 #' @return fill out later XXX
 #' @export
-
+#' @keywords internal
+ 
 convert_to_coda <- function(out) {
     n_chains <- length(out)
     

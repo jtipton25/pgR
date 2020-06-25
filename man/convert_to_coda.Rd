@@ -7,7 +7,7 @@
 convert_to_coda(out)
 }
 \arguments{
-\item{out}{is a list of MCMC output where each element of the list 
+\item{out}{is a list of MCMC output where each element of the list
 is an MCMC chain}
 }
 \value{
@@ -15,6 +15,7 @@ fill out later XXX
 }
 \description{
 This function  process custom MCMC output from Rcpp into an R coda
-format. The function assumes the first dimension of each parameter 
+format. The function assumes the first dimension of each parameter
 within the list (a MCMC chain) is the number of MCMC iterations
 }
+\keyword{internal}

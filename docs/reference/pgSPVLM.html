@@ -146,7 +146,17 @@
     </tr>
     <tr>
       <th>params</th>
-      <td><p>is the list of parameter settings.</p></td>
+      <td><p>is a list of parameter settings. The list
+<code>params</code> must contain the following values:</p><ul>
+<li><p><code>n_adapt</code>: A positive integer number of adaptive MCMC iterations.</p></li>
+<li><p><code>n_mcmc</code>: A positive integer number of total MCMC iterations
+post adaptation.</p></li>
+<li><p><code>n_thin</code>: A positive integer number of MCMC iterations per saved
+sample.</p></li>
+<li><p><code>n_message</code>: A positive integer number of frequency of iterations
+to output a progress message. For example, <code>n_message = 50</code>
+outputs progress messages every 50 iterations.</p></li>
+</ul></td>
     </tr>
     <tr>
       <th>priors</th>

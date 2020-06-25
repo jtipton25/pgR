@@ -4,6 +4,7 @@
 #' 
 #' @param Y is a \eqn{n \times d}{n x d} matrix of compositional count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
+#' @keywords internal
 
 check_input <- function(Y, X) {
     ## check the mcmc inputs

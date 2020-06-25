@@ -32,9 +32,20 @@ pgSTLM(
 
 \item{locs}{is a \eqn{n_sites \times 2}{n_sites x 2} matrix of observation locations.}
 
-\item{params}{is the list of parameter settings.}
+\item{params}{is a list of parameter settings. The list
+\code{params} must contain the following values:
+\itemize{
+\item \code{n_adapt}: A positive integer number of adaptive MCMC iterations.
+\item \code{n_mcmc}: A positive integer number of total MCMC iterations
+post adaptation.
+\item \code{n_thin}: A positive integer number of MCMC iterations per saved
+sample.
+\item \code{n_message}: A positive integer number of frequency of iterations
+to output a progress message. For example, \code{n_message = 50}
+outputs progress messages every 50 iterations.
+}}
 
-\item{priors}{is the list of prior settings.}
+\item{priors}{is a list of prior settings.}
 
 \item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
 

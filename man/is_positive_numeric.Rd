@@ -14,3 +14,4 @@ is_positive_numeric(x, n)
 \description{
 this function checks if the input is a positive scalar (double)
 }
+\keyword{internal}

@@ -5,6 +5,7 @@
 #' @param Y is a \eqn{n \times d}{n x d} matrix of compositional count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of spatial locations.
+#' @keywords internal
 
 check_input_spatial <- function(Y, X, locs) {
     ## check the mcmc inputs
@@ -28,6 +29,7 @@ check_input_spatial <- function(Y, X, locs) {
 #' @param Y is a \eqn{n \times d x T}{n x d X T} array of compositional count data through time.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of spatial locations.
+#' @keywords internal
 
 check_input_pgSTLM <- function(Y, X, locs) {
     ## check the mcmc inputs

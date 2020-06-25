@@ -14,3 +14,4 @@ check_priors(params, priors)
 \description{
 this function check that the prior values are properly specified
 }
+\keyword{internal}

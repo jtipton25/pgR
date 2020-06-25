@@ -16,3 +16,4 @@ is_numeric_matrix(x, n, m)
 \description{
 this function checks if the input is a numeric (double) matrix of dimension \eqn{n \times m}{n x m}
 }
+\keyword{internal}

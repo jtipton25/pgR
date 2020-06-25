@@ -12,3 +12,4 @@ check_params(params)
 \description{
 this function check that the parameter values are properly specified
 }
+\keyword{internal}

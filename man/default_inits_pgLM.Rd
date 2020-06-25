@@ -11,7 +11,7 @@ default_inits_pgLM(Y, X, priors)
 
 \item{X}{is a \eqn{n \times p}{n x p} matrix of variables.}
 
-\item{priors}{is the list of prior settings.}
+\item{priors}{is a list of prior settings.}
 }
 \description{
 A function for setting up the default pgLM priors

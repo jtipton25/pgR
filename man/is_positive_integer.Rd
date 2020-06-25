@@ -14,3 +14,4 @@ is_positive_integer(x, n)
 \description{
 this function checks if the input is a positive integer scalar (integer-like value -- i.e., both 1L and 1.0 pass this check)
 }
+\keyword{internal}

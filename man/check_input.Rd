@@ -14,3 +14,4 @@ check_input(Y, X)
 \description{
 this function check that the input values are properly specified
 }
+\keyword{internal}

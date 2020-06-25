@@ -14,3 +14,4 @@ is_numeric_vector(x, n)
 \description{
 this function checks if the input is a numeric (double) vector
 }
+\keyword{internal}

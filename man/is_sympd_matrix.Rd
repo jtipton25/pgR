@@ -14,3 +14,4 @@ is_sympd_matrix(x, n)
 \description{
 this function checks if the input is a symmetrix positive definite matrix
 }
+\keyword{internal}

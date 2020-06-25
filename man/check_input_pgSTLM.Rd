@@ -16,3 +16,4 @@ check_input_pgSTLM(Y, X, locs)
 \description{
 this function check that the input values are properly specified
 }
+\keyword{internal}

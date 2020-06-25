@@ -41,15 +41,15 @@ pgdraw.moments(2,2)
 }
 \references{
 Jesse Bennett Windle
- Forecasting High-Dimensional, Time-Varying Variance-Covariance Matrices
- with High-Frequency Data and Sampling Polya-Gamma Random Variates for
- Posterior Distributions Derived from Logistic Likelihoods  
- PhD Thesis, 2013 
- 
- Bayesian Inference for Logistic Models Using Polya-Gamma Latent Variables
- Nicholas G. Polson, James G. Scott and Jesse Windle
- Journal of the American Statistical Association
- Vol. 108, No. 504, pp. 1339--1349, 2013
+Forecasting High-Dimensional, Time-Varying Variance-Covariance Matrices
+with High-Frequency Data and Sampling Polya-Gamma Random Variates for
+Posterior Distributions Derived from Logistic Likelihoods
+PhD Thesis, 2013
+
+Bayesian Inference for Logistic Models Using Polya-Gamma Latent Variables
+Nicholas G. Polson, James G. Scott and Jesse Windle
+Journal of the American Statistical Association
+Vol. 108, No. 504, pp. 1339--1349, 2013
 }
 \seealso{
 \code{\link{pgdraw}}

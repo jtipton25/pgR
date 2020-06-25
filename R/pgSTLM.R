@@ -4,8 +4,17 @@
 #' @param Y is a \eqn{N \times J \times T}{N x J x T} array of compositional count data.
 #' @param X is a \eqn{N \times p}{n_sites x p} matrix of climate variables.
 #' @param locs is a \eqn{n_sites \times 2}{n_sites x 2} matrix of observation locations.
-#' @param params is the list of parameter settings.
-#' @param priors is the list of prior settings. 
+#' @param params is a list of parameter settings. The list
+#' \code{params} must contain the following values:
+#' * \code{n_adapt}: A positive integer number of adaptive MCMC iterations.
+#' * \code{n_mcmc}: A positive integer number of total MCMC iterations
+#' post adaptation.
+#' * \code{n_thin}: A positive integer number of MCMC iterations per saved
+#' sample.
+#' * \code{n_message}: A positive integer number of frequency of iterations
+#'  to output a progress message. For example, \code{n_message = 50}
+#'  outputs progress messages every 50 iterations.
+#' @param priors is a list of prior settings. 
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 

@@ -27,25 +27,36 @@ pgSPLM(
 
 \item{locs}{is a \eqn{n \times 2}{n x 2} matrix of observation locations.}
 
-\item{params}{is the list of parameter settings.}
+\item{params}{is a list of parameter settings. The list
+\code{params} must contain the following values:
+\itemize{
+\item \code{n_adapt}: A positive integer number of adaptive MCMC iterations.
+\item \code{n_mcmc}: A positive integer number of total MCMC iterations
+post adaptation.
+\item \code{n_thin}: A positive integer number of MCMC iterations per saved
+sample.
+\item \code{n_message}: A positive integer number of frequency of iterations
+to output a progress message. For example, \code{n_message = 50}
+outputs progress messages every 50 iterations.
+}}
 
 \item{priors}{is the list of prior settings.}
 
 \item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
 
-\item{shared_covariance_params}{is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
+\item{shared_covariance_params}{is a logical input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
 
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
 
-\item{inits}{is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.}
+\item{inits}{is the list of initial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.}
 
 \item{config}{is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.}
 
 \item{n_chain}{is the MCMC chain id. The default is 1.}
 
-\item{progress}{is a logicial input that determines whether to print a progress bar.}
+\item{progress}{is a logical input that determines whether to print a progress bar.}
 
-\item{verbose}{is a logicial input that determines whether to print more detailed messages.}
+\item{verbose}{is a logical input that determines whether to print more detailed messages.}
 }
 \description{
 this function runs the Bayesian multinomial regression using Polya-gamma data augmentation

@@ -2,7 +2,7 @@
 % Please edit documentation in R/check-inits.R
 \name{check_inits_pgLM}
 \alias{check_inits_pgLM}
-\title{Check intial values}
+\title{Check initial values}
 \usage{
 check_inits_pgLM(Y, X, inits)
 }
@@ -16,3 +16,4 @@ check_inits_pgLM(Y, X, inits)
 \description{
 this function check that the initial values for pgLM are properly specified
 }
+\keyword{internal}

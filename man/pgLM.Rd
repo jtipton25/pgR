@@ -21,7 +21,18 @@ pgLM(
 
 \item{X}{is a \eqn{n \times p}{n x p} matrix of climate variables.}
 
-\item{params}{is the list of parameter settings.}
+\item{params}{is a list of parameter settings. The list
+\code{params} must contain the following values:
+\itemize{
+\item \code{n_adapt}: A positive integer number of adaptive MCMC iterations.
+\item \code{n_mcmc}: A positive integer number of total MCMC iterations
+post adaptation.
+\item \code{n_thin}: A positive integer number of MCMC iterations per saved
+sample.
+\item \code{n_message}: A positive integer number of frequency of iterations
+to output a progress message. For example, \code{n_message = 50}
+outputs progress messages every 50 iterations.
+}}
 
 \item{priors}{is the list of prior settings.}
 

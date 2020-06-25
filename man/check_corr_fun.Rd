@@ -12,3 +12,4 @@ check_corr_fun(corr_fun)
 \description{
 this function checks if the correlation function type is valid
 }
+\keyword{internal}

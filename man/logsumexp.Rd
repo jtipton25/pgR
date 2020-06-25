@@ -12,3 +12,4 @@ logsumexp(x)
 \description{
 this function exaluates a log sum of exponential
 }
+\keyword{internal}

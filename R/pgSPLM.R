@@ -4,16 +4,25 @@
 #' @param Y is a \eqn{n \times J}{n x J} matrix of compositional count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of observation locations.
-#' @param params is the list of parameter settings.
+#' @param params is a list of parameter settings. The list
+#' \code{params} must contain the following values:
+#' * \code{n_adapt}: A positive integer number of adaptive MCMC iterations.
+#' * \code{n_mcmc}: A positive integer number of total MCMC iterations
+#' post adaptation.
+#' * \code{n_thin}: A positive integer number of MCMC iterations per saved
+#' sample.
+#' * \code{n_message}: A positive integer number of frequency of iterations
+#'  to output a progress message. For example, \code{n_message = 50}
+#'  outputs progress messages every 50 iterations.
 #' @param priors is the list of prior settings. 
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
 #' @param n_cores is the number of cores for parallel computation using openMP.
-#' @param inits is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.
+#' @param inits is the list of initial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
-#' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
+#' @param shared_covariance_params is a logical input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
 #' @param n_chain is the MCMC chain id. The default is 1.
-#' @param progress is a logicial input that determines whether to print a progress bar.
-#' @param verbose is a logicial input that determines whether to print more detailed messages.
+#' @param progress is a logical input that determines whether to print a progress bar.
+#' @param verbose is a logical input that determines whether to print more detailed messages.
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @importFrom fields rdist
 #' @importFrom mvnfast rmvn dmvn
@@ -126,6 +135,7 @@ pgSPLM <- function(
     ## initialize spatial Gaussian process -- share parameters across the different components
     ##    can generalize to each component getting its own covariance
     ##
+    
     theta_mean <- NULL
     theta_var  <- NULL
     if (corr_fun == "matern") {
@@ -135,9 +145,6 @@ pgSPLM <- function(
         theta_mean <- priors$mean_range
         theta_var  <- priors$sd_range^2
     }
-    ## This was swapped in an older commit; the above is the correct order -- remove the comment in later commits
-    # theta_mean <- c(priors$mean_nu, priors$mean_range)
-    # theta_var  <- diag(c(priors$sd_nu, priors$sd_range)^2)
     
     theta <- NULL
     if (shared_covariance_params) {

@@ -150,7 +150,17 @@
     </tr>
     <tr>
       <th>params</th>
-      <td><p>is the list of parameter settings.</p></td>
+      <td><p>is a list of parameter settings. The list
+<code>params</code> must contain the following values:</p><ul>
+<li><p><code>n_adapt</code>: A positive integer number of adaptive MCMC iterations.</p></li>
+<li><p><code>n_mcmc</code>: A positive integer number of total MCMC iterations
+post adaptation.</p></li>
+<li><p><code>n_thin</code>: A positive integer number of MCMC iterations per saved
+sample.</p></li>
+<li><p><code>n_message</code>: A positive integer number of frequency of iterations
+to output a progress message. For example, <code>n_message = 50</code>
+outputs progress messages every 50 iterations.</p></li>
+</ul></td>
     </tr>
     <tr>
       <th>priors</th>
@@ -162,7 +172,7 @@
     </tr>
     <tr>
       <th>shared_covariance_params</th>
-      <td><p>is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
+      <td><p>is a logical input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
     </tr>
     <tr>
       <th>n_cores</th>
@@ -170,7 +180,7 @@
     </tr>
     <tr>
       <th>inits</th>
-      <td><p>is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.</p></td>
+      <td><p>is the list of initial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.</p></td>
     </tr>
     <tr>
       <th>config</th>
@@ -182,11 +192,11 @@
     </tr>
     <tr>
       <th>progress</th>
-      <td><p>is a logicial input that determines whether to print a progress bar.</p></td>
+      <td><p>is a logical input that determines whether to print a progress bar.</p></td>
     </tr>
     <tr>
       <th>verbose</th>
-      <td><p>is a logicial input that determines whether to print more detailed messages.</p></td>
+      <td><p>is a logical input that determines whether to print more detailed messages.</p></td>
     </tr>
     </table>
 

@@ -23,11 +23,12 @@ A vector of samples from the Polya-Gamma distribution, one for each entry of \co
 Generate random samples from the Polya-Gamma distribution
 }
 \note{
-To cite this package please reference: 
+\preformatted{To cite this package please reference: 
+}
 
 Makalic, E. & Schmidt, D. F.
 High-Dimensional Bayesian Regularised Regression with the BayesReg Package
-arXiv:1611.06649 [stat.CO], 2016 \url{https://arxiv.org/pdf/1611.06649.pdf}
+arXiv:1611.06649 \link{stat.CO}, 2016 \url{https://arxiv.org/pdf/1611.06649.pdf}
 
 A MATLAB-compatible implementation of the sampler in this package can be obtained from:
 
@@ -37,8 +38,8 @@ A MATLAB-compatible implementation of the sampler in this package can be obtaine
 
 This code generates random variates from the Polya-Gamma distribution with desired 'b' and 'c' parameters.
 The underlying code is written in C and is an implementation of the algorithm described in J. Windle's PhD thesis.
- 
-The main application of the Polya-Gamma distribution is in Bayesian analysis as it 
+
+The main application of the Polya-Gamma distribution is in Bayesian analysis as it
 allows for a data augmentation (via a scale mixture of normals) approach for representation
 of the logistic regression likelihood (see Example 2 below).
 }
@@ -101,18 +102,18 @@ hist(x=b)
 }
 \references{
 Jesse Bennett Windle
- Forecasting High-Dimensional, Time-Varying Variance-Covariance Matrices
- with High-Frequency Data and Sampling Polya-Gamma Random Variates for
- Posterior Distributions Derived from Logistic Likelihoods,  
- PhD Thesis, 2013 
- 
- Bayesian Inference for Logistic Models Using Polya-Gamma Latent Variables
- Nicholas G. Polson, James G. Scott and Jesse Windle,
- Journal of the American Statistical Association
- Vol. 108, No. 504, pp. 1339--1349, 2013
- 
- Chung, Y.: Simulation of truncated gamma variables,
- Korean Journal of Computational & Applied Mathematics, 1998, 5, 601-610
+Forecasting High-Dimensional, Time-Varying Variance-Covariance Matrices
+with High-Frequency Data and Sampling Polya-Gamma Random Variates for
+Posterior Distributions Derived from Logistic Likelihoods,
+PhD Thesis, 2013
+
+Bayesian Inference for Logistic Models Using Polya-Gamma Latent Variables
+Nicholas G. Polson, James G. Scott and Jesse Windle,
+Journal of the American Statistical Association
+Vol. 108, No. 504, pp. 1339--1349, 2013
+
+Chung, Y.: Simulation of truncated gamma variables,
+Korean Journal of Computational & Applied Mathematics, 1998, 5, 601-610
 }
 \seealso{
 \code{\link{pgdraw.moments}}

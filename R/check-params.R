@@ -2,7 +2,7 @@
 #'
 #'  this function check that the parameter values are properly specified
 #' @param params is the list of current parameter settings
-
+#' @keywords internal
 
 check_params <- function(params) {
     

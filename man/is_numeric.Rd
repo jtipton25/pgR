@@ -14,3 +14,4 @@ is_numeric(x, n)
 \description{
 this function checks if the input is a scalar (double)
 }
+\keyword{internal}

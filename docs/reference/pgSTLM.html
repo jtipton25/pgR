@@ -124,8 +124,8 @@
   <span class='no'>params</span>,
   <span class='no'>priors</span>,
   <span class='kw'>corr_fun</span> <span class='kw'>=</span> <span class='st'>"exponential"</span>,
-  <span class='kw'>shared_covariance_params</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>n_cores</span> <span class='kw'>=</span> <span class='fl'>1L</span>,
+  <span class='kw'>shared_covariance_params</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>inits</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>config</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>n_chain</span> <span class='kw'>=</span> <span class='fl'>1</span>,
@@ -155,23 +155,33 @@
     </tr>
     <tr>
       <th>params</th>
-      <td><p>is the list of parameter settings.</p></td>
+      <td><p>is a list of parameter settings. The list
+<code>params</code> must contain the following values:</p><ul>
+<li><p><code>n_adapt</code>: A positive integer number of adaptive MCMC iterations.</p></li>
+<li><p><code>n_mcmc</code>: A positive integer number of total MCMC iterations
+post adaptation.</p></li>
+<li><p><code>n_thin</code>: A positive integer number of MCMC iterations per saved
+sample.</p></li>
+<li><p><code>n_message</code>: A positive integer number of frequency of iterations
+to output a progress message. For example, <code>n_message = 50</code>
+outputs progress messages every 50 iterations.</p></li>
+</ul></td>
     </tr>
     <tr>
       <th>priors</th>
-      <td><p>is the list of prior settings.</p></td>
+      <td><p>is a list of prior settings.</p></td>
     </tr>
     <tr>
       <th>corr_fun</th>
       <td><p>is a character that denotes the correlation function form. Current options include "matern" and "exponential".</p></td>
     </tr>
     <tr>
-      <th>shared_covariance_params</th>
-      <td><p>is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
-    </tr>
-    <tr>
       <th>n_cores</th>
       <td><p>is the number of cores for parallel computation using openMP.</p></td>
+    </tr>
+    <tr>
+      <th>shared_covariance_params</th>
+      <td><p>is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
     </tr>
     <tr>
       <th>inits</th>

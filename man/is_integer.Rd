@@ -14,3 +14,4 @@ is_integer(x, n)
 \description{
 this function checks if the input is an integer scalar (integer-like value -- i.e., both 1L and 1.0 pass this check)
 }
+\keyword{internal}

@@ -4,7 +4,16 @@
 #' @param Y is a \eqn{n \times J}{n x J} matrix of compositional count data.
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of observation locations.
-#' @param params is the list of parameter settings.
+#' @param params is a list of parameter settings. The list
+#' \code{params} must contain the following values:
+#' * \code{n_adapt}: A positive integer number of adaptive MCMC iterations.
+#' * \code{n_mcmc}: A positive integer number of total MCMC iterations
+#' post adaptation.
+#' * \code{n_thin}: A positive integer number of MCMC iterations per saved
+#' sample.
+#' * \code{n_message}: A positive integer number of frequency of iterations
+#'  to output a progress message. For example, \code{n_message = 50}
+#'  outputs progress messages every 50 iterations.
 #' @param priors is the list of prior settings. 
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param inits is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.

@@ -543,13 +543,15 @@ pgSPLM <- function(
             }
             ## adapt the tuning
             if (k <= params$n_adapt) {
-                save_idx <- k %% 50
-                if ((k %% 50) == 0) {
-                    save_idx <- 50
-                } 
                 if (corr_fun == "matern") {
+                    save_idx <- k %% 50
+                    if ((k %% 50) == 0) {
+                        save_idx <- 50
+                    } 
                     theta_batch[save_idx, ] <- theta 
-                    if (k %% 50 == 0) {
+                }
+                if (k %% 50 == 0) {
+                    if (corr_fun == "matern") {
                         out_tuning <- update_tuning_mv(
                             k,
                             theta_accept_batch,
@@ -563,12 +565,12 @@ pgSPLM <- function(
                         Sigma_theta_tune_chol <- out_tuning$Sigma_tune_chol
                         lambda_theta          <- out_tuning$lambda
                         theta_accept_batch    <- out_tuning$accept
-                    } 
-                }   
-            } else if (corr_fun == "exponential") {
-                out_tuning <- update_tuning(k, theta_accept_batch, theta_tune)
-                theta_tune         <- out_tuning$tune
-                theta_accept_batch <- out_tuning$accept
+                    } else if (corr_fun == "exponential") {
+                        out_tuning <- update_tuning(k, theta_accept_batch, theta_tune)
+                        theta_tune         <- out_tuning$tune
+                        theta_accept_batch <- out_tuning$accept
+                    }
+                }
             }
         } else {
             ## 
@@ -633,14 +635,15 @@ pgSPLM <- function(
             }
             ## adapt the tuning
             if (k <= params$n_adapt) {
-                save_idx <- k %% 50
-                if ((k %% 50) == 0) {
-                    save_idx <- 50
-                } 
                 if (corr_fun == "matern") {
+                    save_idx <- k %% 50
+                    if ((k %% 50) == 0) {
+                        save_idx <- 50
+                    } 
                     theta_batch[save_idx, , ] <- theta 
-                    if (k %% 50 == 0) {
-                        
+                }
+                if (k %% 50 == 0) {
+                    if (corr_fun == "matern") {
                         out_tuning <- update_tuning_mv_mat(
                             k,
                             theta_accept_batch,

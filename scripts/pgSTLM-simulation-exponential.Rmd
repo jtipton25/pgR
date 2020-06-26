@@ -396,7 +396,7 @@ p_sampled
 ```
 
 
-```{r}
+```{r, message = FALSE}
 params <- default_params()
 params$n_adapt <- 500#1000
 params$n_mcmc <- 500#1000

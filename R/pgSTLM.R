@@ -48,7 +48,7 @@ pgSTLM <- function(
     sample_tau2 = TRUE,
     sample_rho = TRUE
 ) {
-   
+    
     start <- Sys.time()
     
     ##
@@ -577,11 +577,11 @@ pgSTLM <- function(
                 }
                 ## adapt the tuning
                 if (k <= params$n_adapt) {
-                    save_idx <- k %% 50
-                    if ((k %% 50) == 0) {
-                        save_idx <- 50
-                    } 
                     if (corr_fun == "matern") {
+                        save_idx <- k %% 50
+                        if ((k %% 50) == 0) {
+                            save_idx <- 50
+                        } 
                         theta_batch[save_idx, ] <- theta 
                         if (k %% 50 == 0) {
                             out_tuning <- update_tuning_mv(
@@ -598,11 +598,11 @@ pgSTLM <- function(
                             lambda_theta          <- out_tuning$lambda
                             theta_accept_batch    <- out_tuning$accept
                         } 
-                    }   
-                } else if (corr_fun == "exponential") {
-                    out_tuning         <- update_tuning(k, theta_accept_batch, theta_tune)
-                    theta_tune         <- out_tuning$tune
-                    theta_accept_batch <- out_tuning$accept
+                    } else if (corr_fun == "exponential") {
+                        out_tuning         <- update_tuning(k, theta_accept_batch, theta_tune)
+                        theta_tune         <- out_tuning$tune
+                        theta_accept_batch <- out_tuning$accept
+                    }
                 }
             } else {
                 ## 
@@ -667,7 +667,7 @@ pgSTLM <- function(
                         ) +
                         ## prior
                         mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
-
+                    
                     mh <- exp(mh1 - mh2)
                     if (mh > runif(1, 0, 1)) {
                         if (corr_fun == "matern") {
@@ -687,11 +687,11 @@ pgSTLM <- function(
                 }
                 ## adapt the tuning
                 if (k <= params$n_adapt) {
-                    save_idx <- k %% 50
-                    if ((k %% 50) == 0) {
-                        save_idx <- 50
-                    } 
                     if (corr_fun == "matern") {
+                        save_idx <- k %% 50
+                        if ((k %% 50) == 0) {
+                            save_idx <- 50
+                        } 
                         theta_batch[save_idx, , ] <- theta 
                         if (k %% 50 == 0) {
                             
@@ -708,11 +708,11 @@ pgSTLM <- function(
                             Sigma_theta_tune_chol <- out_tuning$Sigma_tune_chol
                             lambda_theta          <- out_tuning$lambda
                             theta_accept_batch    <- out_tuning$accept
-                        } else if (corr_fun == "exponential") {
-                            out_tuning         <- update_tuning_vec(k, theta_accept_batch, theta_tune)
-                            theta_tune         <- out_tuning$tune
-                            theta_accept_batch <- out_tuning$accept
-                        } 
+                        }
+                    } else if (corr_fun == "exponential") {
+                        out_tuning         <- update_tuning_vec(k, theta_accept_batch, theta_tune)
+                        theta_tune         <- out_tuning$tune
+                        theta_accept_batch <- out_tuning$accept
                     }   
                 }        
             }
@@ -792,7 +792,7 @@ pgSTLM <- function(
             if (verbose)
                 message("sample eta")
             
-        ## need to add in the autocorrelation process (how does this affect the kappas?)
+            ## need to add in the autocorrelation process (how does this affect the kappas?)
             for (tt in 1:n_time) {
                 for (j in 1:(J-1)) {
                     A <- NULL
@@ -954,7 +954,7 @@ pgSTLM <- function(
         rho   = rho_save
     )
     class(out) <- "pgSTLM"
-
+    
     return(out)
 }
 

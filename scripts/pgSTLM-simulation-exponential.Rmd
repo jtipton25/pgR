@@ -1,5 +1,5 @@
 ---
-title: "pgSPLM Simulation test - exponential covariance function"
+title: "pgSTLM Simulation test - exponential covariance function"
 bibliography: pg.bib
 output:
   bookdown::html_document2: default
@@ -8,7 +8,10 @@ output:
 nocite: '@*'  
 ---
 
-We are testing the spatial Polya-gamma linear model `pgSPLM()`
+# Something is happening where the sampler for theta is getting stuck
+
+
+We are testing the spatial Polya-gamma linear model `pgSTLM()`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 16, fig.height = 9)
@@ -400,7 +403,6 @@ params$n_mcmc <- 500#1000
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pgSTLM(Y, X)
-# inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = TRUE)
 
 if (file.exists(here::here("results", "pgSTLM-exponential-shared.RData"))) {
   load(here::here("results", "pgSTLM-exponential-shared.RData"))
@@ -744,16 +746,6 @@ p_var <- dat_plot %>%
 
 
 ```{r}
-Y_post <- apply(out$Y, c(2, 3, 4), mean)
-Y_prop_post <- Y_post
-for (tt in 1:n_time) {
-  Y_prop_post[, , tt] <- counts_to_proportions(Y_post[, , tt])
-}
- 
-plot(Y_prop_post, pi)
-```
-
-```{r}
 layout(matrix(1:6, 3, 2))
 for (i in 1:5) {
   matplot(out$beta[, , i], type = 'l', main = paste("species", i))
@@ -765,7 +757,7 @@ abline(h = theta, col = 1:2)
 
 ```{r}
 layout(matrix(1:6, 3, 2))
-plot_idx <- sample(1:N, 20)
+plot_idx <- sample(1:n_sites, 20)
 for (i in 1:5) {
   matplot(out$eta[, plot_idx, i, 1], type = 'l', main = paste("species", i))
   abline(h = eta[plot_idx, i, 1], col = 1:20)

@@ -16,3 +16,4 @@ update_tuning_vec(k, accept, tune)
 \description{
 this function updates a vector block of univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters
 }
+\keyword{internal}

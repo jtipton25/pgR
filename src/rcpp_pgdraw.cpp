@@ -57,6 +57,9 @@ double aterm(int, double, double);
 //' @param cores An integer that gives the number of cores for openMP parallelization
 //'   
 //' @export
+//'
+//' @keywords internal
+
 //[[Rcpp::export]]
 NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1)
 {

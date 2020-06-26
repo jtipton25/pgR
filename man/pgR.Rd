@@ -10,3 +10,4 @@ Fit Bayesian Polya-gamma regression models. This package contains code to fit mu
 \author{
 John Tipton
 }
+\keyword{internal}

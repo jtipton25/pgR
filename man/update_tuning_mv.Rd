@@ -22,3 +22,4 @@ update_tuning_mv(k, accept, lambda, batch_samples, Sigma_tune, Sigma_tune_chol)
 \description{
 this function updates a block Gaussian random walk proposal Metropolis-Hastings tuning parameters
 }
+\keyword{internal}

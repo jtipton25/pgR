@@ -16,3 +16,4 @@ update_tuning(k, accept, tune)
 \description{
 this function updates the univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters
 }
+\keyword{internal}

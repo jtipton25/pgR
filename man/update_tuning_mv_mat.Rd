@@ -29,3 +29,4 @@ update_tuning_mv_mat(
 \description{
 this function updates multiple block Gaussian random walk proposal Metropolis-Hastings tuning parameters
 }
+\keyword{internal}

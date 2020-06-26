@@ -47,10 +47,6 @@ pgSTLM <- function(
     sample_eta = TRUE,
     sample_tau2 = TRUE,
     sample_rho = TRUE
-    # n_impute = 1
-    # pool_s2_tau2  = true,
-    # file_name     = "DM-fit",
-    # corr_function = "exponential"
 ) {
    
     start <- Sys.time()
@@ -82,28 +78,13 @@ pgSTLM <- function(
     for (i in 1:N) {
         for (tt in 1:n_time) {
             missing_idx[i, tt] <- any(is.na(Y[i, , tt]))
-            # if (missing_idx[i, tt]) {
-            #     ## initialize a missing observation to ensure complete data
-            #     Y[i, , tt] <-
-            #         rmultinom(1, n_impute, rep(1 / J, J))
-            # }
         }
     }
     
     message("There are ", ifelse(any(missing_idx), sum(missing_idx), "no"), " observations with missing count vectors")
     
-    # ## Calculate Mi and kappa
-    # Mi <- array(0, dim = c(N, J-1, n_time))
-    # kappa <- array(0, dim = c(N, J - 1, n_time))
-    # for (i in 1:N){
-    #     for (tt in 1:n_time) {
-    #         Mi[i, , tt] <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
-    #         kappa[i, , tt] <- Y[i, 1:(J - 1), tt] - Mi[i, , tt] / 2
-    #     }
-    # }
-    
     ## Calculate Mi and kappa
-    Mi <- array(0, dim = c(N, J-1, n_time))
+    Mi    <- array(0, dim = c(N, J - 1, n_time))
     kappa <- array(0, dim = c(N, J - 1, n_time))
     for (i in 1:N){
         for (tt in 1:n_time) {
@@ -182,9 +163,6 @@ pgSTLM <- function(
         theta_mean <- priors$mean_range
         theta_var  <- priors$sd_range^2
     }
-    ## This was swapped in an older commit; the above is the correct order -- remove the comment in later commits
-    # theta_mean <- c(priors$mean_nu, priors$mean_range)
-    # theta_var  <- diag(c(priors$sd_nu, priors$sd_range)^2)
     
     theta <- NULL
     if (shared_covariance_params) {
@@ -260,7 +238,6 @@ pgSTLM <- function(
                 Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun)
             }
         }
-        # Sigma <- sapply(1:(J-1), function(j) tau2[j] * correlation_function(D, theta[j, ]))        
     }
     
     Sigma_chol <- NULL
@@ -339,11 +316,6 @@ pgSTLM <- function(
     ## sampler config options -- to be added later
     ## 
     #
-    # bool sample_beta = true;
-    # if (params.containsElementNamed("sample_beta")) {
-    #     sample_beta = as<bool>(params["sample_beta"]);
-    # }
-    # 
     
     ##
     ## initialize omega
@@ -483,29 +455,6 @@ pgSTLM <- function(
         }
         
         ##
-        ## Sample missing Y variables to get complete data
-        ##
-        
-        # ## update Y, Mi, and kappa for missing Y
-        # for (i in 1:N){
-        #     for (tt in 1:n_time) {
-        #         message("updating i = ", i, " tt = ", tt)
-        #         if (missing_idx[i, tt]) {
-        #             message("updating Missing i = ", i, " tt = ", tt)
-        #             ## update the missing observation to ensure complete data
-        #             Y[i, , tt]     <- rmultinom(1, n_impute, eta_to_pi(matrix(eta[i, , tt], 1, J-1)))
-        #             Mi[i, , tt]    <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
-        #             kappa[i, , tt] <- Y[i, 1:(J - 1), tt] - Mi[i, , tt] / 2
-        #         }
-        #     }
-        # }
-        # 
-        # ## update the index for nonzero values
-        # nonzero_idx <- Mi != 0
-        
-        ## instead of updating Y, why don't we try setting Mi = 0 and kappa = 0 when Y is missing
-        
-        ##
         ## sample Omega
         ##
         
@@ -515,12 +464,10 @@ pgSTLM <- function(
         omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
         
         ##
-        ## sample beta -- double check these values
+        ## sample beta
         ##
         
-        ## modify this for the spatial process eta
-        
-        ## parallelize this update -- each group of parameteres is 
+        ## can parallelize this update -- each group of parameters is 
         ## conditionally independent given omega and kappa(y)
         
         if (sample_beta){
@@ -529,10 +476,6 @@ pgSTLM <- function(
             
             if (shared_covariance_params) {
                 for (j in 1:(J-1)) {
-                    ## can make this much more efficient
-                    # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
-                    # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-                    # beta[, j]   <- mvnfast::rmvn(1, mu_tilde, Sigma_tilde)
                     tXSigma_inv <- t(X) %*% Sigma_inv
                     A <- n_time * tXSigma_inv %*% X + Sigma_beta_inv
                     ## guarantee a symmetric matrix
@@ -542,10 +485,6 @@ pgSTLM <- function(
                 }
             } else {
                 for (j in 1:(J-1)) {
-                    ## can make this much more efficient
-                    # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
-                    # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-                    # beta[, j]   <- mvnfast::rmvn(1, mu_tilde, Sigma_tilde)
                     tXSigma_inv <- t(X) %*% Sigma_inv[j, , ]
                     A <- n_time * tXSigma_inv %*% X + Sigma_beta_inv
                     ## guarantee a symmetric matrix
@@ -715,19 +654,19 @@ pgSTLM <- function(
                     ## parallelize this        
                     mh2 <- sum(
                         sapply(1:(J-1), function(j) {
-                            mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores)
+                            mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
                         })
                     ) +
                         sum(
                             sapply(2:n_time, function(tt) {
                                 sapply(1:(J-1), function(j) {
-                                    mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores)
+                                    mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
                                 })
                             }) 
                             
                         ) +
                         ## prior
-                        mvnfast::dmvn(theta[j, ,drop = FALSE], theta_mean, theta_var, log = TRUE)
+                        mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
 
                     mh <- exp(mh1 - mh2)
                     if (mh > runif(1, 0, 1)) {
@@ -881,17 +820,8 @@ pgSTLM <- function(
                         ## is this (1 - rho) * Xbeta[, j] or (1 + rho) * Xbeta[, j]???
                         b     <- Sigma_inv %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
                     }
-                    # A_chol <- tryCatch(
-                    #     chol(A),
-                    #     error = function(e) {
-                    #         if (verbose)
-                    #             message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
-                    #         num_chol_failures <- num_chol_failures + 1
-                    #         chol(A + 1e-8 * diag(N))                    
-                    #     }
-                    # )
-                    # A_inv <- chol2inv(A_chol)
-                    # eta[, j, tt]   <- mvnfast::rmvn(1, A_inv %*% b, A_inv)                
+                    ## guarantee that A is symmetric
+                    A            <- (A + t(A)) / 2
                     eta[, j, tt] <- rmvn_arma(A, b)
                 }
             }
@@ -977,7 +907,6 @@ pgSTLM <- function(
                 for (tt in 1:n_time) {
                     pi_save[save_idx, , , tt]  <- eta_to_pi(eta[, , tt])
                 }
-                # Y_save[save_idx, , , ]   <- Y
                 rho_save[save_idx]       <- rho
             }
             

@@ -21,6 +21,10 @@ dmvnrm_arma_mc <- function(x, mean, sigma, logd = FALSE, cores = 1L) {
 #' @param cores An integer that gives the number of cores for openMP parallelization
 #'   
 #' @export
+#'
+#' @keywords internal
+NULL
+
 rcpp_pgdraw <- function(b, c, cores = 1L) {
     .Call('_pgR_rcpp_pgdraw', PACKAGE = 'pgR', b, c, cores)
 }

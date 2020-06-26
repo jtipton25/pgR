@@ -16,3 +16,4 @@ update_tuning_mat(k, accept, tune)
 \description{
 this function updates a matrix block of univariate Gaussian random walk proposal Metropolis-Hastings tuning parameters
 }
+\keyword{internal}

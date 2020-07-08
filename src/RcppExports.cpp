@@ -24,33 +24,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpp_pgdraw
-NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores);
-RcppExport SEXP _pgR_rcpp_pgdraw(SEXP bSEXP, SEXP cSEXP, SEXP coresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type b(bSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type c(cSEXP);
-    Rcpp::traits::input_parameter< int >::type cores(coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_pgdraw(b, c, cores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpp_pgdraw_approx
-NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores, int threshold);
-RcppExport SEXP _pgR_rcpp_pgdraw_approx(SEXP bSEXP, SEXP cSEXP, SEXP coresSEXP, SEXP thresholdSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type b(bSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type c(cSEXP);
-    Rcpp::traits::input_parameter< int >::type cores(coresSEXP);
-    Rcpp::traits::input_parameter< int >::type threshold(thresholdSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_pgdraw_approx(b, c, cores, threshold));
-    return rcpp_result_gen;
-END_RCPP
-}
 // rmvn_arma
 arma::vec rmvn_arma(arma::mat& A, arma::vec& b);
 static SEXP _pgR_rmvn_arma_try(SEXP ASEXP, SEXP bSEXP) {
@@ -142,8 +115,6 @@ RcppExport SEXP _pgR_RcppExport_registerCCallable() {
 
 static const R_CallMethodDef CallEntries[] = {
     {"_pgR_dmvnrm_arma_mc", (DL_FUNC) &_pgR_dmvnrm_arma_mc, 5},
-    {"_pgR_rcpp_pgdraw", (DL_FUNC) &_pgR_rcpp_pgdraw, 3},
-    {"_pgR_rcpp_pgdraw_approx", (DL_FUNC) &_pgR_rcpp_pgdraw_approx, 4},
     {"_pgR_rmvn_arma", (DL_FUNC) &_pgR_rmvn_arma, 2},
     {"_pgR_rmvn_arma_scalar", (DL_FUNC) &_pgR_rmvn_arma_scalar, 2},
     {"_pgR_RcppExport_registerCCallable", (DL_FUNC) &_pgR_RcppExport_registerCCallable, 0},

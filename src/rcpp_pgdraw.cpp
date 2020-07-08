@@ -59,8 +59,6 @@ double aterm(int, double, double);
 //' @export
 //'
 //' @keywords internal
-
-//[[Rcpp::export]]
 NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1)
 {
 	int const m = b.size();
@@ -254,7 +252,15 @@ double tinvgauss(double z, double t)
 
 
 // Approximate algorithm described in Glynn et. al. https://g-lynn.github.io/files/GlynnTokdarHowardBanks_2019.pdf and code https://github.com/G-Lynn/DLTM/blob/master/Cpp/rpgApprox.cpp
-//[[Rcpp::export]]
+//' A function for drawing approximate random Polya-gamma random variables in parallel
+//'
+//' @param b An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+//' @param c An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+//' @param cores An integer that gives the number of cores for openMP parallelization
+//'   
+//' @export
+//'
+//' @keywords internal
 NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1, int threshold = 30)
 {
     int const m = b.size();

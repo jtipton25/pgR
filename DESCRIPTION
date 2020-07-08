@@ -18,6 +18,7 @@ Imports:
     geoR,
     hms,
     igraph,
+    LaplacesDemon,
     Matrix,
     mvnfast, 
     Rcpp (>= 1.0.4.6)

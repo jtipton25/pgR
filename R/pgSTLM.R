@@ -67,11 +67,11 @@ pgSTLM <- function(
     num_chol_failures <- 0
     
     
-    N  <- nrow(Y)
-    J  <- ncol(Y)
+    N      <- nrow(Y)
+    J      <- ncol(Y)
     n_time <- dim(Y)[3]
-    p <- ncol(X)
-    D <- fields::rdist(locs)
+    p      <- ncol(X)
+    D      <- fields::rdist(locs)
     
     ## we assume a partially missing observation is the same as fully missing
     missing_idx <- matrix(FALSE, N, n_time)
@@ -105,21 +105,19 @@ pgSTLM <- function(
     ## initial values
     ##
     
-    ## currently using default priors
+    ## default priors
     
     mu_beta        <- rep(0, p)
-    
-    ## do I want to change this to be a penalized spline?
-    # Q_beta <- make_Q(params$p, 1) 
     Sigma_beta     <- 10 * diag(p)
-    ## clean up this check
+    
+    ## check if priors for mu_beta are specified
     if (!is.null(priors$mu_beta)) {
         if (all(!is.na(priors$mu_beta))) {
             mu_beta <- priors$mu_beta
         }
     }
     
-    ## clean up this check
+    ## check if priors for Sigma_beta are specified
     if (!is.null(priors$Sigma_beta)) {
         if (all(!is.na(priors$Sigma_beta))) {
             Sigma_beta <- priors$Sigma_beta
@@ -140,7 +138,7 @@ pgSTLM <- function(
     ##
     
     beta <- t(mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
-    ## clean up this check
+    ## check if initial value for beta is given
     if (!is.null(inits$beta)) {
         if (all(!is.na(inits$beta))) {
             beta <- inits$beta
@@ -243,7 +241,7 @@ pgSTLM <- function(
     Sigma_chol <- NULL
     if (shared_covariance_params) {
         Sigma_chol <- tryCatch(
-            chol(Sigma[j, , ]),
+            chol(Sigma),
             error = function(e) {
                 if (verbose)
                     message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
@@ -395,7 +393,7 @@ pgSTLM <- function(
                 }
             )
         } else if (corr_fun == "exponential") {
-            theta_tune <- 1.5
+            theta_tune <- mean(D) / 2
         }
         
     } else {
@@ -422,7 +420,7 @@ pgSTLM <- function(
                 )
             }
         } else if (corr_fun == "exponential") {
-            theta_tune <- rep(0.5, J-1)
+            theta_tune <- rep(mean(D) / 2, J-1)
         }
     }
     
@@ -887,6 +885,7 @@ pgSTLM <- function(
         ##
         ## save variables
         ##
+        
         if (k >= params$n_adapt) {
             if (k %% params$n_thin == 0) {
                 save_idx                <- (k - params$n_adapt) / params$n_thin

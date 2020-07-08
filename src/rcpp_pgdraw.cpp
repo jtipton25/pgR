@@ -250,3 +250,46 @@ double tinvgauss(double z, double t)
   }    
   return X;
 }
+
+
+
+// Approximate algorithm described in Glynn et. al. https://g-lynn.github.io/files/GlynnTokdarHowardBanks_2019.pdf and code https://github.com/G-Lynn/DLTM/blob/master/Cpp/rpgApprox.cpp
+//[[Rcpp::export]]
+NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1, int threshold = 30)
+{
+    int const m = b.size();
+    int const n = c.size();
+    NumericVector y(n);
+    
+    if (m > 1 && n > m) {
+        stop("Inadmissible input: when b is a vector, it must be as long as c.");
+    }
+    
+#ifdef _OPENMP
+    omp_set_num_threads(cores);
+#pragma omp parallel for schedule(dynamic)
+#endif
+    for (int i = 0; i < n; i++)
+    {
+        int bi = (int) ((m > 1) ? b[i] : b[0]);
+        
+        y[i] = 0;
+        
+        if (bi < threshold) {
+            for (int j = 0; j < bi; j++)
+            {
+                y[i] += samplepg(c[i]);
+            }
+        } else {
+            double E_y = 1.0 / 4.0;
+            double sigma2_y = 1.0 / 24.0;
+            if (c[i] > 0) {
+                E_y = 1.0 / (2.0 * c[i]) * tanh(c[i] / 2.0);
+                sigma2_y = 1.0 / (4.0 * pow(c[i], 3)) * (sinh(c[i]) - c[i]) * pow(1.0 / cosh(c[i] / 2.0), 2);
+            }
+            y[i] = R::rnorm(b[i] * E_y, sqrt(b[i] * sigma2_y));
+        }
+    }
+    
+    return y;
+}

@@ -361,7 +361,7 @@ pgSPLM <- function(
                 }
             )
         } else if (corr_fun == "exponential") {
-            theta_tune <- 1.5
+            theta_tune <- mean(D) / 2
         }
         
     } else {
@@ -388,7 +388,7 @@ pgSPLM <- function(
                 )
             }
         } else if (corr_fun == "exponential") {
-            theta_tune <- rep(0.5, J-1)
+            theta_tune <- rep(mean(D) / 2, J-1)
         }
     }
     

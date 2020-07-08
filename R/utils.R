@@ -30,15 +30,24 @@ eta_to_pi <- function(eta) {
     ## convert eta to a probability vector pi
     ## can make this more general by first checking if vector vs. matrix and then
     ## calculating the response
-    N <- nrow(eta)
-    J <- ncol(eta) + 1
-    pi <- matrix(0, N, J)
-    stick <- rep(1, N)
-    for (j in 1:(J - 1)) {
-        pi[, j] <- expit(eta[, j]) * stick
-        stick <- stick - pi[, j]
+
+    pi <- NULL
+    if (is.vector(eta)) {
+        N <- length(eta) 
+        pi <- matrix(0, N, 2)
+        pi[, 1] <- expit(eta)
+        pi[, 2] <- 1.0 - pi[, 1]
+    } else {
+        N <- nrow(eta)
+        J <- ncol(eta) + 1
+        pi <- matrix(0, N, J)
+        stick <- rep(1, N)
+        for (j in 1:(J - 1)) {
+            pi[, j] <- expit(eta[, j]) * stick
+            stick <- stick - pi[, j]
+        }
+        pi[, J] <- stick
     }
-    pi[, J] <- stick
     return(pi)
 }
 

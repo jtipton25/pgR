@@ -38,8 +38,13 @@ predict_pgLM <- function(
     pi_pred <- sapply(1:n_samples, function(i) eta_to_pi(eta_pred[i, , ]), simplify = "array")
     ## permute to be in order of MCMC samples (rows), 
     ##    observations (columns), components (slices)
-    pi_pred <- aperm(pi_pred, c(3, 1, 2))
-    
+
+    ## check in J=2
+    if (length(dim(pi_pred)) == 2) {
+        pi_pred <- aperm(pi_pred, c(2, 1))   
+    } else {
+        pi_pred <- aperm(pi_pred, c(3, 1, 2))
+    }    
 
     return(
         list(

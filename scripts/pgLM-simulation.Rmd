@@ -28,17 +28,17 @@ library(patchwork)
 ```{r}
 set.seed(11)
 N <- 5000
-d <- 10
+J <- 10
 X <- runif(N)
 df <- 4
 Xbs <- bs(X, df)
-beta <- matrix(rnorm((d-1) * df), df, (d-1))
+beta <- matrix(rnorm((J-1) * df), df, (J-1))
 ## make the intercepts smaller to reduce stochastic ordering effect
-beta[1, ] <- beta[1, ] - seq(from = 4, to = 0, length.out = d - 1)
+beta[1, ] <- beta[1, ] - seq(from = 4, to = 0, length.out = J - 1)
 eta <- Xbs %*% beta 
 pi <- eta_to_pi(eta)
 
-Y <- matrix(0, N, d)
+Y <- matrix(0, N, J)
 
 for (i in 1:N) {
     Y[i, ] <- rmultinom(1, 500, pi[i, ])
@@ -53,12 +53,12 @@ dat <- data.frame(
   y        = c(Y_prop),
   
   x        = X,
-  species  = factor(rep(1:d, each = N)))
+  species  = factor(rep(1:J, each = N)))
 
 dat_truth <- data.frame(
   y        = c(pi),
   x        = X,
-  species  = factor(rep(1:d, each = N)))
+  species  = factor(rep(1:J, each = N)))
 
 dat %>%
   group_by(species) %>%
@@ -330,8 +330,8 @@ dat_plot <- data.frame(
         c(apply(out$beta, c(2, 3), mean)), 
         c(beta)
     ),
-    type = rep(c("estimate", "truth"), each = (d-1) * ncol(Xbs)),
-    species = factor(rep(1:(d-1), each = ncol(Xbs))),
+    type = rep(c("estimate", "truth"), each = (J-1) * ncol(Xbs)),
+    species = factor(rep(1:(J-1), each = ncol(Xbs))),
     knots = 1:ncol(Xbs)
 )
 
@@ -402,8 +402,8 @@ dat_plot <- data.frame(
         c(apply(out$beta, c(2, 3), mean)), 
         c(beta)
     ),
-    type = rep(c("estimate", "truth"), each = (d-1) * ncol(Xbs)),
-    species = factor(rep(1:(d-1), each = ncol(Xbs))),
+    type = rep(c("estimate", "truth"), each = (J-1) * ncol(Xbs)),
+    species = factor(rep(1:(J-1), each = ncol(Xbs))),
     knots = 1:ncol(Xbs)
 )
 
@@ -429,8 +429,8 @@ dat_pi_pred <- data.frame(
     c(pi_oos),
     c(pi_pred_mean)
   ),
-  type = rep(c("observed", "predicted"), each = d * (N-n)),
-  species = factor(rep(1:d, each = (N-n))),
+  type = rep(c("observed", "predicted"), each = J * (N-n)),
+  species = factor(rep(1:J, each = (N-n))),
   obs     = 1:(N-n) 
 )
 
@@ -450,8 +450,8 @@ dat_eta_pred <- data.frame(
     c(eta_oos),
     c(eta_pred_mean)
   ),
-  type = rep(c("observed", "predicted"), each = (d-1) * (N-n)),
-  species = factor(rep(1:(d-1), each = (N-n))),
+  type = rep(c("observed", "predicted"), each = (J-1) * (N-n)),
+  species = factor(rep(1:(J-1), each = (N-n))),
   obs     = 1:(N-n) 
 )
 

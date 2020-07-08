@@ -8,7 +8,7 @@ output:
 nocite: '@*'  
 ---
 
-# Something is happening where the sampler for theta is getting stuck
+# Double check the variance in the predictions of pi
 
 
 We are testing the spatial Polya-gamma linear model `pgSTLM()`
@@ -509,7 +509,7 @@ dat_plot %>%
   geom_errorbar(aes(ymin = lower, ymax = upper)) +
   facet_grid(time ~ species) +
   geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Estimated vs. predicted eta")
+  ggtitle("Estimated vs. simulated eta")
 ```
 
 
@@ -545,7 +545,7 @@ dat_plot %>%
   geom_point(alpha = 0.5) +
   facet_grid(time ~ species) +
   geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Estimated vs. predicted pi")
+  ggtitle("Estimated vs. simulated pi")
 ```
 
 ## Predicting at unobserved locations during observed time periods
@@ -613,7 +613,7 @@ dat_plot %>%
   geom_errorbar(aes(ymin = lower, ymax = upper)) +
   facet_grid(time ~ species) +
   geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Kriging estimate vs. simulated eta")
+  ggtitle("Kriging preidiction vs. simulated eta")
 ```
 
 
@@ -652,7 +652,7 @@ dat_plot %>%
   geom_point(alpha = 0.5) +
   facet_grid(time ~ species) +
   geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Kriging estimate vs. simulated pi")
+  ggtitle("Kriging prediction vs. simulated pi")
 ```
 
 

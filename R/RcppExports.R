@@ -29,6 +29,10 @@ rcpp_pgdraw <- function(b, c, cores = 1L) {
     .Call('_pgR_rcpp_pgdraw', PACKAGE = 'pgR', b, c, cores)
 }
 
+rcpp_pgdraw_approx <- function(b, c, cores = 1L, threshold = 30L) {
+    .Call('_pgR_rcpp_pgdraw_approx', PACKAGE = 'pgR', b, c, cores, threshold)
+}
+
 #' A function for sampling from conditional multivariate normal distributions with mean A^{-1}b and covariance matrix A^{-1}.
 #'
 #' @param A \code{A} A \eqn{d \times d} \code{matrix} for the Gaussian full conditional distribution precision matrix.

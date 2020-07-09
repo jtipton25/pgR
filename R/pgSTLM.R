@@ -801,25 +801,28 @@ pgSTLM <- function(
                     if (tt == 1) {
                         if (shared_covariance_params) {
                             A <- (1 + rho^2) * Sigma_inv + diag(omega[, j, tt])
+                            b     <- Sigma_inv %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
                         } else {
                             A <- (1 + rho^2) * Sigma_inv[j, , ] + diag(omega[, j, tt])
+                            b     <- Sigma_inv[j,,] %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
                         }
-                        b     <- Sigma_inv %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
                     } else if (tt == n_time) {
                         if (shared_covariance_params) {
                             A <- Sigma_inv + diag(omega[, j, tt])
+                            b     <- Sigma_inv %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
                         } else {
                             A <- Sigma_inv[j, , ] + diag(omega[, j, tt])
+                            b     <- Sigma_inv[j,,] %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
                         }
-                        b     <- Sigma_inv %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
                     } else {
                         if (shared_covariance_params) {
                             A <- (1 + rho^2) * Sigma_inv + diag(omega[, j, tt])
+                            b     <- Sigma_inv %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
                         } else {
                             A <- (1 + rho^2) * Sigma_inv[j, , ] + diag(omega[, j, tt])
+                            b     <- Sigma_inv[j,,] %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
                         }
                         ## is this (1 - rho) * Xbeta[, j] or (1 + rho) * Xbeta[, j]???
-                        b     <- Sigma_inv %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
                     }
                     ## guarantee that A is symmetric
                     A            <- (A + t(A)) / 2
@@ -838,22 +841,41 @@ pgSTLM <- function(
             
             rho_star <- rnorm(1, rho, rho_tune)
             if (rho_star < 1 & rho_star > -1) {
-                mh1 <- sum(
-                    sapply(2:n_time, function(tt) {
-                        sapply(1:(J-1), function(j) {
-                            mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho_star * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
-                        })
-                    }) 
-                    
-                ) 
-                ## parallelize this        
-                mh2 <- sum(
-                    sapply(2:n_time, function(tt) {
-                        sapply(1:(J-1), function(j) {
-                            mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
-                        })
-                    }) 
-                ) 
+                
+                if (shared_covariance_params){
+                    mh1 <- sum(
+                        sapply(2:n_time, function(tt) {
+                            sapply(1:(J-1), function(j) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho_star * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                            })
+                        }) 
+                        
+                    ) 
+                    ## parallelize this        
+                    mh2 <- sum(
+                        sapply(2:n_time, function(tt) {
+                            sapply(1:(J-1), function(j) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                            })
+                        }) 
+                    ) } else {
+                        mh1 <- sum(
+                            sapply(2:n_time, function(tt) {
+                                sapply(1:(J-1), function(j) {
+                                    mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho_star * eta[, j, tt - 1], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores) 
+                                })
+                            }) 
+                            
+                        ) 
+                        ## parallelize this        
+                        mh2 <- sum(
+                            sapply(2:n_time, function(tt) {
+                                sapply(1:(J-1), function(j) {
+                                    mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores) 
+                                })
+                            }) 
+                        )
+                    }
                 
                 mh <- exp(mh1 - mh2)
                 if (length(mh) > 1)

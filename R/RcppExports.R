@@ -14,6 +14,32 @@ dmvnrm_arma_mc <- function(x, mean, sigma, logd = FALSE, cores = 1L) {
     .Call('_pgR_dmvnrm_arma_mc', PACKAGE = 'pgR', x, mean, sigma, logd, cores)
 }
 
+#' A function for evaluating drawing random Polya-gamma random variables in parallel
+#'
+#' @param b An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+#' @param c An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+#' @param cores An integer that gives the number of cores for openMP parallelization
+#'   
+#' @export
+#'
+#' @keywords internal
+NULL
+
+#' A function for drawing approximate random Polya-gamma random variables in parallel
+#'
+#' @param b An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+#' @param c An \eqn{N}{N} \code{vector} of Polya-gamma parameters
+#' @param cores An integer that gives the number of cores for openMP parallelization
+#'   
+#' @export
+#'
+#' @keywords internal
+NULL
+
+rcpp_pgdraw <- function(b, c, cores = 1L) {
+    .Call('_pgR_rcpp_pgdraw', PACKAGE = 'pgR', b, c, cores)
+}
+
 #' A function for sampling from conditional multivariate normal distributions with mean A^{-1}b and covariance matrix A^{-1}.
 #'
 #' @param A \code{A} A \eqn{d \times d} \code{matrix} for the Gaussian full conditional distribution precision matrix.

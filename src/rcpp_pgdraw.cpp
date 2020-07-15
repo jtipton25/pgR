@@ -59,6 +59,8 @@ double aterm(int, double, double);
 //' @export
 //'
 //' @keywords internal
+
+//[[Rcpp::export]]
 NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1)
 {
 	int const m = b.size();

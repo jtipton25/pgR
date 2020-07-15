@@ -21,7 +21,8 @@ Imports:
     LaplacesDemon,
     Matrix,
     mvnfast, 
-    Rcpp (>= 1.0.4.6)
+    Rcpp (>= 1.0.4.6),
+    spam
 LinkingTo:
     Rcpp,
     RcppArmadillo

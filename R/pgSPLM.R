@@ -96,16 +96,16 @@ pgSPLM <- function(
     # Q_beta <- make_Q(params$p, 1) 
     Sigma_beta     <- 10 * diag(p)
     ## clean up this check
-    if (!is.null(priors$mu_beta)) {
-        if (all(!is.na(priors$mu_beta))) {
-            mu_beta <- priors$mu_beta
+    if (!is.null(priors[['mu_beta']])) {
+        if (all(!is.na(priors[['mu_beta']]))) {
+            mu_beta <- priors[['mu_beta']]
         }
     }
     
     ## clean up this check
-    if (!is.null(priors$Sigma_beta)) {
-        if (all(!is.na(priors$Sigma_beta))) {
-            Sigma_beta <- priors$Sigma_beta
+    if (!is.null(priors[['Sigma_beta']])) {
+        if (all(!is.na(priors[['Sigma_beta']]))) {
+            Sigma_beta <- priors[['Sigma_beta']]
         }
     }
     Sigma_beta_chol <- tryCatch(
@@ -124,9 +124,9 @@ pgSPLM <- function(
     
     beta <- t(rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
     ## clean up this check
-    if (!is.null(inits$beta)) {
-        if (all(!is.na(inits$beta))) {
-            beta <- inits$beta
+    if (!is.null(inits[['beta']])) {
+        if (all(!is.na(inits[['beta']]))) {
+            beta <- inits[['beta']]
         }
     }
     Xbeta <- X %*% beta
@@ -162,9 +162,9 @@ pgSPLM <- function(
         
     }
     
-    if (!is.null(inits$theta)) {
-        if (all(!is.na(inits$theta))) {
-            theta <- inits$theta
+    if (!is.null(inits[['theta']])) {
+        if (all(!is.na(inits[['theta']]))) {
+            theta <- inits[['theta']]
         }
     }
     ## check dimensions of theta
@@ -190,10 +190,10 @@ pgSPLM <- function(
     } else {
         tau2 <- pmin(1 / rgamma(J-1, priors$alpha_tau, priors$beta_tau), 10)
     }
-    if (!is.null(inits$tau2)) {
-        if (all(!is.na(inits$tau2))) {
+    if (!is.null(inits[['tau2']])) {
+        if (all(!is.na(inits[['tau2']]))) {
             ## if tau2 passes error checks
-            tau2 <- inits$tau2
+            tau2 <- inits[['tau2']]
         }
     }
     
@@ -288,9 +288,9 @@ pgSPLM <- function(
     omega <- matrix(0, N, J-1)
     omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
     
-    if (!is.null(inits$omega)) {
-        if (!is.na(inits$omega)) {
-            omega <- inits$omega
+    if (!is.null(inits[['omega']])) {
+        if (!is.na(inits[['omega']])) {
+            omega <- inits[['omega']]
         }
     }
     

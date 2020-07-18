@@ -21,6 +21,7 @@ dmvnrm_arma_mc <- function(x, mean, sigma, logd = FALSE, cores = 1L) {
 #' @param cores An integer that gives the number of cores for openMP parallelization
 #'   
 #' @export
+#' @name rcpp_pgdraw
 #'
 #' @keywords internal
 NULL
@@ -32,12 +33,17 @@ NULL
 #' @param cores An integer that gives the number of cores for openMP parallelization
 #'   
 #' @export
+#' @name rcpp_pgdraw_approx
 #'
 #' @keywords internal
 NULL
 
 rcpp_pgdraw <- function(b, c, cores = 1L) {
     .Call('_pgR_rcpp_pgdraw', PACKAGE = 'pgR', b, c, cores)
+}
+
+rcpp_pgdraw_approx <- function(b, c, cores = 1L, threshold = 30L) {
+    .Call('_pgR_rcpp_pgdraw_approx', PACKAGE = 'pgR', b, c, cores, threshold)
 }
 
 #' A function for sampling from conditional multivariate normal distributions with mean A^{-1}b and covariance matrix A^{-1}.

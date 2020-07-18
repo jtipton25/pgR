@@ -57,6 +57,7 @@ double aterm(int, double, double);
 //' @param cores An integer that gives the number of cores for openMP parallelization
 //'   
 //' @export
+//' @name rcpp_pgdraw
 //'
 //' @keywords internal
 
@@ -261,8 +262,11 @@ double tinvgauss(double z, double t)
 //' @param cores An integer that gives the number of cores for openMP parallelization
 //'   
 //' @export
+//' @name rcpp_pgdraw_approx
 //'
 //' @keywords internal
+
+//[[Rcpp::export]]
 NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1, int threshold = 30)
 {
     int const m = b.size();

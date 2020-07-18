@@ -80,16 +80,16 @@ pgLM <- function(
     # Q_beta <- make_Q(params$p, 1) 
     Sigma_beta     <- diag(p)
     ## clean up this check
-    if (!is.null(priors$mu_beta)) {
-        if (all(!is.na(priors$mu_beta))) {
-            mu_beta <- priors$mu_beta
+    if (!is.null(priors[['mu_beta']])) {
+        if (all(!is.na(priors[['mu_beta']]))) {
+            mu_beta <- priors[['mu_beta']]
         }
     }
     
     ## clean up this check
-    if (!is.null(priors$Sigma_beta)) {
-        if (all(!is.na(priors$Sigma_beta))) {
-            Sigma_beta <- priors$Sigma_beta
+    if (!is.null(priors[['Sigma_beta']])) {
+        if (all(!is.na(priors[['Sigma_beta']]))) {
+            Sigma_beta <- priors[['Sigma_beta']]
         }
     }
     Sigma_beta_chol <- chol(Sigma_beta)
@@ -101,9 +101,9 @@ pgLM <- function(
 
     beta <- t(mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
     ## clean up this check
-    if (!is.null(inits$beta)) {
-        if (all(!is.na(inits$beta))) {
-            beta <- inits$beta
+    if (!is.null(inits[['beta']])) {
+        if (all(!is.na(inits[['beta']]))) {
+            beta <- inits[['beta']]
         }
     }
     
@@ -126,9 +126,9 @@ pgLM <- function(
     #         }
     #     }
     # }
-    if (!is.null(inits$omega)) {
-        if (!is.na(inits$omega)) {
-            omega <- inits$omega
+    if (!is.null(inits[['omega']])) {
+        if (!is.na(inits[['omega']])) {
+            omega <- inits[['omega']]
         }
     }
     

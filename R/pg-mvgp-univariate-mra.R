@@ -28,9 +28,10 @@
 #' @importFrom stats rmultinom
 #' @importFrom hms as_hms
 #' @importFrom fields rdist
-#' @importFrom spam rmvnorm.prec
 #' @importFrom sparseMVN rmvn.sparse
 #' @importFrom Matrix Cholesky
+#' @importFrom MASS ginv
+#' @import spam  
 
 ## polya-gamma spatial linear regression model
 pg_mvgp_univariate_mra <- function(
@@ -54,7 +55,7 @@ pg_mvgp_univariate_mra <- function(
     # corr_function = "exponential"
 ) {
     
-    sigma2_0 <- 0.01
+    sigma2_0 <- 0.001
     
     
     ##
@@ -78,8 +79,8 @@ pg_mvgp_univariate_mra <- function(
     ## used to troubleshoot model fitting using simulated data
     sample_beta <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_beta)) {
-            sample_beta <- config$sample_beta
+        if (!is.null(config[['sample_beta']])) {
+            sample_beta <- config[['sample_beta']]
         }
     }
     
@@ -87,8 +88,8 @@ pg_mvgp_univariate_mra <- function(
     ## relationship or do we use the estimated climate as well
     sample_beta_modern <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_beta_modern)) {
-            sample_beta_modern <- config$sample_beta_modern
+        if (!is.null(config[['sample_beta_modern']])) {
+            sample_beta_modern <- config[['sample_beta_modern']]
         }
     }
     
@@ -96,8 +97,8 @@ pg_mvgp_univariate_mra <- function(
     ## used to troubleshoot model fitting using simulated data
     sample_gamma <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_gamma)) {
-            sample_gamma <- config$sample_gamma
+        if (!is.null(config[['sample_gamma']])) {
+            sample_gamma <- config[['sample_gamma']]
         }
     }
     
@@ -106,8 +107,8 @@ pg_mvgp_univariate_mra <- function(
     ## or do we use the estimated climate as well
     sample_gamma_modern <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_gamma_modern)) {
-            sample_gamma_modern <- config$sample_gamma_modern
+        if (!is.null(config[['sample_gamma_modern']])) {
+            sample_gamma_modern <- config[['sample_gamma_modern']]
         }
     }
     
@@ -115,8 +116,8 @@ pg_mvgp_univariate_mra <- function(
     ## used to troubleshoot model fitting using simulated data
     sample_rho <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_rho)) {
-            sample_rho <- config$sample_rho
+        if (!is.null(config[['sample_rho']])) {
+            sample_rho <- config[['sample_rho']]
         }
     }
     
@@ -124,8 +125,8 @@ pg_mvgp_univariate_mra <- function(
     ## used to troubleshoot model fitting using simulated data
     sample_tau2 <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_tau2)) {
-            sample_tau2 <- config$sample_tau2
+        if (!is.null(config[['sample_tau2']])) {
+            sample_tau2 <- config[['sample_tau2']]
         }
     }
     
@@ -133,8 +134,8 @@ pg_mvgp_univariate_mra <- function(
     ## modern data? 
     sample_tau2_modern <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_tau2_modern)) {
-            sample_tau2_modern <- config$sample_tau2_modern
+        if (!is.null(config[['sample_tau2_modern']])) {
+            sample_tau2_modern <- config[['sample_tau2_modern']]
         }
     }
     
@@ -142,58 +143,48 @@ pg_mvgp_univariate_mra <- function(
     ## primarily used to troubleshoot model fitting using simulated data
     sample_theta <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_theta)) {
-            sample_theta <- config$sample_theta
+        if (!is.null(config[['sample_theta']])) {
+            sample_theta <- config[['sample_theta']]
         }
     }
-    
-    ## do we only use the modern climate data to estimate the spatial 
-    ## covariance parameters or do we use the estimated climate as well
-    sample_theta_modern <- TRUE
-    if (!is.null(config)) {
-        if (!is.null(config$sample_theta_modern)) {
-            sample_theta_modern <- config$sample_theta_modern
-        }
-    }
-    
     
     ## do we sample the overdispersion parameter
     sample_sigma2 <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_sigma2)) {
-            sample_sigma2 <- config$sample_sigma2
+        if (!is.null(config[['sample_sigma2']])) {
+            sample_sigma2 <- config[['sample_sigma2']]
         }
     }
     
     ## do we sample the overdispersion parameter only for the modern data?
-    sample_sigma2_modern <- TRUE
-    if (!is.null(config)) {
-        if (!is.null(config$sample_sigma2_modern)) {
-            sample_sigma2_modern <- config$sample_sigma2_modern
-        }
-    }
+    # sample_sigma2_modern <- TRUE
+    # if (!is.null(config)) {
+    #     if (!is.null(config[['sample_sigma2_modern']])) {
+    #         sample_sigma2_modern <- config[['sample_sigma2_modern']]
+    #     }
+    # }
     
     ## do we sample the latent intensity parameter alpha
     sample_alpha <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_alpha)) {
-            sample_alpha <- config$sample_alpha
+        if (!is.null(config[['sample_alpha']])) {
+            sample_alpha <- config[['sample_alpha']]
         }
     }
     
     ## do we sample the latent intensity parameter eta
     sample_eta <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_eta)) {
-            sample_eta <- config$sample_eta
+        if (!is.null(config[['sample_eta']])) {
+            sample_eta <- config[['sample_eta']]
         }
     }
     
     ## do we sample the climate observation error parameter
     sample_sigma2_0 <- TRUE
     if (!is.null(config)) {
-        if (!is.null(config$sample_sigma2_0)) {
-            sample_sigma2_0 <- config$sample_sigma2_0
+        if (!is.null(config[['sample_sigma2_0']])) {
+            sample_sigma2_0 <- config[['sample_sigma2_0']]
         }
     }
     
@@ -236,120 +227,9 @@ pg_mvgp_univariate_mra <- function(
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
     
-    ##
-    ## initial values
-    ##
-    
-    tX  <- t(X)
-    tXX <- tX %*% X
     
     ##
-    ## priors for beta
-    ##
-    
-    mu_beta        <- rep(0, Q + 1)
-    Sigma_beta     <- 10 * diag(Q + 1)
-    
-    ## check if priors for mu_beta are specified
-    if (!is.null(priors$mu_beta)) {
-        if (all(!is.na(priors$mu_beta))) {
-            mu_beta <- priors$mu_beta
-        }
-    }
-    
-    ## check if priors for Sigma_beta are specified
-    if (!is.null(priors$Sigma_beta)) {
-        if (all(!is.na(priors$Sigma_beta))) {
-            Sigma_beta <- priors$Sigma_beta
-        }
-    }
-    Sigma_beta_chol <- tryCatch(
-        chol(Sigma_beta),
-        error = function(e) {
-            if (verbose)
-                message("The Cholesky decomposition of the prior covariance Sigma_beta was ill-conditioned and mildy regularized.")
-            chol(Sigma_beta + 1e-8 * diag(Q + 1))                    
-        }
-    )
-    Sigma_beta_inv  <- chol2inv(Sigma_beta_chol)
-    
-    ##
-    ## initialize beta
-    ##
-    
-    beta <- t(mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
-    ## check if initial value for beta is given
-    if (!is.null(inits$beta)) {
-        if (all(!is.na(inits$beta))) {
-            beta <- inits$beta
-        }
-    }
-    
-    ##
-    ## priors for gamma
-    ##
-    
-    mu_gamma        <- rep(0, p)
-    Sigma_gamma     <- 10 * diag(p)
-    
-    ## check if priors for mu_gamma are specified
-    if (!is.null(priors$mu_gamma)) {
-        if (all(!is.na(priors$mu_gamma))) {
-            mu_gamma <- priors$mu_gamma
-        }
-    }
-    
-    ## check if priors for Sigma_gamma are specified
-    if (!is.null(priors$Sigma_gamma)) {
-        if (all(!is.na(priors$Sigma_gamma))) {
-            Sigma_gamma <- priors$Sigma_gamma
-        }
-    }
-    Sigma_gamma_chol <- tryCatch(
-        chol(Sigma_gamma),
-        error = function(e) {
-            if (verbose)
-                message("The Cholesky decomposition of the prior covariance Sigma_gamma was ill-conditioned and mildy regularized.")
-            chol(Sigma_gamma + 1e-8 * diag(p))                    
-        }
-    )
-    Sigma_gamma_inv  <- chol2inv(Sigma_gamma_chol)
-    
-    ##
-    ## initialize gamma
-    ##
-    
-    gamma <- t(mvnfast::rmvn(Q, mu_gamma, Sigma_gamma_chol, isChol = TRUE))
-    ## check if initial value for gamma is given
-    if (!is.null(inits$gamma)) {
-        if (all(!is.na(inits$gamma))) {
-            gamma <- inits$gamma
-        }
-    }
-    
-    Xgamma <- as.vector(X %*% gamma)
-    
-    
-    ## initialize rho
-    rho      <- runif(1, -1, 1)
-    
-    if (!is.null(inits$rho)) {
-        if (all(!is.na(inits$rho))) {
-            rho <- inits$rho
-        }
-    }
-    
-    ## initialize sigma2
-    sigma2  <- rgamma(J-1, priors$alpha_sigma2, priors$beta_sigma2)
-    if (!is.null(inits$sigma2)) {
-        if (all(!is.na(inits$sigma2))) {
-            sigma2 <- inits$sigma2
-        }
-    }
-    sigma   <- sqrt(sigma2)
-    
-    ##
-    ## initialize MRA spatial process
+    ## setup MRA spatial basis
     ##
     
     W_list   <- mra_wendland_2d(locs, M, use_spam = use_spam)$W
@@ -379,34 +259,138 @@ pg_mvgp_univariate_mra <- function(
     
     tWW <- tW %*% W
     
-    ## intialize a proper CAR structure to initialize the parameter alpha
-    Q_alpha <- make_Q_alpha_2d(n_dims, rep(0.999, length(n_dims)), use_spam = use_spam)
-    tau2 <- 100 * pmax(rgamma(M, 1, 1), 0.01)
-    if (!is.null(inits$tau2)) {
-        if (all(!is.na(inits$tau2))) {
-            tau2 <- inits$tau2
+    ##
+    ## initial values
+    ##
+    
+    tX  <- t(X)
+    tXX <- tX %*% X
+    
+    ##
+    ## priors for beta
+    ##
+    
+    mu_beta        <- rep(0, Q + 1)
+    Sigma_beta     <- 10 * diag(Q + 1)
+    
+    ## check if priors for mu_beta are specified
+    if (!is.null(priors[['mu_beta']])) {
+        if (all(!is.na(priors[['mu_beta']]))) {
+            mu_beta <- priors[['mu_beta']]
         }
     }
     
+    ## check if priors for Sigma_beta are specified
+    if (!is.null(priors[['Sigma_beta']])) {
+        if (all(!is.na(priors[['Sigma_beta']]))) {
+            Sigma_beta <- priors[['Sigma_beta']]
+        }
+    }
+    Sigma_beta_chol <- tryCatch(
+        chol(Sigma_beta),
+        error = function(e) {
+            if (verbose)
+                message("The Cholesky decomposition of the prior covariance Sigma_beta was ill-conditioned and mildy regularized.")
+            chol(Sigma_beta + 1e-8 * diag(Q + 1))                    
+        }
+    )
+    Sigma_beta_inv  <- chol2inv(Sigma_beta_chol)
+    
+    ##
+    ## initialize beta
+    ##
+    
+    beta <- t(mvnfast::rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
+    
+    ##
+    ## priors for gamma
+    ##
+    
+    mu_gamma        <- rep(0, p)
+    Sigma_gamma     <- 10 * diag(p)
+    
+    ## check if priors for mu_gamma are specified
+    if (!is.null(priors[['mu_gamma']])) {
+        if (all(!is.na(priors[['mu_gamma']]))) {
+            mu_gamma <- priors[['mu_gamma']]
+        }
+    }
+    
+    ## check if priors for Sigma_gamma are specified
+    if (!is.null(priors[['Sigma_gamma']])) {
+        if (all(!is.na(priors[['Sigma_gamma']]))) {
+            Sigma_gamma <- priors[['Sigma_gamma']]
+        }
+    }
+    Sigma_gamma_chol <- tryCatch(
+        chol(Sigma_gamma),
+        error = function(e) {
+            if (verbose)
+                message("The Cholesky decomposition of the prior covariance Sigma_gamma was ill-conditioned and mildy regularized.")
+            chol(Sigma_gamma + 1e-8 * diag(p))                    
+        }
+    )
+    Sigma_gamma_inv  <- chol2inv(Sigma_gamma_chol)
+    
+    ##
+    ## intialize a proper CAR structure to initialize the parameter alpha
+    ##
+    
+    Q_alpha <- make_Q_alpha_2d(n_dims, rep(0.999, length(n_dims)), use_spam = use_spam)
+    tau2 <- 100 * pmax(rgamma(M, 1, 1), 0.01)
+    
     Q_alpha_tau2 <- make_Q_alpha_tau2(Q_alpha, tau2, use_spam = use_spam)
+    
+    
+    ##
+    ## initialize gamma
+    ##
+    
+    ## using sparse Cholesky routines -- only used for initialization
+    Sigma_init_inv <- 1 / sigma2_0 * (
+        diag(N) - W %*% chol2inv(chol(tWW + sigma2_0 * Q_alpha_tau2)) %*% t(W)
+    )
+        
+    # gamma <- t(mvnfast::rmvn(Q, mu_gamma, Sigma_gamma_chol, isChol = TRUE))
+    gamma <- solve(t(X) %*% Sigma_init_inv %*% X) %*% t(X) %*% Sigma_init_inv %*% Z0
+    
+    Xgamma <- as.vector(X %*% gamma)
+    
+    
+
+    ##
+    ## initialize rho
+    ##
+    
+    rho      <- runif(1, -1, 1)
+    
+    ##
+    ## initialize sigma2
+    ##
+    
+    sigma2  <- rgamma(J-1, priors$alpha_sigma2, priors$beta_sigma2)
+    sigma   <- sqrt(sigma2)
+    
+
+    ##
+    ## initialize alpha
+    ##
+    
     alpha <- matrix(0, sum(n_dims), n_time)
     if (use_spam) {
-        alpha[, 1] <- as.vector(rmvnorm.prec(1, rep(0, sum(n_dims)), Q_alpha_tau2))
+        alpha[, 1] <- as.vector(ginv(as.matrix(tWW)) %*% tW %*% (Z0 - Xgamma))
+        # alpha[, 1] <- as.vector(rmvnorm.prec(1, rep(0, sum(n_dims)), Q_alpha_tau2))
         for (tt in 2:n_time) {
             alpha[, tt] <- as.vector(rmvnorm.prec(1, rho * alpha[, tt-1], Q_alpha_tau2))
         }
     } else {
-        alpha[, 1] <- as.vector(rmvn.sparse(1, rep(0, sum(n_dims)), CH = Cholesky(Q_alpha_tau2), prec = TRUE))     
+        alpha[, 1] <- as.vector(ginv(as.matrix(tWW)) %*% tW %*% (Z0 - Xgamma))
+        # alpha[, 1] <- as.vector(rmvn.sparse(1, rep(0, sum(n_dims)), CH = Cholesky(Q_alpha_tau2), prec = TRUE))     
         for (tt in 2:n_time) {
             alpha[, tt] <- as.vector(rmvn.sparse(1, rho * alpha[, tt - 1], CH = Cholesky(Q_alpha_tau2), prec = TRUE))
         }
     }
     
-    if (!is.null(inits$alpha)) {
-        if (all(!is.na(inits$alpha))) {
-            alpha <- inits$alpha
-        }
-    }
     
     W_alpha_mat <- matrix(0, N, M)
     if (!joint) {
@@ -470,16 +454,6 @@ pg_mvgp_univariate_mra <- function(
             sapply(1:(J-1), function(j) rnorm(N, 0, sigma[j]))
     }
     
-    if (!is.null(inits$Z)) {
-        if (all(!is.na(inits$Z))) {
-            Z <- inits$Z
-        }
-    }
-    if (!is.null(inits$eta)) {
-        if (all(!is.na(inits$eta))) {
-            eta <- inits$eta
-        }
-    }
     
     
     ##
@@ -499,9 +473,84 @@ pg_mvgp_univariate_mra <- function(
     omega <- array(0, dim = c(N, J-1, n_time))
     omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
     
-    if (!is.null(inits$omega)) {
-        if (!is.na(inits$omega)) {
-            omega <- inits$omega
+    
+    ##
+    ## check for initial values
+    ##
+    
+    ## initial values for beta 
+    if (!is.null(inits[['beta']])) {
+        if (all(!is.na(inits[['beta']]))) {
+            beta <- inits[['beta']]
+            if(!is_numeric_matrix(beta, Q + 1, J - 1))
+                stop("initial value for beta must be a Q+1 by J-1 numeric matrix")
+        }
+    }
+    
+    ## intial values for sigma2
+    if (!is.null(inits[['sigma2']])) {
+        if (all(!is.na(inits[['sigma2']]))) {
+            sigma2 <- inits[['sigma2']]
+            if(!is_positive_numeric(sigma2, J - 1))
+                stop("initial value for sigma2 must be a J-1 vector of positive numeric values")
+        }
+    }
+    
+    ## initial values for gamma
+    if (!is.null(inits[['gamma']])) {
+        if (all(!is.na(inits[['gamma']]))) {
+            gamma <- inits[['gamma']]
+        }
+    }
+    
+    Xgamma <- as.vector(X %*% gamma)
+    
+    ## initial values for alpha
+    if (!is.null(inits[['alpha']])) {
+        if (all(!is.na(inits[['alpha']]))) {
+            alpha <- inits[['alpha']]
+        }
+    }
+    
+    
+    ## initial values for omega
+    if (!is.null(inits[['omega']])) {
+        if (!is.na(inits[['omega']])) {
+            omega <- inits[['omega']]
+        }
+    }
+    
+    ## initial values for Z
+    if (!is.null(inits[['Z']])) {
+        if (all(!is.na(inits[['Z']]))) {
+            Z <- inits[['Z']]
+        }
+    }
+    
+    ## initial values for eta
+    if (!is.null(inits[['eta']])) {
+        if (all(!is.na(inits[['eta']]))) {
+            eta <- inits[['eta']]
+        }
+    }
+    
+    ## initial values for tau2
+    if (!is.null(inits[['tau2']])) {
+        if (all(!is.na(inits[['tau2']]))) {
+            tau2 <- inits[['tau2']]
+        }
+    }
+    
+    ## initial values for rho
+    if (!is.null(inits[['rho']])) {
+        if (all(!is.na(inits[['rho']]))) {
+            rho <- inits[['rho']]
+        }
+    }
+    ## initial values for sigma2
+    if (!is.null(inits[['sigma2']])) {
+        if (all(!is.na(inits[['sigma2']]))) {
+            sigma2 <- inits[['sigma2']]
         }
     }
     
@@ -631,17 +680,19 @@ pg_mvgp_univariate_mra <- function(
             A <- tXX / sigma2_0 + tXX * sum(beta[2, ]^2 / sigma2) + Sigma_gamma_inv
             b <- tX %*% (Z[, 1] - W_alpha[, 1]) / sigma2_0 +
                 tX %*% rowSums(
-                sapply(1:(J-1), function (j) {
-                    beta[1, j] / sigma2[j] * (eta[, j, 1] - beta[1, j] * rep(1, N) - W_alpha[, 1])
-                }) 
-            ) + Sigma_gamma_inv %*% mu_gamma
+                    sapply(1:(J-1), function (j) {
+                        beta[2, j] / sigma2[j] * (eta[, j, 1] - beta[1, j] * rep(1, N) - beta[2, j] * W_alpha[, 1])
+                        # beta[1, j] / sigma2[j] * (eta[, j, 1] - beta[1, j] * rep(1, N) - W_alpha[, 1])
+                    }) 
+                ) + Sigma_gamma_inv %*% mu_gamma
             if (!sample_gamma_modern) {
                 A <- A + (n_time - 1) *  tXX * sum(beta[2, ]^2 / sigma2)
                 b <- b + rowSums(
                     sapply(2:n_time, function(tt) {
                         tX %*% rowSums(
                             sapply(1:(J-1), function (j) {
-                                beta[1, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - W_alpha[, tt])
+                                # beta[1, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - W_alpha[, tt])
+                                beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * W_alpha[, tt])
                             }) 
                         )                
                     })
@@ -671,25 +722,51 @@ pg_mvgp_univariate_mra <- function(
                 message("sample alpha")
             
             if (joint) {
+                
+                A_alpha_1      <- 1 / sigma2_0 * tWW + sum(beta[2, ]^2 / sigma2) * tWW + (1 + rho^2) * Q_alpha_tau2
+                A_alpha_n_time <- sum(beta[2, ]^2 / sigma2)  * tWW + Q_alpha_tau2
+                A_alpha <- sum(beta[2, ]^2 / sigma2)  * tWW + (1 + rho^2) * Q_alpha_tau2
+                
                 for(tt in 1:n_time) {
                     if (tt == 1) {
-                        A_alpha <- 1 / sigma2_0 * tWW + sum(beta[2, ]^2 / sigma2) * tWW + (1 + rho^2) * Q_alpha_tau2
                         b_alpha <- 1 / sigma2_0 * tW %*% (Z[, 1] - Xgamma) +
                             tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, 1] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma))) +
                             Q_alpha_tau2 %*% as.vector(rho * alpha[, 2])
-                        alpha[, 1] <- as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct_1))
+                        alpha[, 1] <- tryCatch(
+                            as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_1, Rstruct = Rstruct_1)),
+                            error = function(e) {
+                                if (verbose)
+                                    message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
+                                num_chol_failures <- num_chol_failures + 1
+                                A_alpha_1 <<- A_alpha_1 + 1e-8 * diag(sum(n_dims))
+                                return(as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_1, Rstruct = Rstruct_1)))
+                            })
                         
                     } else if (tt == n_time) {
-                        A_alpha <- sum(beta[2, ]^2 / sigma2)  * tWW + Q_alpha_tau2
                         b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma))) +
                             Q_alpha_tau2 %*% as.vector(rho * alpha[, tt - 1])
-                        alpha[, tt] <- as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct_n_time))
+                        alpha[, tt] <- tryCatch(
+                            as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)),
+                            error = function(e) {
+                                if (verbose)
+                                    message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
+                                num_chol_failures <- num_chol_failures + 1
+                                A_alpha_n_time <<- A_alpha_n_time + 1e-8 * diag(sum(n_dims))
+                                return(as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)))
+                            })
                         
                     } else {
-                        A_alpha <- sum(beta[2, ]^2 / sigma2)  * tWW + (1 + rho^2) * Q_alpha_tau2
                         b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma)))  +
                             Q_alpha_tau2 %*% as.vector(rho * alpha[, tt - 1] + rho * alpha[, tt + 1])
-                        alpha[, tt] <- as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct))
+                        alpha[, tt] <- tryCatch(
+                            as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)),
+                            error = function(e) {
+                                if (verbose)
+                                    message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
+                                num_chol_failures <- num_chol_failures + 1
+                                A_alpha <<- A_alpha + 1e-8 * diag(sum(n_dims))
+                                return(as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)))
+                            })
                     }       
                 }
             } else {
@@ -700,6 +777,7 @@ pg_mvgp_univariate_mra <- function(
             }
         }
         
+        ## update W_alpha
         if (joint) {
             W_alpha <- W %*% alpha
         } else {
@@ -797,6 +875,7 @@ pg_mvgp_univariate_mra <- function(
                     if (joint) {
                         devs <- alpha[dims_idx == m, 1]
                     } else {
+                        stop("The joint = FALSE model is not supported for updating tau2")
                         devs <- alpha[[m]]
                     }
                     
@@ -807,8 +886,12 @@ pg_mvgp_univariate_mra <- function(
                 for (m in 1:M) {
                     devs <- matrix(0, n_dims[m], n_time)
                     if (joint) {
-                        devs <- alpha[dims_idx == m, ]
+                        devs <- cbind(
+                            alpha[dims_idx == m, 1],
+                            alpha[dims_idx == m, - 1] - rho * alpha[dims_idx == m, - n_time]
+                        )
                     } else {
+                        stop("The joint = FALSE model is not supported for updating tau2")
                         devs <- alpha[[m]]
                     }
                     
@@ -846,23 +929,29 @@ pg_mvgp_univariate_mra <- function(
     }
     
     ## print out acceptance rates -- no tuning in this model
-
+    
+    
+    if (num_chol_failures > 0)
+        warning("The Cholesky decomposition for the update of alpha was ill-conditioned and mildy regularized ", num_chol_failures, " times. If this warning is rare, this should be safe to ignore.")
+    
     ##
     ## return the MCMC output -- think about a better way to make this a class
     ## 
+    
     out <- list(
-        beta   = beta_save,
-        gamma  = gamma_save,
-        rho    = rho_save,
-        tau2   = tau2_save,
-        sigma2 = sigma2_save,
-        alpha  = alpha_save,
-        eta    = eta_save,
-        Z      = Z_save,
-        W      = W
+        beta     = beta_save,
+        gamma    = gamma_save,
+        rho      = rho_save,
+        tau2     = tau2_save,
+        sigma2   = sigma2_save,
+        alpha    = alpha_save,
+        eta      = eta_save,
+        Z        = Z_save,
+        W        = W,
+        sigma2_0 = sigma2_0
     )
     
-    class(out) <- "pg_mvgp_univariate" 
+    class(out) <- "pg_mvgp_univariate_mra" 
     
     return(out)
 }

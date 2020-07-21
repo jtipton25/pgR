@@ -4,25 +4,18 @@
 \alias{mra_wendland_2d_pred}
 \title{Code to construct the mutli-resolution sparse basis function representation for fitting spatial processes}
 \usage{
-mra_wendland_2d_pred(
-  locs,
-  locs_pred,
-  M = 4,
-  n_neighbors = 25,
-  padding = 0.1,
-  use_spam = TRUE
-)
+mra_wendland_2d_pred(locs, locs_pred, MRA, use_spam = TRUE)
 }
 \arguments{
 \item{locs}{The location variables in 2 dimensions over which to construct the basis function representation}
+
+\item{use_spam}{}
 
 \item{M}{The number of resolutions}
 
 \item{n_neighbors}{}
 
 \item{padding}{}
-
-\item{use_spam}{}
 }
 \value{
 

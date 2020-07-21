@@ -12,13 +12,13 @@ pg_mvgp_univariate_mra(
   params,
   priors,
   M = 4,
+  n_coarse_grid = 10,
   model = "iid error",
   n_cores = 1L,
   inits = NULL,
   config = NULL,
   verbose = FALSE,
   use_spam = TRUE,
-  joint = TRUE,
   n_chain = 1
 )
 }

@@ -12,7 +12,10 @@
 #' 
 #' @export
 
-make_Q_alpha_2d <- function(n_dims, phi, use_spam = TRUE) {
+make_Q_alpha_2d <- function(n_dims, phi, use_spam = TRUE, prec_model = "CAR") {
+    
+    if (!(prec_model %in% c("CAR", "SAR")))
+        stop('The only valid options for prec_model are "CAR" and "SAR"')
     ## n_dims is a vector of length M that contains the dimensions of each resolution of the process
     ## phi is a vector of length M that contains the CAR parameter
     if (length(n_dims) != length(phi))
@@ -20,12 +23,18 @@ make_Q_alpha_2d <- function(n_dims, phi, use_spam = TRUE) {
     M <- length(n_dims)
     Q_alpha <- vector(mode = "list", length = M)
     for (m in 1:M) {
-        W <- as_adjacency_matrix(make_lattice(dimvector = n_dims[[m]]), sparse = TRUE)
+        W <- as_adjacency_matrix(make_lattice(length = n_dims[[m]], dim = 2), sparse = TRUE)
         D <- Diagonal(x = colSums(W))
-        Q_alpha[[m]] <- D - phi[m] * W
+        if (prec_model == "CAR") {
+            Q_alpha[[m]] <- D - phi[m] * W
+        } else if (prec_model == "SAR") {
+            B <- diag(nrow(W)) - phi * W %*% Diagonal(x = 1 / colSums(W))
+            Q_alpha[[m]] <- t(B) %*% B
+        }
         if (use_spam) {
             ## use the spam package for sparse matrices
-            Q_alpha[[m]] <- spam(c(as.matrix(Q_alpha[[m]])), nrow = n_dims[[m]], ncol = n_dims[[m]])
+            # Q_alpha[[m]] <- spam(c(as.matrix(Q_alpha[[m]])), nrow = n_dims[[m]]^2, ncol = n_dims[[m]]^2)
+            Q_alpha[[m]] <- as.spam.dgCMatrix(Q_alpha[[m]])
         }
     }
     return(Q_alpha)

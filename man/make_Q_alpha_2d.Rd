@@ -4,7 +4,7 @@
 \alias{make_Q_alpha_2d}
 \title{Generate CAR precision matrix}
 \usage{
-make_Q_alpha_2d(n_dims, phi, use_spam = TRUE)
+make_Q_alpha_2d(n_dims, phi, use_spam = TRUE, prec_model = "CAR")
 }
 \arguments{
 \item{phi}{is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines}

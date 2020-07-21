@@ -55,13 +55,15 @@ predict_pg_mvgp_univariate_mra <- function(
     n_time    <- dim(Z)[3]
     n_pred    <- nrow(X_pred)
     J         <- dim(beta)[3] + 1
+    MRA       <- out$MRA
     
     if (n_pred > 15000) {
         stop("Number of prediction points must be less than 15000")
     }
     
     ## generate the MRA spatial basis
-    W_pred      <- mra_wendland_2d_pred(locs, locs_pred, M = M)
+    W_pred      <- mra_wendland_2d_pred(locs, locs_pred, MRA = MRA)$W
+    W_pred      <- do.call(cbind, W_pred)
     
     ## intialize the covariance matric
     Z_pred <- array(0, dim = c(n_samples, n_pred, n_time))

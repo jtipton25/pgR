@@ -14,9 +14,11 @@
 mra_wendland_2d <- function(
     locs,
     M           = 4,
-    n_neighbors = 25,
+    n_neighbors = 68,
+    n_coarse_grid = 10,
+    # n_max_fine_grid = 2^12,
     # radius      = 25,
-    padding     = 0.1,
+    n_padding     = 5L,
     use_spam    = TRUE
 ) {
     ## helper function
@@ -31,20 +33,25 @@ mra_wendland_2d <- function(
         return(((1 - d_rad)^6 * (35 * d_rad^2 + 18 * d_rad + 3)) / 3 * (d_rad < 1))
     }
 
-    if (padding < 0 | padding > 1) {
-        stop("the padding must be a number between 0 and 1")
+    if (!is_positive_integer(n_padding, 1)) {
+        stop("the padding must be a positive integer")
     }
 
     N <- nrow(locs)
     ## Assign as many gridpoints (approximately) as data
-    n_grid <- ceiling(sqrt(N / 2^(M:1 - 1)))
+    # n_grid <- ceiling(sqrt(N / 2^(M:1 - 1)))  
+    
+    ## finest grid is the smaller of n_max_fine_grid
+    ## or the largest power of 2 larger than N
+    # n_grid <- ceiling(min(n_max_fine_grid, 2^ceiling(log(N, base = 2)))^(0.5) / 2^(M:1 - 1))
+    n_grid <- n_coarse_grid * 2^(1:M - 1)
     if (min(n_grid) < 4) {
         stop("There are too many resolutions to form a reliable grid. Reduce M and try again.")
     }
 
     ## define radius so that each basis function covers approximately 5 neighbors
     area_domain      <- diff(range(locs[, 1])) * diff(range(locs[, 2]))
-    density_domain   <- N / area_domain
+    density_domain   <- max(n_grid^2) / area_domain
     radius_fine_grid <- sqrt(n_neighbors / (density_domain * base::pi))
     # radius           <- radius_fine_grid * (2^(1:M - 1))^2
     radius           <- radius_fine_grid * (2^(M:1 - 1))
@@ -57,18 +64,31 @@ mra_wendland_2d <- function(
 
     for (m in 1:M) {
         ## right now assuming a 2D grid -- can generalize later
-        locs_grid[[m]] <- expand.grid(
-            seq(
-                range(locs[, 1])[1] - padding * diff(range(locs[, 1])),
-                range(locs[, 1])[2] + padding * diff(range(locs[, 1])),
-                length.out = n_grid[m]
-            ),
-            seq(
-                range(locs[, 2])[1] - padding * diff(range(locs[, 2])),
-                range(locs[, 2])[2] + padding * diff(range(locs[, 2])),
-                length.out = n_grid[m]
-            )
+        seq_x <- seq(
+            range(locs[, 1])[1],
+            range(locs[, 1])[2],
+            length.out = n_grid[m]
         )
+        seq_y <- seq(
+            range(locs[, 2])[1],
+            range(locs[, 2])[2],
+            length.out = n_grid[m]
+        )
+        delta_x <- seq_x[2] - seq_x[1]
+        delta_y <- seq_y[2] - seq_y[1]
+        seq_x <- c(
+            min(seq_x) - delta_x * (n_padding:1), 
+            seq_x,
+            max(seq_x) + delta_x * (1:n_padding)
+        )
+        seq_y <- c(
+            min(seq_y) - delta_y * (n_padding:1), 
+            seq_y,
+            max(seq_y) + delta_y * (1:n_padding)
+        )
+        
+        locs_grid[[m]] <- expand.grid(seq_x, seq_y)
+        
         D <- rdist(locs, locs_grid[[m]])
         if (use_spam) {
             ## use the spam sparse matrix package

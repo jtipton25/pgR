@@ -17,11 +17,12 @@
 #'  outputs progress messages every 50 iterations.
 #' @param priors is the list of prior settings. 
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
+#' @param model is the form of the  polya-gamma model. Currently, this option is not active the only model is the "iid error" model. This option allows for independent species-specific overdispersion variance terms.
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param inits is the list of initial values if the user wishes to specify initial values. If these values are not specified, then the initial values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
-#' @param Z is the climate state.
 #' @param n_chain is the MCMC chain id. The default is 1.
+#' @param verbose is a logicial input that determines whether to print more detailed messages.
 #'
 #' @export
 #' 
@@ -40,14 +41,11 @@ pg_mvgp_univariate <- function(
     priors,
     corr_fun = "exponential",
     model    = "iid error",
-    n_cores = 1L,
-    inits   = NULL,
-    config  = NULL,
-    verbose = FALSE,
-    n_chain       = 1
-    # pool_s2_tau2  = true,
-    # file_name     = "DM-fit",
-    # corr_function = "exponential"
+    n_cores  = 1L,
+    inits    = NULL,
+    config   = NULL,
+    verbose  = FALSE,
+    n_chain  = 1
 ) {
     
 

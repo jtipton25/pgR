@@ -46,15 +46,17 @@ outputs progress messages every 50 iterations.
 
 \item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
 
+\item{model}{is the form of the  polya-gamma model. Currently, this option is not active the only model is the "iid error" model. This option allows for independent species-specific overdispersion variance terms.}
+
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
 
 \item{inits}{is the list of initial values if the user wishes to specify initial values. If these values are not specified, then the initial values will be randomly sampled from the prior.}
 
 \item{config}{is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.}
 
-\item{n_chain}{is the MCMC chain id. The default is 1.}
+\item{verbose}{is a logicial input that determines whether to print more detailed messages.}
 
-\item{Z}{is the climate state.}
+\item{n_chain}{is the MCMC chain id. The default is 1.}
 }
 \description{
 this function runs the Bayesian multinomial regression using Polya-gamma data augmentation

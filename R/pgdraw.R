@@ -20,7 +20,7 @@
 #'
 #' Makalic, E. & Schmidt, D. F.
 #' High-Dimensional Bayesian Regularised Regression with the BayesReg Package
-#' arXiv:1611.06649 [stat.CO], 2016 \url{https://arxiv.org/pdf/1611.06649.pdf}
+#' arXiv:1611.06649, 2016 \url{https://arxiv.org/pdf/1611.06649.pdf}
 #' 
 #' A MATLAB-compatible implementation of the sampler in this package can be obtained from:
 #' 

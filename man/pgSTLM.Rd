@@ -17,12 +17,7 @@ pgSTLM(
   config = NULL,
   n_chain = 1,
   progress = FALSE,
-  verbose = FALSE,
-  sample_beta = TRUE,
-  sample_theta = TRUE,
-  sample_eta = TRUE,
-  sample_tau2 = TRUE,
-  sample_rho = TRUE
+  verbose = FALSE
 )
 }
 \arguments{

@@ -2,7 +2,7 @@
 % Please edit documentation in R/make-Q-alpha_tau2.R
 \name{make_Q_alpha_tau2}
 \alias{make_Q_alpha_tau2}
-\title{Title}
+\title{Make a sparse MRA precision matrix}
 \usage{
 make_Q_alpha_tau2(Q_alpha, tau2, use_spam = TRUE)
 }
@@ -14,8 +14,8 @@ make_Q_alpha_tau2(Q_alpha, tau2, use_spam = TRUE)
 \item{use_spam}{a boolean that determines if the output matrix is of class "spam" (\code{use_spam = TRUE}) or of class "dgCMatrix" (\code{use_spam = FALSE}; see Matrix package for details)}
 }
 \value{
-
+A sparse multiresolution precision matrix
 }
 \description{
-Title
+Make a sparse MRA precision matrix
 }

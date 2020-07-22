@@ -7,11 +7,13 @@
 make_Q_alpha_2d(n_dims, phi, use_spam = TRUE, prec_model = "CAR")
 }
 \arguments{
-\item{phi}{is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines}
+\item{n_dims}{is a vector of length M (the number of MRA resolutions) for the precision matrix.}
 
-\item{use_spam}{is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE}(see Matrix package for details)}
+\item{phi}{is a vector of length M where each element is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a penalized prior in Bayesian models.}
 
-\item{n}{is the length of the coefficient vector for the penalized bspline model}
+\item{use_spam}{is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).}
+
+\item{prec_model}{defines the form of precision matrix to be used. The precision matrix options are a conditional autoregressive (\code{prec_model = "CAR"}) or a simulatneous autogressive model (\code{prec_model = "SAR"}).}
 }
 \value{
 a list of  \eqn{n \times n}{n x n} sparse spam matrices or Matrix matrices of class "dgCMatrix" (see Matrix package for details)

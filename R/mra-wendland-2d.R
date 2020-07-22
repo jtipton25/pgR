@@ -1,15 +1,17 @@
 #' Code to construct the mutli-resolution sparse basis function representation for fitting spatial processes
 #'
 #' @param locs The location variables in 2 dimensions over which to construct the basis function representation
-#' @param M The number of resolutions
-#' @param n_neighbors 
-#' @param padding 
-#' @param use_spam 
+#' @param M The number of resolutions.
+#' @param n_neighbors The expected number of neighbors for each interior basis function. This determines the basis radius parameter.
+#' @param n_coarse_grid The number of basis functions in one direction (e.g. \code{n_coarse_grid = 10} results in a \eqn{10 \times 10}{10x10} course grid which is further extended by the number of additional padding basis functions given by \code{n_padding}.
+#' @param n_padding The number of additional boundary points to add on each boundary. For example, n_padding = 5 will add 5 boundary knots to the both the left  and right side of the grid).
+#' @param use_spam is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).
 #'
 #' @importFrom fields rdist
 #' @importFrom spam spam
 #' @importFrom Matrix Matrix
-#' @return
+#' @return A list of objects including the MRA knots locations \code{locs_grid}, 
+#' the Wendland basis representation matrix \code{W} at the observed locations, and the basis radius \code{radius}
 #' @export
 mra_wendland_2d <- function(
     locs,

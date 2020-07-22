@@ -11,6 +11,7 @@
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
+#' @param posterior_mean_only is a logical input that flags whether to generate the full posterior predictive distribution (`posterior_mean_only = FALSE`) or just the posterior predictive distribution of the mean response (`posterior_mean_only = TRUE`). For large dataset, the full posterior predictive distribution can be expensive to compute and the posterior distribution of the mean response is much faster to calculte.
 #' @importFrom stats toeplitz
 #' 
 #' @export 
@@ -23,9 +24,10 @@ predict_pgSTLM <- function(
     locs_pred,
     corr_fun,
     shared_covariance_params,
-    n_cores = 1L,
-    progress = TRUE, 
-    verbose = FALSE
+    n_cores             = 1L,
+    progress            = TRUE, 
+    verbose             = FALSE,
+    posterior_mean_only = TRUE
 ) {
     
     ## check the inputs
@@ -49,15 +51,19 @@ predict_pgSTLM <- function(
     n_pred    <- nrow(X_pred)
     J         <- dim(beta)[3] + 1
     
-    if (n_pred > 10000) {
-        stop("Number of prediction points must be less than 10000")
+    if (n_pred > 10000 & posterior_mean_only == FALSE) {
+        stop("Number of prediction points must be less than 10000 if posterior_mean_only = FALSE")
     }
     
     ## add in a counter for the number of regularized Cholesky
     num_chol_failures <- 0
     
     D_obs      <- fields::rdist(locs)
-    D_pred     <- fields::rdist(locs_pred)
+    D_pred <- NULL
+    if (!posterior_mean_only) {
+        ## only calculate if we are estimating the full posterior distribution
+        D_pred     <- fields::rdist(locs_pred)
+    }
     D_pred_obs <- fields::rdist(locs_pred, locs)
     
     eta_pred <- array(0, dim = c(n_samples, n_pred, J-1, n_time))
@@ -76,15 +82,25 @@ predict_pgSTLM <- function(
     
     for (k in 1:n_samples) {
         if (shared_covariance_params) {
+            Sigma           <- NULL
+            Sigma_unobs     <- NULL
+            Sigma_unobs_obs <- NULL
             if (corr_fun == "matern") {
                 Sigma           <- tau2[k] * correlation_function(D_obs, theta[k, ], corr_fun = corr_fun)
-                Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k, ], corr_fun = corr_fun)
+                if (!posterior_mean_only) {
+                    ## only calculate if we are estimating the full posterior distribution
+                    Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k, ], corr_fun = corr_fun)
+                }
                 Sigma_unobs_obs <- tau2[k] * correlation_function(D_pred_obs, theta[k, ], corr_fun = corr_fun)
             } else if (corr_fun == "exponential") {
                 Sigma           <- tau2[k] * correlation_function(D_obs, theta[k], corr_fun = corr_fun)
-                Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k], corr_fun = corr_fun)
+                if (!posterior_mean_only) {
+                    ## only calculate if we are estimating the full posterior distribution
+                    Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k], corr_fun = corr_fun)
+                }
                 Sigma_unobs_obs <- tau2[k] * correlation_function(D_pred_obs, theta[k], corr_fun = corr_fun)
             }           
+            
             Sigma_chol <- tryCatch(
                 chol(Sigma),
                 error = function(e) {
@@ -96,42 +112,48 @@ predict_pgSTLM <- function(
             )
             Sigma_inv <- chol2inv(Sigma_chol)      
             
-            ## time covariance matrix
-            W_time <- toeplitz(c(0, 1, rep(0, n_time - 2)))
-            D_time <- rowSums(W_time)
-            # Q_time <- diag(D_time) - rho[k] * W_time
-            Q_time <- diag(c(1, rep(1 + rho[k]^2, n_time - 2), 1)) - rho[k] * W_time
-            Sigma_time <- solve(Q_time)
-
-            # pred_var <-  kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))
-            # pred_var2 <- kronecker(Sigma_time, Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))
-            # all.equal(pred_var, pred_var2)
-            # microbenchmark::microbenchmark(
-            #     kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
-            #     kronecker(Sigma_time, Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
-            #     times = 5
-            # )
             
-            
-            pred_var_chol_time <- tryCatch(
-                chol(Sigma_time),
-                error = function(e) {
-                    if (verbose)
-                        message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-                    num_chol_failures <- num_chol_failures + 1
-                    chol(Sigma_time + 1e-8 * diag(n_pred))                    
-                }
-            )     
-            pred_var_chol_space <- tryCatch(
-                chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
-                error = function(e) {
-                    if (verbose)
-                        message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-                    num_chol_failures <- num_chol_failures + 1
-                    chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)) + 1e-8 * diag(n_pred))                    
-                }
-            )     
-            
+            pred_var_chol_time  <- NULL
+            pred_var_chol_space <- NULL
+            if (!posterior_mean_only) {
+                ## only calculate if we are estimating the full posterior distribution
+                
+                ## time covariance matrix
+                W_time <- toeplitz(c(0, 1, rep(0, n_time - 2)))
+                D_time <- rowSums(W_time)
+                # Q_time <- diag(D_time) - rho[k] * W_time
+                Q_time <- diag(c(1, rep(1 + rho[k]^2, n_time - 2), 1)) - rho[k] * W_time
+                Sigma_time <- solve(Q_time)
+                
+                # pred_var <-  kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))
+                # pred_var2 <- kronecker(Sigma_time, Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))
+                # all.equal(pred_var, pred_var2)
+                # microbenchmark::microbenchmark(
+                #     kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
+                #     kronecker(Sigma_time, Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
+                #     times = 5
+                # )
+                
+                
+                pred_var_chol_time <- tryCatch(
+                    chol(Sigma_time),
+                    error = function(e) {
+                        if (verbose)
+                            message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
+                        num_chol_failures <- num_chol_failures + 1
+                        chol(Sigma_time + 1e-8 * diag(n_pred))                    
+                    }
+                )     
+                pred_var_chol_space <- tryCatch(
+                    chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
+                    error = function(e) {
+                        if (verbose)
+                            message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
+                        num_chol_failures <- num_chol_failures + 1
+                        chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)) + 1e-8 * diag(n_pred))                    
+                    }
+                )     
+            }            
             # pred_var_chol <- kronecker(pred_var_chol_time, pred_var_chol_space)
             
             # pred_var_chol <- tryCatch(
@@ -196,7 +218,11 @@ predict_pgSTLM <- function(
                 
 
                 # eta_pred[k, , j, ] <- matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time)
-                eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
+                if (posterior_mean_only) {
+                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) 
+                } else {
+                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
+                }
                 # microbenchmark::microbenchmark(
                 #     matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time),
                 #     matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time),
@@ -205,31 +231,45 @@ predict_pgSTLM <- function(
             } 
         } else {
             
-            ## time covariance matrix
-            W_time <- toeplitz(c(0, 1, rep(0, n_time - 2)))
-            D_time <- rowSums(W_time)
-            # Q_time <- diag(D_time) - rho[k] * W_time
-            Q_time <- diag(c(1, rep(1 + rho[k]^2, n_time - 2), 1)) - rho[k] * W_time
-            Sigma_time <- solve(Q_time)
-            
-            pred_var_chol_time <- tryCatch(
-                chol(Sigma_time),
-                error = function(e) {
-                    if (verbose)
-                        message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-                    num_chol_failures <- num_chol_failures + 1
-                    chol(Sigma_time + 1e-8 * diag(n_pred))                    
-                }
-            )     
+            pred_var_chol_time <- NULL
+            if (!posterior_mean_only) {
+                ## only calculate if we are estimating the full posterior distribution
+                
+                ## time covariance matrix
+                W_time <- toeplitz(c(0, 1, rep(0, n_time - 2)))
+                D_time <- rowSums(W_time)
+                # Q_time <- diag(D_time) - rho[k] * W_time
+                Q_time <- diag(c(1, rep(1 + rho[k]^2, n_time - 2), 1)) - rho[k] * W_time
+                Sigma_time <- solve(Q_time)
+                
+                pred_var_chol_time <- tryCatch(
+                    chol(Sigma_time),
+                    error = function(e) {
+                        if (verbose)
+                            message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
+                        num_chol_failures <- num_chol_failures + 1
+                        chol(Sigma_time + 1e-8 * diag(n_pred))                    
+                    }
+                )     
+            }
             
             for (j in 1:(J - 1)) {
+                Sigma           <- NULL
+                Sigma_unobs     <- NULL
+                Sigma_unobs_obs <- NULL
                 if (corr_fun == "matern") {
                     Sigma           <- tau2[k, j] * correlation_function(D_obs, theta[k, j, ], corr_fun = corr_fun)
-                    Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j, ], corr_fun = corr_fun)
+                    if (!posterior_mean_only) {
+                        ## only calculate if we are estimating the full posterior distribution
+                        Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j, ], corr_fun = corr_fun)
+                    }
                     Sigma_unobs_obs <- tau2[k, j] * correlation_function(D_pred_obs, theta[k, j, ], corr_fun = corr_fun)
                 } else if (corr_fun == "exponential") {
                     Sigma           <- tau2[k, j] * correlation_function(D_obs, theta[k, j], corr_fun = corr_fun)
-                    Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j], corr_fun = corr_fun)
+                    if (!posterior_mean_only) {
+                        ## only calculate if we are estimating the full posterior distribution
+                        Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j], corr_fun = corr_fun)
+                    }
                     Sigma_unobs_obs <- tau2[k, j] * correlation_function(D_pred_obs, theta[k, j], corr_fun = corr_fun)
                 }
                 
@@ -244,15 +284,20 @@ predict_pgSTLM <- function(
                 )
                 Sigma_inv       <- chol2inv(Sigma_chol)
                 
-                pred_var_chol_space <- tryCatch(
-                    chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
-                    error = function(e) {
-                        if (verbose)
-                            message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-                        num_chol_failures <- num_chol_failures + 1
-                        chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)) + 1e-8 * diag(n_pred))                    
-                    }
-                )     
+                pred_var_chol_space <- NULL
+                if (!posterior_mean_only) {
+                    ## only calculate if we are estimating the full posterior distribution
+                    
+                    pred_var_chol_space <- tryCatch(
+                        chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
+                        error = function(e) {
+                            if (verbose)
+                                message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
+                            num_chol_failures <- num_chol_failures + 1
+                            chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)) + 1e-8 * diag(n_pred))                    
+                        }
+                    )     
+                }
                 
                 pred_mean <- as.vector(Sigma_unobs_obs %*% Sigma_inv %*% (eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])
                 # pred_mean <- kronecker(Sigma_time, Sigma_unobs_obs) %*% (kronecker(Q_time, Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])
@@ -267,7 +312,11 @@ predict_pgSTLM <- function(
                 #     }
                 # )
                 # eta_pred[k, , j, ] <- matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time)
-                eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
+                if (posterior_mean_only) {
+                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) 
+                } else {
+                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
+                }
             } 
         }
         if (k %in% percentage_points && progress) {

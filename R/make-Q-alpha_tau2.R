@@ -1,4 +1,4 @@
-#' Title
+#' Make a sparse MRA precision matrix
 #'
 #' @param Q_alpha a list of length M composed of matrices that are the correlation structure of the CAR prior on beta
 #' @param tau2 a vector of length M that contains the CAR prior precisions
@@ -7,7 +7,7 @@
 #' @importFrom spam bdiag.spam
 #' @importFrom Matrix bdiag
 #'
-#' @return
+#' @return A sparse multiresolution precision matrix
 #' @export
 make_Q_alpha_tau2 <- function(Q_alpha, tau2, use_spam = TRUE) {
 

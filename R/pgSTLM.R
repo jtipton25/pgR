@@ -34,19 +34,14 @@ pgSTLM <- function(
     locs, 
     params,
     priors,
-    corr_fun = "exponential",
-    n_cores = 1L,
+    corr_fun                 = "exponential",
+    n_cores                  = 1L,
     shared_covariance_params = TRUE,
-    inits = NULL,
-    config = NULL,
-    n_chain       = 1,
-    progress = FALSE,
-    verbose = FALSE,
-    sample_beta = TRUE,
-    sample_theta = TRUE, 
-    sample_eta = TRUE,
-    sample_tau2 = TRUE,
-    sample_rho = TRUE
+    inits                    = NULL,
+    config                   = NULL,
+    n_chain                  = 1,
+    progress                 = FALSE,
+    verbose                  = FALSE
 ) {
     
     start <- Sys.time()
@@ -63,9 +58,58 @@ pgSTLM <- function(
     
     ## add in faster parallel cholesky as needed
     
-    ## add in a counter for the number of regularized Cholesky
-    num_chol_failures <- 0
+    ## 
+    ## setup config
+    ##
     
+    ## do we sample the functional relationship parameters? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_beta <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_beta']])) {
+            sample_beta <- config[['sample_beta']]
+        }
+    }
+    
+    ## do we sample the climate autocorrelation parameter? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_rho <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_rho']])) {
+            sample_rho <- config[['sample_rho']]
+        }
+    }
+    
+    ## do we sample the climate variance parameter? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_tau2 <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_tau2']])) {
+            sample_tau2 <- config[['sample_tau2']]
+        }
+    }
+    
+    ## do we sample the climate spatial covariance parameters? This is
+    ## primarily used to troubleshoot model fitting using simulated data
+    sample_theta <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_theta']])) {
+            sample_theta <- config[['sample_theta']]
+        }
+    }
+    
+    ## do we sample the latent intensity parameter eta
+    sample_eta <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_eta']])) {
+            sample_eta <- config[['sample_eta']]
+        }
+    }
+    
+    
+    ##
+    ## setup constats
+    ##
     
     N      <- nrow(Y)
     J      <- ncol(Y)
@@ -73,7 +117,15 @@ pgSTLM <- function(
     p      <- ncol(X)
     D      <- fields::rdist(locs)
     
-    ## we assume a partially missing observation is the same as fully missing
+    ## Add in a counter for the number of regularized Cholesky factors.
+    ## This is useful in correcting for numerical errors resulting in 
+    ## covariance matrices that are not full rank
+    num_chol_failures <- 0
+
+    
+    ## We assume a partially missing observation is the same as 
+    ## fully missing. The index allows for fast accesing of missing
+    ## observations
     missing_idx <- matrix(FALSE, N, n_time)
     for (i in 1:N) {
         for (tt in 1:n_time) {

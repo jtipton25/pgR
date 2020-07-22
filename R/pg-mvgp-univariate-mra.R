@@ -16,16 +16,20 @@
 #'  to output a progress message. For example, \code{n_message = 50}
 #'  outputs progress messages every 50 iterations.
 #' @param priors is the list of prior settings. 
+#' @param M The number of resolutions.
+#' @param n_coarse_grid The number of basis functions in one direction (e.g. \code{n_coarse_grid = 10} results in a \eqn{10 \times 10}{10x10} course grid which is further extended by the number of additional padding basis functions given by \code{n_padding}.
+#' @param model is the form of the  polya-gamma model. Currently, this option is not active the only model is the "iid error" model. This option allows for independent species-specific overdispersion variance terms.
 #' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param inits is the list of initial values if the user wishes to specify initial values. If these values are not specified, then the initial values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
-#' @param Z is the climate state.
+#' @param verbose is a logicial input that determines whether to print more detailed messages.
+#' @param use_spam is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).
 #' @param n_chain is the MCMC chain id. The default is 1.
-#'
+#' 
 #' @export
 #' 
 #' @importFrom LaplacesDemon rinvwishart rtrunc
-#' @importFrom stats rmultinom
+#' @importFrom stats rmultinom lm
 #' @importFrom hms as_hms
 #' @importFrom fields rdist
 #' @importFrom sparseMVN rmvn.sparse
@@ -56,7 +60,7 @@ pg_mvgp_univariate_mra <- function(
     # corr_function = "exponential"
 ) {
     
-    sigma2_0 <- 0.001
+
     # RSR <- FALSE
     
     ##
@@ -347,11 +351,28 @@ pg_mvgp_univariate_mra <- function(
     Sigma_gamma_inv  <- chol2inv(Sigma_gamma_chol)
     
     ##
+    ## priors for tau2
+    ##
+    
+    alpha_tau2 <- 1
+    beta_tau2  <- 1
+    
+    ## check if priors for alpha_tau2 are specified
+    if (!is.null(priors[['alpha_tau2']])) {
+        alpha_tau2 <- priors[['alpha_tau2']]
+    }
+    
+    ## check if priors for beta_tau2 are specified
+    if (!is.null(priors[['beta_tau2']])) {
+        beta_tau2 <- priors[['beta_tau2']]
+    }
+
+    ##
     ## intialize a proper CAR structure to initialize the parameter alpha
     ##
     
     Q_alpha <- make_Q_alpha_2d(sqrt(n_dims), rep(0.999, length(n_dims)), use_spam = use_spam)
-    tau2 <- 100 * pmax(rgamma(M, priors$alpha_tau2, priors$beta_tau2), 1)
+    tau2 <- 100 * pmax(rgamma(M, alpha_tau2, beta_tau2), 1)
     
     Q_alpha_tau2 <- make_Q_alpha_tau2(Q_alpha, tau2, use_spam = use_spam)
     
@@ -380,13 +401,53 @@ pg_mvgp_univariate_mra <- function(
     rho      <- runif(1, -1, 1)
     
     ##
+    ## priors for sigma2
+    ##
+    
+    alpha_sigma2 <- 1
+    beta_sigma2  <- 1
+    
+    ## check if priors for alpha_sigma2 are specified
+    if (!is.null(priors[['alpha_sigma2']])) {
+        alpha_sigma2 <- priors[['alpha_sigma2']]
+    }
+    
+    ## check if priors for beta_sigma2 are specified
+    if (!is.null(priors[['beta_sigma2']])) {
+        beta_sigma2 <- priors[['beta_sigma2']]
+    }
+    
+    ##
     ## initialize sigma2
     ##
     
-    sigma2  <- rgamma(J-1, priors$alpha_sigma2, priors$beta_sigma2)
+    sigma2  <- rgamma(J-1, alpha_sigma2, beta_sigma2)
     sigma   <- sqrt(sigma2)
     
-
+    ##
+    ## priors for sigma2_0
+    ##
+    
+    ## default strong shrinkage prior towards 0
+    alpha_sigma2_0 <- 200
+    beta_sigma2_0  <- 1
+    
+    ## check if priors for alpha_sigma2 are specified
+    if (!is.null(priors[['alpha_sigma2']])) {
+        alpha_sigma2 <- priors[['alpha_sigma2']]
+    }
+    
+    ## check if priors for beta_sigma2 are specified
+    if (!is.null(priors[['beta_sigma2']])) {
+        beta_sigma2 <- priors[['beta_sigma2']]
+    }
+    
+    ##
+    ## intialize sigma2_0
+    ##
+    
+    sigma2_0 <- pmin(1 / rgamma(1, alpha_sigma2_0, beta_sigma2_0), 0.1)
+    
     ##
     ## initialize alpha
     ##
@@ -565,19 +626,27 @@ pg_mvgp_univariate_mra <- function(
         }
     }
     
+    ## initial values for sigma2_0
+    if (!is.null(inits[['sigma2_0']])) {
+        if (all(!is.na(inits[['sigma2_0']]))) {
+            sigma2_0 <- inits[['sigma2_0']]
+        }
+    }
+    
     ##
     ## setup save variables
     ##
     
-    n_save       <- params$n_mcmc / params$n_thin
-    beta_save    <- array(0, dim = c(n_save, Q+1, J-1))
-    gamma_save   <- matrix(0, n_save, p)
-    rho_save     <- rep(0, n_save)
-    tau2_save    <- matrix(0, n_save, M)
-    sigma2_save  <- matrix(0, n_save, J-1)
-    alpha_save   <- array(0, dim = c(n_save, sum(n_dims), n_time))
-    Z_save       <- array(0, dim = c(n_save, N, n_time))
-    eta_save     <- array(0, dim = c(n_save, N, J-1, n_time))
+    n_save        <- params$n_mcmc / params$n_thin
+    beta_save     <- array(0, dim = c(n_save, Q+1, J-1))
+    gamma_save    <- matrix(0, n_save, p)
+    rho_save      <- rep(0, n_save)
+    tau2_save     <- matrix(0, n_save, M)
+    sigma2_save   <- matrix(0, n_save, J-1)
+    alpha_save    <- array(0, dim = c(n_save, sum(n_dims), n_time))
+    Z_save        <- array(0, dim = c(n_save, N, n_time))
+    eta_save      <- array(0, dim = c(n_save, N, J-1, n_time))
+    sigma2_0_save <- rep(0, n_save)
     
     
     ## 
@@ -656,11 +725,11 @@ pg_mvgp_univariate_mra <- function(
                 if (sample_sigma2_modern) {
                     devs      <- eta[, j, 1] - cbind(1, Z[, 1]) %*% beta[, j]
                     SS        <- sum(devs^2)
-                    sigma2[j] <- 1 / rgamma(1, N / 2 + priors$alpha_sigma2, SS / 2 + priors$beta_sigma2) 
+                    sigma2[j] <- 1 / rgamma(1, N / 2 + alpha_sigma2, SS / 2 + beta_sigma2) 
                 } else {
                     devs      <- sapply(1:n_time, function(tt) eta[, j, tt] - cbind(1, Z[, tt]) %*% beta[, j])
                     SS        <- sum(devs^2)
-                    sigma2[j] <- 1 / rgamma(1, N * n_time / 2 + priors$alpha_sigma2, SS / 2 + priors$beta_sigma2) 
+                    sigma2[j] <- 1 / rgamma(1, N * n_time / 2 + alpha_sigma2, SS / 2 + beta_sigma2) 
                 }
             }
             sigma     <- sqrt(sigma2)
@@ -887,7 +956,7 @@ pg_mvgp_univariate_mra <- function(
                 for (m in 1:M) {
                     devs <- alpha[dims_idx == m, 1]
                     SS       <- as.numeric(devs %*% (Q_alpha[[m]] %*% devs))
-                    tau2[m]  <- rgamma(1, priors$alpha_tau2 + n_dims[m] / 2, priors$beta_tau2 + SS / 2)
+                    tau2[m]  <- rgamma(1, alpha_tau2 + n_dims[m] / 2, beta_tau2 + SS / 2)
                 }
             } else {
                 for (m in 1:M) {
@@ -897,12 +966,24 @@ pg_mvgp_univariate_mra <- function(
                     )
                     
                     SS       <- sum(sapply(1:n_time, function(tt) devs[, tt] %*% (Q_alpha[[m]] %*% devs[, tt])))
-                    tau2[m]  <- rgamma(1, priors$alpha_tau2 + n_dims[m] * n_time / 2, priors$alpha_tau2 + SS / 2)
+                    tau2[m]  <- rgamma(1, alpha_tau2 + n_dims[m] * n_time / 2, alpha_tau2 + SS / 2)
                 }
             }
             
             Q_alpha_tau2 <- make_Q_alpha_tau2(Q_alpha, tau2, use_spam = use_spam)
             tau        <- sqrt(tau2)
+        }
+        
+        ##
+        ## sample sigma2_0
+        ##
+        
+        if (sample_sigma2_0) {
+            if (verbose)
+                message("sample sigma2_0")
+            
+            SS <- sum((Z0 - Xgamma - W_alpha[, 1])^2)
+            sigma2_0 <- 1 / rgamma(1, alpha_sigma2_0 + N / 2, beta_sigma2_0 + SS / 2)
         }
         
         ##
@@ -920,6 +1001,7 @@ pg_mvgp_univariate_mra <- function(
                 alpha_save[save_idx, , ] <- alpha
                 Z_save[save_idx, , ]     <- Z
                 eta_save[save_idx, , , ] <- eta
+                sigma2_0_save[save_idx]  <- sigma2_0
             }
         }
         
@@ -948,7 +1030,7 @@ pg_mvgp_univariate_mra <- function(
         eta      = eta_save,
         Z        = Z_save,
         W        = W,
-        sigma2_0 = sigma2_0,
+        sigma2_0 = sigma2_0_save,
         MRA      = MRA
     )
     

@@ -46,15 +46,23 @@ outputs progress messages every 50 iterations.
 
 \item{priors}{is the list of prior settings.}
 
+\item{M}{The number of resolutions.}
+
+\item{n_coarse_grid}{The number of basis functions in one direction (e.g. \code{n_coarse_grid = 10} results in a \eqn{10 \times 10}{10x10} course grid which is further extended by the number of additional padding basis functions given by \code{n_padding}.}
+
+\item{model}{is the form of the  polya-gamma model. Currently, this option is not active the only model is the "iid error" model. This option allows for independent species-specific overdispersion variance terms.}
+
 \item{n_cores}{is the number of cores for parallel computation using openMP.}
 
 \item{inits}{is the list of initial values if the user wishes to specify initial values. If these values are not specified, then the initial values will be randomly sampled from the prior.}
 
 \item{config}{is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.}
 
-\item{n_chain}{is the MCMC chain id. The default is 1.}
+\item{verbose}{is a logicial input that determines whether to print more detailed messages.}
 
-\item{Z}{is the climate state.}
+\item{use_spam}{is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).}
+
+\item{n_chain}{is the MCMC chain id. The default is 1.}
 }
 \description{
 this function runs the Bayesian multinomial regression using Polya-gamma data augmentation

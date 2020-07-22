@@ -14,7 +14,8 @@ predict_pgSTLM(
   shared_covariance_params,
   n_cores = 1L,
   progress = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  posterior_mean_only = TRUE
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ predict_pgSTLM(
 \item{progress}{is a logicial input that determines whether to print a progress bar.}
 
 \item{verbose}{is a logicial input that determines whether to print more detailed messages.}
+
+\item{posterior_mean_only}{is a logical input that flags whether to generate the full posterior predictive distribution (\code{posterior_mean_only = FALSE}) or just the posterior predictive distribution of the mean response (\code{posterior_mean_only = TRUE}). For large dataset, the full posterior predictive distribution can be expensive to compute and the posterior distribution of the mean response is much faster to calculte.}
 }
 \description{
 this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation

@@ -2,9 +2,10 @@
 #'
 #' A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines
 #'
-#' @param n is the length of the coefficient vector for the penalized bspline model  
-#' @param phi is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines
-#' @param use_spam is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE}(see Matrix package for details)
+#' @param n_dims is a vector of length M (the number of MRA resolutions) for the precision matrix.
+#' @param phi is a vector of length M where each element is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a penalized prior in Bayesian models.
+#' @param use_spam is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).
+#' @param prec_model defines the form of precision matrix to be used. The precision matrix options are a conditional autoregressive (\code{prec_model = "CAR"}) or a simulatneous autogressive model (\code{prec_model = "SAR"}).
 #' @return a list of  \eqn{n \times n}{n x n} sparse spam matrices or Matrix matrices of class "dgCMatrix" (see Matrix package for details)
 #' @importFrom igraph as_adjacency_matrix make_lattice
 #' @importFrom Matrix Diagonal colSums

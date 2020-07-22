@@ -87,6 +87,18 @@
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/pgLM.html">Multinomial logistic regression using pgLM</a>
+    </li>
+  </ul>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
@@ -117,7 +129,7 @@
     <p>A function for setting up a conditional autoregressive (CAR) precision matrix for use as a prior in Bayesian penalized splines</p>
     </div>
 
-    <pre class="usage"><span class='fu'>make_Q_alpha_2d</span>(<span class='no'>n_dims</span>, <span class='no'>phi</span>, <span class='kw'>use_spam</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
+    <pre class="usage"><span class='fu'>make_Q_alpha_2d</span>(<span class='no'>n_dims</span>, <span class='no'>phi</span>, <span class='kw'>use_spam</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>prec_model</span> <span class='kw'>=</span> <span class='st'>"CAR"</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">

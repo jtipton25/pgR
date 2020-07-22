@@ -5,3 +5,5 @@
 ^pkgdown$
 ^scripts$
 ^results$
+^doc$
+^Meta$

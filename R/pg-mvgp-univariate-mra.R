@@ -391,11 +391,23 @@ pg_mvgp_univariate_mra <- function(
     ## initialize alpha
     ##
     
+    ## define the sum-to-0 constraint for alpha_1
+    
+    A_constraint <- t(
+        sapply(1:M, function(m) {
+            tmp <- rep(0, sum(n_dims))
+            tmp[dims_idx == m] <- 1
+            return(tmp)
+        })
+    )
+    a_constraint <- rep(0, M)
+    
     alpha <- matrix(0, sum(n_dims), n_time)
     if (use_spam) {
         A_alpha_1 <- 1 / sigma2_0 * tWW + (1 + rho^2) * Q_alpha_tau2
         b_alpha   <- 1 / sigma2_0 * tW %*% (Z0 - Xgamma) 
-        alpha[, 1] <- rmvnorm.canonical(1, b_alpha, A_alpha_1)
+        alpha[, 1] <- rmvnorm.canonical.const(1, b_alpha, A_alpha_1, 
+                                              A = A_constraint, a = a_constraint)
         for (tt in 2:n_time) {
             ## initialize with the current climate
             alpha[, tt] <- alpha[, 1]
@@ -741,39 +753,43 @@ pg_mvgp_univariate_mra <- function(
                         tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, 1] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma))) +
                         Q_alpha_tau2 %*% as.vector(rho * alpha[, 2])
                     alpha[, 1] <- tryCatch(
-                        as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_1, Rstruct = Rstruct_1)),
+                        as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_1, Rstruct = Rstruct_1, A = A_constraint, a = a_constraint)),
                         error = function(e) {
                             if (verbose)
                                 message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
                             num_chol_failures <- num_chol_failures + 1
                             A_alpha_1 <<- A_alpha_1 + 1e-8 * diag(sum(n_dims))
-                            return(as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_1, Rstruct = Rstruct_1)))
+                            return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_1, Rstruct = Rstruct_1, A = A_constraint, a = a_constraint)))
                         })
                     
                 } else if (tt == n_time) {
                     b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma))) +
                         Q_alpha_tau2 %*% as.vector(rho * alpha[, tt - 1])
                     alpha[, tt] <- tryCatch(
-                        as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)),
+                        as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)),
+                        # as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)),
                         error = function(e) {
                             if (verbose)
                                 message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
                             num_chol_failures <- num_chol_failures + 1
                             A_alpha_n_time <<- A_alpha_n_time + 1e-8 * diag(sum(n_dims))
-                            return(as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)))
+                            return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)))
+                            # return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)))
                         })
                     
                 } else {
                     b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma)))  +
                         Q_alpha_tau2 %*% as.vector(rho * alpha[, tt - 1] + rho * alpha[, tt + 1])
                     alpha[, tt] <- tryCatch(
-                        as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)),
+                        as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha, Rstruct = Rstruct, A = A_constraint, a = a_constraint)),
+                        # as.vector(rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)),
                         error = function(e) {
                             if (verbose)
                                 message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
                             num_chol_failures <- num_chol_failures + 1
                             A_alpha <<- A_alpha + 1e-8 * diag(sum(n_dims))
-                            return(as.vector(spam::rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)))
+                            return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha, Rstruct = Rstruct, A = A_constraint, a = a_constraint)))
+                            # return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)))
                         })
                 }       
             }

@@ -87,6 +87,18 @@
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/pgLM.html">Multinomial logistic regression using pgLM</a>
+    </li>
+  </ul>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
@@ -117,7 +129,14 @@
     <p>Code to construct the mutli-resolution sparse basis function representation for fitting spatial processes</p>
     </div>
 
-    <pre class="usage"><span class='fu'>mra_wendland_2d</span>(<span class='no'>locs</span>, <span class='kw'>M</span> <span class='kw'>=</span> <span class='fl'>4</span>, <span class='kw'>n_neighbors</span> <span class='kw'>=</span> <span class='fl'>25</span>, <span class='kw'>padding</span> <span class='kw'>=</span> <span class='fl'>0.1</span>, <span class='kw'>use_spam</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
+    <pre class="usage"><span class='fu'>mra_wendland_2d</span>(
+  <span class='no'>locs</span>,
+  <span class='kw'>M</span> <span class='kw'>=</span> <span class='fl'>4</span>,
+  <span class='kw'>n_neighbors</span> <span class='kw'>=</span> <span class='fl'>68</span>,
+  <span class='kw'>n_coarse_grid</span> <span class='kw'>=</span> <span class='fl'>10</span>,
+  <span class='kw'>n_padding</span> <span class='kw'>=</span> <span class='fl'>5L</span>,
+  <span class='kw'>use_spam</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -135,11 +154,11 @@
       <td></td>
     </tr>
     <tr>
-      <th>padding</th>
+      <th>use_spam</th>
       <td></td>
     </tr>
     <tr>
-      <th>use_spam</th>
+      <th>padding</th>
       <td></td>
     </tr>
     </table>

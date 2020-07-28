@@ -99,6 +99,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
@@ -185,6 +188,18 @@ outputs progress messages every 50 iterations.</p></li>
       <td><p>is the list of prior settings.</p></td>
     </tr>
     <tr>
+      <th>M</th>
+      <td><p>The number of resolutions.</p></td>
+    </tr>
+    <tr>
+      <th>n_coarse_grid</th>
+      <td><p>The number of basis functions in one direction (e.g. <code>n_coarse_grid = 10</code> results in a \(10 \times 10\) course grid which is further extended by the number of additional padding basis functions given by <code>n_padding</code>.</p></td>
+    </tr>
+    <tr>
+      <th>model</th>
+      <td><p>is the form of the  polya-gamma model. Currently, this option is not active the only model is the "iid error" model. This option allows for independent species-specific overdispersion variance terms.</p></td>
+    </tr>
+    <tr>
       <th>n_cores</th>
       <td><p>is the number of cores for parallel computation using openMP.</p></td>
     </tr>
@@ -197,12 +212,16 @@ outputs progress messages every 50 iterations.</p></li>
       <td><p>is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.</p></td>
     </tr>
     <tr>
-      <th>n_chain</th>
-      <td><p>is the MCMC chain id. The default is 1.</p></td>
+      <th>verbose</th>
+      <td><p>is a logicial input that determines whether to print more detailed messages.</p></td>
     </tr>
     <tr>
-      <th>Z</th>
-      <td><p>is the climate state.</p></td>
+      <th>use_spam</th>
+      <td><p>is a boolean flag to determine whether the output is a list of spam matrix objects (<code>use_spam = TRUE</code>) or a an \(n \times n\) sparse Matrix of class "dgCMatrix" <code>use_spam = FALSE</code> (see spam and Matrix packages for details).</p></td>
+    </tr>
+    <tr>
+      <th>n_chain</th>
+      <td><p>is the MCMC chain id. The default is 1.</p></td>
     </tr>
     </table>
 

@@ -1,5 +1,9 @@
 # pgR
 
+## About the package
+
+This package includes a parallel implementation to sample from Polya-gamma random variables as well as Markov Chain Monte Carlo (MCMC) code for fitting Bayesian multinomial regression models using MCMC. The classes of models currently available include multinomial regression using the `pg_lm()` function, multinomial spatial regression using the `pg_splm()` function, multinomial regression with spatially varying coefficients using the `pg_svlm()` function, and spatio-temporal using the `pg_stlm()` function.
+
 ## Package Installation
 There are two options to install the package. You can install the package directly from gitHub or you can clone the package and install locally. The direct installation from gitHub is preferred if you are interested in only using the package and the installation from a cloned gitHub repo is preferred if you are interested in development of the package. 
 

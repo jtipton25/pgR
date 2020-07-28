@@ -99,6 +99,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
@@ -135,16 +138,20 @@
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
+      <th>n_dims</th>
+      <td><p>is a vector of length M (the number of MRA resolutions) for the precision matrix.</p></td>
+    </tr>
+    <tr>
       <th>phi</th>
-      <td><p>is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a prior in Bayesian penalized splines</p></td>
+      <td><p>is a vector of length M where each element is a number between -1 and 1 that defines the strength of the  autoregressive process. Typically this will be set to 1 for use as a penalized prior in Bayesian models.</p></td>
     </tr>
     <tr>
       <th>use_spam</th>
-      <td><p>is a boolean flag to determine whether the output is a list of spam matrix objects (<code>use_spam = TRUE</code>) or a an \(n \times n\) sparse Matrix of class "dgCMatrix" <code>use_spam = FALSE</code>(see Matrix package for details)</p></td>
+      <td><p>is a boolean flag to determine whether the output is a list of spam matrix objects (<code>use_spam = TRUE</code>) or a an \(n \times n\) sparse Matrix of class "dgCMatrix" <code>use_spam = FALSE</code> (see spam and Matrix packages for details).</p></td>
     </tr>
     <tr>
-      <th>n</th>
-      <td><p>is the length of the coefficient vector for the penalized bspline model</p></td>
+      <th>prec_model</th>
+      <td><p>defines the form of precision matrix to be used. The precision matrix options are a conditional autoregressive (<code>prec_model = "CAR"</code>) or a simulatneous autogressive model (<code>prec_model = "SAR"</code>).</p></td>
     </tr>
     </table>
 

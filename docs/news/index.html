@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Bayesian Polya-gamma regression — pgLM • pgR</title>
+<title>Changelog • pgR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,7 @@
 
 
 
-<meta property="og:title" content="Bayesian Polya-gamma regression — pgLM" />
-<meta property="og:description" content="this function runs the Bayesian multinomial regression using Polya-gamma data augmentation" />
+<meta property="og:title" content="Changelog" />
 
 
 
@@ -59,7 +58,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-reference-topic">
+    <div class="container template-news">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -123,85 +122,26 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Bayesian Polya-gamma regression</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pgLM.R'><code>R/pgLM.R</code></a></small>
-    <div class="hidden name"><code>pgLM.Rd</code></div>
+      <h1 data-toc-skip>Changelog <small></small></h1>
+      <small>Source: <a href='https://github.com/jtipton25/pgR/blob/master/NEWS.md'><code>NEWS.md</code></a></small>
     </div>
 
-    <div class="ref-description">
-    <p>this function runs the Bayesian multinomial regression using Polya-gamma data augmentation</p>
-    </div>
-
-    <pre class="usage"><span class='fu'>pgLM</span>(
-  <span class='no'>Y</span>,
-  <span class='no'>X</span>,
-  <span class='no'>params</span>,
-  <span class='no'>priors</span>,
-  <span class='kw'>n_cores</span> <span class='kw'>=</span> <span class='fl'>1L</span>,
-  <span class='kw'>inits</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>config</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>n_chain</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>sample_rmvn</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
-)</pre>
-
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
-    <table class="ref-arguments">
-    <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>Y</th>
-      <td><p>is a \(n \times J\) matrix of compositional count data.</p></td>
-    </tr>
-    <tr>
-      <th>X</th>
-      <td><p>is a \(n \times p\) matrix of climate variables.</p></td>
-    </tr>
-    <tr>
-      <th>params</th>
-      <td><p>is a list of parameter settings. The list
-<code>params</code> must contain the following values:</p><ul>
-<li><p><code>n_adapt</code>: A positive integer number of adaptive MCMC iterations.</p></li>
-<li><p><code>n_mcmc</code>: A positive integer number of total MCMC iterations
-post adaptation.</p></li>
-<li><p><code>n_thin</code>: A positive integer number of MCMC iterations per saved
-sample.</p></li>
-<li><p><code>n_message</code>: A positive integer number of frequency of iterations
-to output a progress message. For example, <code>n_message = 50</code>
-outputs progress messages every 50 iterations.</p></li>
-</ul></td>
-    </tr>
-    <tr>
-      <th>priors</th>
-      <td><p>is the list of prior settings.</p></td>
-    </tr>
-    <tr>
-      <th>n_cores</th>
-      <td><p>is the number of cores for parallel computation using openMP.</p></td>
-    </tr>
-    <tr>
-      <th>inits</th>
-      <td><p>is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.</p></td>
-    </tr>
-    <tr>
-      <th>config</th>
-      <td><p>is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.</p></td>
-    </tr>
-    <tr>
-      <th>n_chain</th>
-      <td><p>is the MCMC chain id. The default is 1.</p></td>
-    </tr>
-    <tr>
-      <th>sample_rmvn</th>
-      <td><p>is an indicator whether the faster multivariate normal sampler is used.</p></td>
-    </tr>
-    </table>
-
-
+    <div id="pgr-010" class="section level1">
+<h1 class="page-header" data-toc-text="0.1.0">
+<a href="#pgr-010" class="anchor"></a>pgR 0.1.0</h1>
+<ul>
+<li>changed how the conif parameters are included in the polya-gamma models <code><a href="../reference/pgLM.html">pgLM()</a></code>, <code><a href="../reference/pgSPLM.html">pgSPLM()</a></code>, and <code><a href="../reference/pgSTLM.html">pgSTLM()</a></code>
+</li>
+</ul>
+</div>
   </div>
+
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
       <h2 data-toc-skip>Contents</h2>
     </nav>
   </div>
+
 </div>
 
 

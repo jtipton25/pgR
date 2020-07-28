@@ -99,6 +99,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
@@ -187,6 +190,10 @@ outputs progress messages every 50 iterations.</p></li>
       <td><p>is a character that denotes the correlation function form. Current options include "matern" and "exponential".</p></td>
     </tr>
     <tr>
+      <th>model</th>
+      <td><p>is the form of the  polya-gamma model. Currently, this option is not active the only model is the "iid error" model. This option allows for independent species-specific overdispersion variance terms.</p></td>
+    </tr>
+    <tr>
       <th>n_cores</th>
       <td><p>is the number of cores for parallel computation using openMP.</p></td>
     </tr>
@@ -199,12 +206,12 @@ outputs progress messages every 50 iterations.</p></li>
       <td><p>is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.</p></td>
     </tr>
     <tr>
-      <th>n_chain</th>
-      <td><p>is the MCMC chain id. The default is 1.</p></td>
+      <th>verbose</th>
+      <td><p>is a logicial input that determines whether to print more detailed messages.</p></td>
     </tr>
     <tr>
-      <th>Z</th>
-      <td><p>is the climate state.</p></td>
+      <th>n_chain</th>
+      <td><p>is the MCMC chain id. The default is 1.</p></td>
     </tr>
     </table>
 

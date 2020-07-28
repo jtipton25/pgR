@@ -99,6 +99,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
@@ -139,7 +142,8 @@
   <span class='no'>shared_covariance_params</span>,
   <span class='kw'>n_cores</span> <span class='kw'>=</span> <span class='fl'>1L</span>,
   <span class='kw'>progress</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>verbose</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
+  <span class='kw'>verbose</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
+  <span class='kw'>posterior_mean_only</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>
 )</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -184,6 +188,10 @@
     <tr>
       <th>verbose</th>
       <td><p>is a logicial input that determines whether to print more detailed messages.</p></td>
+    </tr>
+    <tr>
+      <th>posterior_mean_only</th>
+      <td><p>is a logical input that flags whether to generate the full posterior predictive distribution (<code>posterior_mean_only = FALSE</code>) or just the posterior predictive distribution of the mean response (<code>posterior_mean_only = TRUE</code>). For large dataset, the full posterior predictive distribution can be expensive to compute and the posterior distribution of the mean response is much faster to calculte.</p></td>
     </tr>
     </table>
 

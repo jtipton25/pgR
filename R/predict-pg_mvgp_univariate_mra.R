@@ -49,6 +49,7 @@ predict_pg_mvgp_univariate_mra <- function(
     tau2      <- out$tau2
     Z         <- out$Z
     rho       <- out$rho
+    mu        <- out$mu
     n_samples <- nrow(beta)  
     N         <- nrow(X)
     M         <- ncol(tau2)
@@ -82,10 +83,10 @@ predict_pg_mvgp_univariate_mra <- function(
     
     for (k in 1:n_samples) {
 
-        X_gamma_pred <- X_pred %*% gamma[k, ]
+        X_gamma_pred <- as.vector(X_pred %*% gamma[k, ])
         W_alpha_pred <- W_pred %*% alpha[k, , ]
         
-        Z_pred[k, , ] <- matrix(X_gamma_pred, n_pred, n_time) + W_alpha_pred
+        Z_pred[k, , ] <- matrix(X_gamma_pred, n_pred, n_time) + W_alpha_pred + matrix(mu[k, ], n_pred, n_time, byrow = TRUE)
         
         if (k %in% percentage_points && progress) {
             utils::setTxtProgressBar(progressBar, k / n_samples)

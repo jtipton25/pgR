@@ -11,6 +11,8 @@ check_input_spatial <- function(Y, X, locs) {
     ## check the mcmc inputs
     if (!is.matrix(Y)) 
         stop("Y must be a matrix")
+    if (any(rowSums(Y) == 0))
+        stop ("There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs")
     if (!is.matrix(X)) 
         stop("X must be a matrix")
     if (!is.matrix(locs)) 
@@ -35,6 +37,8 @@ check_input_pgSTLM <- function(Y, X, locs) {
     ## check the mcmc inputs
     if (!is.array(Y)) 
         stop("Y must be an array")
+    if (any(apply(Y, c(2, 3), sum) == 0))
+        stop ("There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs")
     if (!is.matrix(X)) 
         stop("X must be a matrix")
     if (!is.matrix(locs)) 

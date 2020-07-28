@@ -15,13 +15,13 @@
 #' @export
 mra_wendland_2d <- function(
     locs,
-    M           = 4,
-    n_neighbors = 68,
+    M             = 4,
+    n_neighbors   = 68,
     n_coarse_grid = 10,
     # n_max_fine_grid = 2^12,
     # radius      = 25,
     n_padding     = 5L,
-    use_spam    = TRUE
+    use_spam      = TRUE
 ) {
     ## helper function
     wendland_basis <- function(d, radius) {
@@ -102,9 +102,14 @@ mra_wendland_2d <- function(
     }
     return(
         list(
-            locs_grid = locs_grid,
-            W         = W,
-            radius    = radius
+            locs_grid     = locs_grid,
+            W             = W,
+            radius        = radius,
+            M             = M,
+            n_neighbors   = n_neighbors,
+            n_coarse_grid = n_coarse_grid,
+            n_padding     = n_padding,
+            use_spam      = use_spam
         )
     )
 }

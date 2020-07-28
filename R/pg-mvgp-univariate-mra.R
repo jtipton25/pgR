@@ -55,26 +55,57 @@ pg_mvgp_univariate_mra <- function(
     verbose = FALSE,
     use_spam = TRUE, ## use spam or Matrix for sparse matrix operations
     n_chain       = 1
-    # pool_s2_tau2  = true,
-    # file_name     = "DM-fit",
-    # corr_function = "exponential"
 ) {
     
-
+    
     # RSR <- FALSE
     
     ##
     ## Run error checks
     ## 
     
-    if(!is.vector(Z0))
-        stop("Z must be a vector of climate variable inputs")
-    
-    
     # check_input_spatial(Y, X, locs)
     # check_params(param)
     # check_inits_pgLM(params, inits)
     # check_config(params, config)
+    
+    if(!is.vector(Z0))
+        stop("Z must be a vector of climate variable inputs")
+    
+    N      <- nrow(Y)
+    J      <- ncol(Y)
+    n_time <- dim(Y)[3]
+    p      <- ncol(X)
+    Q      <- 1
+    D      <- rdist(locs)
+    
+    ## check memory requirements for saved objects
+    eta_save      <- NULL
+    eta_save_mean <- FALSE
+    n_save        <- params$n_mcmc / params$n_thin
+    if (!is.null(config)) {
+        if (!is.null(config[['eta_save_mean']])) {
+            eta_save_mean <- config[['eta_save_mean']]
+        }
+    }
+    if (eta_save_mean) {
+        eta_save      <- tryCatch(
+            array(0, dim = c(N, J-1, n_time)),
+            error = function(e) {
+                stop('The memory needed to save the mean of the eta parameter is too large. Please contact the package maintainer for solutions.')
+            }
+        )
+
+    } else {
+        eta_save      <- tryCatch(
+            array(0, dim = c(n_save, N, J-1, n_time)),
+            error = function(e) {
+                stop('The memory needed to save the eta parameter is too large. Either set config$save_eta_mean = TRUE or increase "params$n_thin')
+            }
+        )
+    }
+    
+
     
     ## 
     ## setup config
@@ -193,23 +224,25 @@ pg_mvgp_univariate_mra <- function(
         }
     }
     
+    ## do we sample the climate time varying mean parameter
+    sample_mu <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_mu']])) {
+            sample_mu <- config[['sample_mu']]
+        }
+    }
+    
     
     ## add in a counter for the number of regularized Cholesky
     num_chol_failures <- 0
     
-    N      <- nrow(Y)
-    J      <- ncol(Y)
-    n_time <- dim(Y)[3]
-    p      <- ncol(X)
-    Q      <- 1
-    D      <- rdist(locs)
-    
+
     ## Restricted spatial regression?
     # IMPX <- diag(N)
     # if (RSR) {
     #     IMPX <- diag(N) -  X %*% chol2inv(chol(t(X) %*% X)) %*% t(X)
     # }
-            
+    
     
     ## we assume a partially missing observation is the same as fully missing
     missing_idx <- matrix(FALSE, N, n_time)
@@ -238,7 +271,7 @@ pg_mvgp_univariate_mra <- function(
     
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
-
+    
     ##
     ## setup MRA spatial basis
     ##
@@ -263,7 +296,7 @@ pg_mvgp_univariate_mra <- function(
         dims_idx <- c(dims_idx, rep(i, n_dims[i]))
     }
     W <- do.call(cbind, W_list)
-
+    
     # if (RSR) {
     #     W <- IMPX %*% W
     # }
@@ -366,7 +399,7 @@ pg_mvgp_univariate_mra <- function(
     if (!is.null(priors[['beta_tau2']])) {
         beta_tau2 <- priors[['beta_tau2']]
     }
-
+    
     ##
     ## intialize a proper CAR structure to initialize the parameter alpha
     ##
@@ -385,7 +418,7 @@ pg_mvgp_univariate_mra <- function(
     # Sigma_init_inv <- 1 / sigma2_0 * (
     #     diag(N) - W %*% chol2inv(chol(tWW + sigma2_0 * Q_alpha_tau2)) %*% t(W)
     # )
-        
+    
     # gamma <- t(mvnfast::rmvn(Q, mu_gamma, Sigma_gamma_chol, isChol = TRUE))
     # gamma <- solve(t(X) %*% Sigma_init_inv %*% X) %*% t(X) %*% Sigma_init_inv %*% Z0
     gamma <- lm(Z0 ~ X-1)$coeff
@@ -393,7 +426,7 @@ pg_mvgp_univariate_mra <- function(
     Xgamma <- as.vector(X %*% gamma)
     
     
-
+    
     ##
     ## initialize rho
     ##
@@ -512,6 +545,17 @@ pg_mvgp_univariate_mra <- function(
     W_alpha <- NULL
     W_alpha <- W %*% alpha
     
+    ## initialize the time varying mean
+    ## note: we assume the intial state has mu[1] = 0
+    mu        <- rep(0, n_time)
+    sigma2_mu <- 0.25
+    
+    ## check if prior value of sigma2_mu is specified
+    if (!is.null(priors[['sigma2_mu']])) {
+        sigma2_mu <- priors[['sigma2_mu']]
+    }
+    
+    
     ## initialize Z and eta
     Z   <- matrix(0, N, n_time)
     eta <- array(0, dim = c(N, J-1, n_time))
@@ -520,7 +564,7 @@ pg_mvgp_univariate_mra <- function(
         if (tt == 1) {
             Z[, tt]     <- Z0
         } else {
-            Z[, tt]   <- Xgamma + W_alpha[, tt]
+            Z[, tt]   <- Xgamma + W_alpha[, tt] + mu[tt] * rep(1, N)
         }
         eta[, , tt] <- cbind(1, Z[, tt]) %*% beta +
             sapply(1:(J-1), function(j) rnorm(N, 0, sigma[j]))
@@ -633,6 +677,19 @@ pg_mvgp_univariate_mra <- function(
         }
     }
     
+    ## initial values for mu
+    if (!is.null(inits[['mu']])) {
+        if (all(!is.na(inits[['mu']]))) {
+            mu <- inits[['mu']]
+        }
+    }
+    ## make sure the first value is zero
+    if (mu[1] != 0) {
+        message("The value for the first value mu[1] must be 0. The parameter mu[1] has been set to 0.")
+        mu[1] <- 0
+    }
+    
+    
     ##
     ## setup save variables
     ##
@@ -645,8 +702,8 @@ pg_mvgp_univariate_mra <- function(
     sigma2_save   <- matrix(0, n_save, J-1)
     alpha_save    <- array(0, dim = c(n_save, sum(n_dims), n_time))
     Z_save        <- array(0, dim = c(n_save, N, n_time))
-    eta_save      <- array(0, dim = c(n_save, N, J-1, n_time))
     sigma2_0_save <- rep(0, n_save)
+    mu_save       <- matrix(0, n_save, n_time)
     
     
     ## 
@@ -781,7 +838,7 @@ pg_mvgp_univariate_mra <- function(
                         tX %*% rowSums(
                             sapply(1:(J-1), function (j) {
                                 # beta[1, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - W_alpha[, tt])
-                                beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * W_alpha[, tt])
+                                beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * W_alpha[, tt] - beta[2, j] * mu[tt] * rep(1, N))
                             }) 
                         )                
                     })
@@ -798,7 +855,7 @@ pg_mvgp_univariate_mra <- function(
             if (tt == 1) {
                 Z[, tt]     <- Z0
             } else {
-                Z[, tt]   <- Xgamma + W_alpha[, tt]
+                Z[, tt]   <- Xgamma + W_alpha[, tt] + mu[tt] * rep(1, N)
             }
         }
         
@@ -818,8 +875,8 @@ pg_mvgp_univariate_mra <- function(
             ## parallelize this
             for(tt in 1:n_time) {
                 if (tt == 1) {
-                    b_alpha <- 1 / sigma2_0 * tW %*% (Z[, 1] - Xgamma) +
-                        tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, 1] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma))) +
+                    b_alpha <- 1 / sigma2_0 * tW %*% (Z[, 1] - Xgamma - mu[tt] * rep(1, N)) +
+                        tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, 1] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma - beta[2, j] * mu[tt] * rep(1, N)))) +
                         Q_alpha_tau2 %*% as.vector(rho * alpha[, 2])
                     alpha[, 1] <- tryCatch(
                         as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_1, Rstruct = Rstruct_1, A = A_constraint, a = a_constraint)),
@@ -832,7 +889,7 @@ pg_mvgp_univariate_mra <- function(
                         })
                     
                 } else if (tt == n_time) {
-                    b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma))) +
+                    b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma - beta[2, j] * mu[tt] * rep(1, N)))) +
                         Q_alpha_tau2 %*% as.vector(rho * alpha[, tt - 1])
                     alpha[, tt] <- tryCatch(
                         as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)),
@@ -847,7 +904,7 @@ pg_mvgp_univariate_mra <- function(
                         })
                     
                 } else {
-                    b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma)))  +
+                    b_alpha <- tW %*% rowSums(sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma - beta[2, j] * mu[tt] * rep(1, N))))  +
                         Q_alpha_tau2 %*% as.vector(rho * alpha[, tt - 1] + rho * alpha[, tt + 1])
                     alpha[, tt] <- tryCatch(
                         as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha, Rstruct = Rstruct, A = A_constraint, a = a_constraint)),
@@ -872,7 +929,7 @@ pg_mvgp_univariate_mra <- function(
             if (tt == 1) {
                 Z[, tt]   <- Z0
             } else {
-                Z[, tt]   <- Xgamma + W_alpha[, tt]
+                Z[, tt]   <- Xgamma + W_alpha[, tt] + mu[tt] * rep(1, N)
             }
         }
         
@@ -986,6 +1043,31 @@ pg_mvgp_univariate_mra <- function(
             sigma2_0 <- 1 / rgamma(1, alpha_sigma2_0 + N / 2, beta_sigma2_0 + SS / 2)
         }
         
+        
+        ## 
+        ## sample mu
+        ## 
+        
+        if (sample_mu) {
+            if (verbose)
+                message("sample mu")
+            
+            for (tt in 2:n_time) {
+                if (tt == n_time) {
+                    a <- sapply(1:(J-1), function(j) beta[2, j]^2 / sigma2[j] * N)  + 1 / sigma2_mu
+                    b <- sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma - beta[2, j] * W_alpha[, tt])) +
+                        1 / sigma2_mu * mu[tt - 1]
+                    mu[tt] <- rnorm(1, b / a, sqrt(1 / a))
+                } else {
+                    a <- sapply(1:(J-1), function(j) beta[2, j]^2 / sigma2[j] * N)  + 2 / sigma2_mu
+                    b <- sapply(1:(J-1), function(j) beta[2, j] / sigma2[j] * (eta[, j, tt] - beta[1, j] * rep(1, N) - beta[2, j] * Xgamma - beta[2, j] * W_alpha[, tt])) +
+                        1 / sigma2_mu * (mu[tt - 1] + mu[tt + 1])
+                    mu[tt] <- rnorm(1, b / a, sqrt(1 / a))
+                }
+            }
+        }
+        
+        
         ##
         ## save variables
         ##
@@ -1000,8 +1082,13 @@ pg_mvgp_univariate_mra <- function(
                 sigma2_save[save_idx, ]  <- sigma2
                 alpha_save[save_idx, , ] <- alpha
                 Z_save[save_idx, , ]     <- Z
-                eta_save[save_idx, , , ] <- eta
+                if (eta_save_mean) {
+                    eta_save[, , , ] <- 1 / n_save * eta
+                } else {
+                    eta_save[save_idx, , , ] <- eta
+                }
                 sigma2_0_save[save_idx]  <- sigma2_0
+                mu_save[save_idx, ]      <- mu
             }
         }
         
@@ -1031,6 +1118,7 @@ pg_mvgp_univariate_mra <- function(
         Z        = Z_save,
         W        = W,
         sigma2_0 = sigma2_0_save,
+        mu       = mu_save,
         MRA      = MRA
     )
     

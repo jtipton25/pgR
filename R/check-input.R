@@ -10,6 +10,8 @@ check_input <- function(Y, X) {
     ## check the mcmc inputs
     if (!is.matrix(Y)) 
         stop("Y must be a matrix")
+    if (any(rowSums(Y) == 0))
+        stop ("There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs")
     if (!is.matrix(X)) 
         stop("X must be a matrix")
     if (nrow(Y) != nrow(X))

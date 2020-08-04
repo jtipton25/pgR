@@ -40,7 +40,8 @@
 
 
 <meta property="og:title" content="Bayesian Polya-gamma regression — pgSTLM" />
-<meta property="og:description" content="this function runs the Bayesian multinomial regression using Polya-gamma data augmentation" />
+<meta property="og:description" content="this function runs the Bayesian multinomial regression using Polya-gamma data augmentation
+this function runs the Bayesian multinomial regression using Polya-gamma data augmentation" />
 
 
 
@@ -87,18 +88,6 @@
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
-    Articles
-     
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu">
-    <li>
-      <a href="../articles/pgLM.html">Multinomial logistic regression using pgLM</a>
-    </li>
-  </ul>
-</li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
@@ -124,15 +113,32 @@
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Bayesian Polya-gamma regression</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pgSTLM.R'><code>R/pgSTLM.R</code></a></small>
+    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pgSTLM.R'><code>R/pgSTLM.R</code></a>, <a href='https://github.com/jtipton25/pgR/blob/master/R/pg_stlm.R'><code>R/pg_stlm.R</code></a></small>
     <div class="hidden name"><code>pgSTLM.Rd</code></div>
     </div>
 
     <div class="ref-description">
     <p>this function runs the Bayesian multinomial regression using Polya-gamma data augmentation</p>
+<p>this function runs the Bayesian multinomial regression using Polya-gamma data augmentation</p>
     </div>
 
     <pre class="usage"><span class='fu'>pgSTLM</span>(
+  <span class='no'>Y</span>,
+  <span class='no'>X</span>,
+  <span class='no'>locs</span>,
+  <span class='no'>params</span>,
+  <span class='no'>priors</span>,
+  <span class='kw'>corr_fun</span> <span class='kw'>=</span> <span class='st'>"exponential"</span>,
+  <span class='kw'>n_cores</span> <span class='kw'>=</span> <span class='fl'>1L</span>,
+  <span class='kw'>shared_covariance_params</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>inits</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>config</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>n_chain</span> <span class='kw'>=</span> <span class='fl'>1</span>,
+  <span class='kw'>progress</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
+  <span class='kw'>verbose</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>
+)
+
+<span class='fu'>pgSTLM</span>(
   <span class='no'>Y</span>,
   <span class='no'>X</span>,
   <span class='no'>locs</span>,

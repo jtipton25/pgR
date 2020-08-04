@@ -295,9 +295,9 @@ NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1
         } else {
             double E_y = 1.0 / 4.0;
             double sigma2_y = 1.0 / 24.0;
-            if (c[i] > 0) {
+            if (c[i] != 0) {
                 E_y = 1.0 / (2.0 * c[i]) * tanh(c[i] / 2.0);
-                sigma2_y = 1.0 / (4.0 * pow(c[i], 3)) * (sinh(c[i]) - c[i]) * pow(1.0 / cosh(c[i] / 2.0), 2);
+                sigma2_y = 1.0 / (4.0 * pow(c[i], 3.0)) * (sinh(c[i]) - c[i]) * 1.0 / pow(cosh(c[i] / 2.0), 2.0);
             }
             y[i] = R::rnorm(b[i] * E_y, sqrt(b[i] * sigma2_y));
         }

@@ -157,7 +157,12 @@ pgdraw <- function(b, c, cores = 1L) {
 pgdraw.moments <- function(b, c)
 {
   rv     = list()
-  rv$mu  = b/2/c*tanh(c/2)
-  rv$var = b/(4*c^3)*(sinh(c)-c)*(1/cosh(c/2)^2)
+  if (c == 0) {
+    rv$mu = 1.0 / 4.0
+    rv$var = 1.0 / 24.0
+  } else {
+    rv$mu  = b/2/c*tanh(c/2)
+    rv$var = b/(4*c^3)*(sinh(c)-c)*(1/cosh(c/2)^2)
+  }
   return(rv)
 }

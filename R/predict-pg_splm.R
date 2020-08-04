@@ -1,20 +1,19 @@
 #' Bayesian Polya-gamma regression prediction
 #' 
 #' this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation
-#' @param out is a list of MCMC outputs from pgSPLM
+#' @param out is a list of MCMC outputs from `pg_splm()`
 #' @param X is a \eqn{n \times p}{n x p} matrix of covariates at the observed locations.
 #' @param X_pred is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of covariates at the locations where predictions are to be made. 
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of locations where observations were taken.
 #' @param locs_pred is a \eqn{n_pred \times 2}{n_pred x 2} matrix of locations where predictions are to be made.
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
 #' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
-#' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' 
 #' @export 
 
-predict_pgSPLM <- function(
+predict_pg_splm <- function(
     out,
     X,
     X_pred,
@@ -22,7 +21,6 @@ predict_pgSPLM <- function(
     locs_pred,
     corr_fun,
     shared_covariance_params,
-    n_cores = 1L,
     progress = TRUE, 
     verbose = FALSE
 ) {
@@ -31,8 +29,8 @@ predict_pgSPLM <- function(
     ##
     ## check the inputs
     ##
-    if (class(out) != "pgSPLM")
-        stop("THe MCMC object out must be of class pgSPLM which is the output of the pgSPLM() function.")
+    if (class(out) != "pg_splm")
+        stop("The MCMC object out must be of class pg_splm which is the output of the pg_splm() function.")
     
     check_corr_fun(corr_fun)
     

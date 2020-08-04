@@ -6,14 +6,101 @@
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @keywords internal
 
-check_input <- function(Y, X) {
+check_input_pg_lm <- function(Y, X) {
     ## check the mcmc inputs
-    if (!is.matrix(Y)) 
-        stop("Y must be a matrix")
+    if (!is_integer_matrix(Y, nrow(Y), ncol(Y))) 
+        stop("Y must be an integer matrix.")
+    if (any(rowSums(Y) == 0))
+        stop ("There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+    if (!is_numeric_matrix(X, nrow(X), ncol(X))) 
+        stop("X must be a numeric matrix.")
+    if (nrow(Y) != nrow(X))
+        stop("Y and X must have the same number of rows.")
+}
+
+
+#' Check inputs
+#' 
+#' this function check that the input values are properly specified
+#' 
+#' @param Y is a \eqn{n \times d}{n x d} matrix of compositional count data.
+#' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
+#' @param locs is a \eqn{n \times 2}{n x 2} matrix of spatial locations.
+#' @keywords internal
+
+check_input_pg_splm <- function(Y, X, locs) {
+    ## check the mcmc inputs
+    if (!is_integer_matrix(Y)) 
+        stop("Y must be an integer matrix.")
     if (any(rowSums(Y) == 0))
         stop ("There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs")
-    if (!is.matrix(X)) 
-        stop("X must be a matrix")
+    if (!is_numeric_matrix(X, nrow(X), ncol(X))) 
+        stop("X must be a numeric matrix.")
+    if (!is.matrix(locs)) 
+        stop("locs must be a numeric matrix.")
     if (nrow(Y) != nrow(X))
-        stop("X and Y must have the same number of rows")
+        stop("Y and X must have the same number of rows.")
+    if (nrow(Y) != nrow(locs))
+        stop("Y and locs must have the same number of rows.")
+}
+
+
+#' Check inputs for pgSTLM
+#' 
+#' this function check that the input values are properly specified
+#' 
+#' @param Y is a \eqn{n \times d x T}{n x d X T} array of compositional count data through time.
+#' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
+#' @param locs is a \eqn{n \times 2}{n x 2} matrix of spatial locations.
+#' @keywords internal
+
+check_input_pgSTLM <- function(Y, X, locs) {
+    stop("The function check_input_pgSTLM() is now deprecated. Please use check_input_pg_stlm().")
+    ## check the mcmc inputs
+    if (!is.array(Y)) 
+        stop("Y must be a 3 dimensional array with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    if (length(dim(Y)) != 3)
+        stop("Y must be a 3 dimensional array with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    if (!all(is.integer(Y))) 
+        stop("Y must be a 3 dimensional array with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    if (any(apply(Y, c(2, 3), sum) == 0))
+        stop ("There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs")
+    if (!is_numeric_matrix(X, nrow(X), ncol(X))) 
+        stop("X must be a numeric matrix.")
+    if (!is_numeric_matrix(locs)) 
+        stop("locs must be a numeric matrix.")
+    if (nrow(Y) != nrow(X))
+        stop("Y and X must have the same number of rows.")
+    if (nrow(Y) != nrow(locs))
+        stop("Y and locs must have the same number of rows.")
+}
+
+
+#' Check inputs for `pg_stlm()`
+#' 
+#' this function check that the input values of `pg_stlm()` are properly specified
+#' 
+#' @param Y is a \eqn{n \times d x T}{n x d X T} array of compositional count data through time.
+#' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
+#' @param locs is a \eqn{n \times 2}{n x 2} matrix of spatial locations.
+#' @keywords internal
+
+check_input_pg_stlm <- function(Y, X, locs) {
+    ## check the mcmc inputs
+    if (!is.array(Y)) 
+        stop("Y must be a 3 dimensional array with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    if (length(dim(Y)) != 3)
+        stop("Y must be a 3 dimensional array with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    if (!all(is.integer(Y))) 
+        stop("Y must be a 3 dimensional array with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    if (any(apply(Y, c(2, 3), sum) == 0))
+        stop ("There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs")
+    if (!is_numeric_matrix(X, nrow(X), ncol(X))) 
+        stop("X must be a numeric matrix.")
+    if (!is_numeric_matrix(locs)) 
+        stop("locs must be a numeric matrix.")
+    if (nrow(Y) != nrow(X))
+        stop("Y and X must have the same number of rows.")
+    if (nrow(Y) != nrow(locs))
+        stop("Y and locs must have the same number of rows.")
 }

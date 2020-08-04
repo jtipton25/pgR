@@ -1,6 +1,5 @@
 context("testing functions")
 
-## how do I make the as_integer and other similar function hidden/internal to this pacakge only
 
 test_that("checking default settings of params -- keep updated as model list grows", {
     expect_identical(
@@ -20,9 +19,10 @@ test_that("checking default settings of priors", {
     Y <- stats::rmultinom(100, 50, rep(1/5, 5))
     X <- as.matrix(stats::rnorm(100))
     
-    default_priors_pgLM(Y, X)
+    expect_error(default_priors_pgLM(Y, X), "default_priors_pgLM\\(\\) has been deprecated. Please use default_priors_pg_lm\\(\\) instead.")
+
     expect_identical(    
-        default_priors_pgLM(Y, X),
+        default_priors_pg_lm(Y, X),
         list(
             mu_beta    = 0,
             Sigma_beta = as.matrix(1)
@@ -32,17 +32,17 @@ test_that("checking default settings of priors", {
     Y <- stats::rmultinom(100, 50, rep(1/5, 5))
     X <- matrix(stats::rnorm(100 * 50), 100, 50)
     
-    default_priors_pgLM(Y, X)
     expect_identical(    
-        default_priors_pgLM(Y, X),
+        default_priors_pg_lm(Y, X),
         list(
             mu_beta    = rep(0, 50),
             Sigma_beta = diag(50)
         )
     )
     
+    expect_error(default_priors_pgSPLM(Y, X, corr_fun = "exponential"), "default_priors_pgSPLM\\(\\) has been deprecated. Please use default_priors_pg_splm\\(\\) instead.")
     expect_equal(
-        default_priors_pgSPLM(Y, X, corr_fun = "exponential"),
+        default_priors_pg_splm(Y, X, corr_fun = "exponential"),
         list(        
             mu_beta    = rep(0, 50),
             Sigma_beta = diag(50),
@@ -53,7 +53,7 @@ test_that("checking default settings of priors", {
         )
     )
     expect_equal(
-        default_priors_pgSPLM(Y, X, corr_fun = "matern"),
+        default_priors_pg_splm(Y, X, corr_fun = "matern"),
         list(        
             mu_beta    = rep(0, 50),
             Sigma_beta = diag(50),
@@ -67,7 +67,7 @@ test_that("checking default settings of priors", {
     )
  
     expect_error(
-        default_priors_pgSPLM(Y, X, corr_fun = "adfs"),
+        default_priors_pg_splm(Y, X, corr_fun = "adfs"),
         'corr_fun must be either "matern" or "exponential"'
     )
     
@@ -78,12 +78,14 @@ test_that("checking default settings of inits", {
 
     Y      <- stats::rmultinom(100, 50, rep(1/5, 5))
     X      <- matrix(stats::rnorm(100 * 50), 100, 50)
-    priors <- default_priors_pgLM(Y, X)
+    priors <- default_priors_pg_lm(Y, X)
+    
+    expect_error(default_inits_pgLM(Y, X, priors), "default_inits_pgLM\\(\\) has been deprecated. Please use default_inits_pg_lm\\(\\) instead.")
     
     expect_identical(
         {
             set.seed(111)
-            default_inits_pgLM(Y, X, priors)
+            default_inits_pg_lm(Y, X, priors)
         },
         {
             set.seed(111)
@@ -97,12 +99,14 @@ test_that("checking default settings of inits", {
     
     Y      <- stats::rmultinom(100, 50, rep(1/5, 5))
     X      <- matrix(stats::rnorm(100 * 50), 100, 50)
-    priors <- default_priors_pgSPLM(Y, X, corr_fun = "exponential")
+    priors <- default_priors_pg_splm(Y, X, corr_fun = "exponential")
+    
+    expect_error(default_inits_pgSPLM(Y, X, priors), "default_inits_pgSPLM\\(\\) has been deprecated. Please use default_inits_pg_splm\\(\\) instead.")
     
     expect_identical(
         {
             set.seed(111)
-            default_inits_pgSPLM(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+            default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
         },
         {
             set.seed(111)
@@ -120,7 +124,7 @@ test_that("checking default settings of inits", {
     expect_identical(
         {
             set.seed(111)
-            default_inits_pgSPLM(Y, X, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
+            default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
         },
         {
             set.seed(111)
@@ -139,11 +143,12 @@ test_that("checking default settings of inits", {
     
     
     
-    priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
+    priors <- default_priors_pg_splm(Y, X, corr_fun = "matern")
+    expect_error(default_inits_pgSPLM(Y, X, priors), "default_inits_pgSPLM\\(\\) has been deprecated. Please use default_inits_pg_splm\\(\\) instead.")
     expect_identical(
         {
             set.seed(111)
-            default_inits_pgSPLM(Y, X, priors, corr_fun = "matern", shared_covariance_params = TRUE)
+            default_inits_pg_splm(Y, X, priors, corr_fun = "matern", shared_covariance_params = TRUE)
         },
         {
             set.seed(111)
@@ -161,7 +166,7 @@ test_that("checking default settings of inits", {
     expect_identical(
         {
             set.seed(111)
-            default_inits_pgSPLM(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
+            default_inits_pg_splm(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
         },
         {
             set.seed(111)
@@ -179,79 +184,6 @@ test_that("checking default settings of inits", {
     
 })
 
-test_that("is_numeric function", {
-    expect_false(is_numeric(c(2, 2), 1))
-    expect_false(is_numeric(NA, 1))
-    expect_false(is_numeric("NA", 1))
-    expect_false(is_numeric(NULL, 1))
-    expect_true(is_numeric(matrix(1:6, 3, 2), 6))
-})
-
-test_that("is_positive_numeric function", {
-    expect_true(is_positive_numeric(1, 1))
-    expect_error(is_positive_numeric(-3))
-    expect_false(is_positive_numeric(c(2, 2, 2), 2))
-    expect_false(is_positive_numeric(NA))
-    expect_false(is_positive_numeric("NA"))
-    expect_false(is_positive_numeric(NULL))
-    expect_true(is_positive_numeric(1:6, 6))
-    expect_true(is_positive_numeric(matrix(1:6, 3, 2), 6))
-})
-
-test_that("is_numeric_vector function", {
-    expect_error(is_numeric_vector(c(2, 2)))
-    expect_error(is_numeric_vector(matrix(1:6, 3, 2)))
-    expect_false(is_numeric_vector(c(2, 2), 3))
-    expect_false(is_numeric_vector(c(NA, 2), 2))
-    expect_false(is_numeric_vector(NA))
-    expect_false(is_numeric_vector("NA"))
-    expect_false(is_numeric_vector(NULL))
-    expect_false(is_numeric_vector(matrix(1:6, 3, 2), 6))
-    expect_true(is_numeric_vector(c(2, 2), 2))
-    
-})
-
-test_that("is_numeric_matrix function", {
-    expect_error(is_numeric_matrix(c(2, 2), 2))
-    ## add in testing on the input dimensions
-    # expect_error(is_numeric_matrix(c(2, 2), NA, 2))
-    expect_false(is_numeric_matrix(matrix(1:6, 3, 2), 2, 2))
-    expect_false(is_numeric_matrix(matrix(c(1:5, NA), 3, 2), 2, 2))
-    expect_false(is_numeric_matrix(matrix(c(1:5, "NA"), 3, 2), 2, 2))
-    expect_false(is_numeric_matrix(NULL))
-    expect_true(is_numeric_matrix(matrix(1:6, 3, 2), 3, 2))
-})
-
-test_that("is_sympd_matrix function", {
-    ## add in testing on the input dimensions
-    # expect_error(is_numeric_matrix(c(2, 2), NA, 2))
-    expect_false(is_sympd_matrix(matrix(1:4, 2, 2), 2))
-    expect_false(is_sympd_matrix(matrix(rep(NA, 4), 2, 2), 2))
-    expect_false(is_sympd_matrix(NULL, 2))
-    expect_false(is_sympd_matrix(c(2, 2), 2))
-    expect_false(is_sympd_matrix(matrix(c(1:5, NA), 3, 2), 2))
-    expect_false(is_sympd_matrix(matrix(1:6, 3, 2), 3))
-    expect_false(is_sympd_matrix(matrix(1:6, 3, 2), 2))
-    expect_error(is_sympd_matrix(NULL, 2, NA))
-    expect_error(is_sympd_matrix(matrix(1:6, 3, 2), 3, 2))
-    expect_true(is_sympd_matrix(diag(4), 4))
-    expect_true(is_sympd_matrix(exp(- as.matrix(dist(1:4))), 4))
-})
-
-
-test_that("is_integer", {
-    expect_error(is_integer(1L))
-    expect_false(is_integer(2.5, 1))
-    expect_false(is_integer(NA, 1))
-    expect_false(is_integer("NA", 1))
-    expect_false(is_integer(NULL, 1))
-    expect_false(is_integer(1L:6L, 4))
-    expect_true(is_integer(1, 1))
-    expect_true(is_integer(1L, 1))
-    expect_true(is_integer(1L:6L, 6))
-    expect_true(is_integer(matrix(1:6, 3, 2), 6))
-    expect_true(is_integer(2.0, 1))
-})
 
 
 test_that("make_alpha function", {

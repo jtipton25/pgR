@@ -15,7 +15,7 @@ is_numeric <- function(x, n) {
 #' @param x is the input
 #' @param n is the input length
 #' @keywords internal
- 
+
 is_positive_numeric <- function(x, n) {
     is_numeric(x, n) && all(x > 0)
 }
@@ -41,8 +41,8 @@ is_numeric_vector <- function(x, n) {
 
 is_numeric_matrix <- function(x, n, m) {
     is_numeric(x, n * m) && is.matrix(x) && all(dim(x) == c(n, m))
-    
 }
+
 #' Check if a symmetric positive definite numeric matrix of dimension \eqn{n \times n}{n x n}
 #'
 #' this function checks if the input is a symmetrix positive definite matrix
@@ -53,11 +53,11 @@ is_numeric_matrix <- function(x, n, m) {
 is_sympd_matrix <- function(x, n) {
     # if(!is.matrix(x))
     #     stop("must be a square matrix with number of rows = number of columns")
-    # if (nrow(x) != ncol(x)) 
+    # if (nrow(x) != ncol(x))
     #     stop("must be a square matrix with number of rows = number of columns")
     is_numeric_matrix(x, n, n) && n == n && isSymmetric(x) && all(eigen(x)$values > 0)
-    
 }
+
 #' Check if value is an integer or integer-like
 #'
 #' this function checks if the input is an integer scalar (integer-like value -- i.e., both 1L and 1.0 pass this check)
@@ -78,6 +78,20 @@ is_integer <- function(x, n) {
     # typeof(x) == "integer" && length(x) == n
 }
 
+#'  Check if an integer matrix of dimension \eqn{n \times m}{n x m}
+#'
+#' this function checks if the input is an integer matrix of dimension \eqn{n \times m}{n x m}
+#' @param x is the input
+#' @param n is the input matrix rows
+#' @param m is the input matrix columns
+#' @keywords internal
+
+is_integer_matrix <- function(x, n, m) {
+    is_integer(x, n * m) && is.matrix(x) && all(dim(x) == c(n, m))
+}
+
+
+
 #' Check if value is a positive integer or integer-like
 #'
 #' this function checks if the input is a positive integer scalar (integer-like value -- i.e., both 1L and 1.0 pass this check)
@@ -90,17 +104,7 @@ is_positive_integer <- function(x, n) {
 }
 
 
-#' Check if the correlation function type is valid
-#'
-#' this function checks if the correlation function type is valid
-#' @param corr_fun is the correlation function
-#' @keywords internal
 
-check_corr_fun <- function(corr_fun) {
-    if (!(corr_fun %in% c("matern", "exponential"))) 
-        stop('corr_fun must be either "matern" or "exponential"')
-}
 
-    
 
 

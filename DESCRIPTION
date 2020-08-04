@@ -3,14 +3,18 @@ Type: Package
 Title: Bayesian Polya-gamma Regression
 Version: 1.0
 Date: 2020-05-04
-Authors@R: person("John", "Tipton", email = "jrtipton@uark.edu", 
-    role = c("aut", "cre"))
+Authors@R: c(
+    person("John", "Tipton", email = "jrtipton@uark.edu", role = c("aut", "cre")),
+    person("Andria", "Dawson", role = "ctb", comment = "Contribued code and code review"),
+    person("Alissa", "Brown", role = "ctb", comment = "Contribued code and code review"),
+    person("Daniel F.", "Schmidt", role = "ctb", comment = "Author of included pgdraw code fragments"),
+    person("Enes", "Makalic", role = "ctb", comment = "Author of included pgdraw code fragments")
+    )
 Description: Software for fitting Bayesian Polya-gamma regression
     models including multinomial regression, multinomial spatial
     regression, mutlinomial spatially varying coefficient models,
     multinomial spatio-temporal regression models, sparse
-    multiresolution multinomial spatial models, and ...
-    models, and ...
+    multiresolution multinomial spatial models, and possibly more to come.
 License: GPL (>= 3)
 Depends: R (>= 3.5.0)
 Imports: 
@@ -33,7 +37,8 @@ RoxygenNote: 7.1.0
 Suggests: 
     knitr,
     rmarkdown,
-    testthat (>= 2.1.0)
+    testthat (>= 2.1.0),
+    covr
 URL: https://github.com/jtipton25/pgR
 BugReports: https://github.com/jtipton25/pgR/issues
 VignetteBuilder: knitr

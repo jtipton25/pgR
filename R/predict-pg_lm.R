@@ -1,25 +1,21 @@
 #' Bayesian Polya-gamma regression prediction
 #' 
 #' this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation
-#' @param out is a list of MCMC outputs from pgLM
+#' @param out is a list of MCMC outputs from `pg_lm()`
 #' @param X_pred is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of climate variables.
-#' @param n_cores is the number of cores for parallel computation using openMP.
 #' 
 #' @export 
 
-predict_pgLM <- function(
+predict_pg_lm <- function(
     out,
-    X_pred,
-    n_cores = 1L
+    X_pred
 ) {
     
-    stop("predict_pgLM() has been deprecated. Please use predict_pg_lm() instead.")
-   
     ##
     ## check the inputs 
     ##
-    if (class(out) != "pgLM")
-        stop("THe MCMC object out must be of class pgLM which is the output of the pgLM() function.")
+    if (class(out) != "pg_lm")
+        stop("THe MCMC object out must be of class pg_lm which is the output of the pg_lm() function.")
     
     ## 
     ## extract the parameters 

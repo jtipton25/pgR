@@ -1,37 +1,30 @@
 ---
-title: "Multinomial logistic regression using pgLM"
+title: "Multinomial Regression Using `pg_lm()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Multinomial logistic regression using pgLM}
+  %\VignetteIndexEntry{Multinomial Regression Using `pg_lm()`}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
-is_check <- ("CheckExEnv" %in% search()) || any(c("_R_CHECK_TIMINGS_",
-             "_R_CHECK_LICENSE_") %in% names(Sys.getenv()))
-knitr::opts_chunk$set(eval = !is_check)
-
-knitr::opts_chunk$set(fig.path = "pglm-")
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 4.5, dpi = 300, dev.args = list(type = "cairo"))
 ```
 
-# To Do
+This vignette demonstates the usage of the  the multinomial Polya-gamma linear regression model `pg_lm()`. 
 
-- Figure out issue with fast `rmvn_*()` functions
-- add in Polya-gamma data augmentation to DAG
-
-We are testing the Polya-gamma linear model `pgLM()`
-
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 library(pgR)
-# library(MCMCpack)
 library(splines)
 library(tidyverse)
 library(patchwork)
 ```
 
 
-## simulate some data
+# Simulate some data
+
+To explore the performance of the model, we start by simulating some data to test the model performance. The `pgR` function `eta_to_pi()` transforms the latent intensity variable `eta` to a sum-to-one probability `pi` using a stick-breaking transformation.
+
 ```{r}
 set.seed(11)
 N <- 5000
@@ -50,12 +43,15 @@ Y <- matrix(0, N, J)
 for (i in 1:N) {
     Y[i, ] <- rmultinom(1, 500, pi[i, ])
 }
-Y_prop <- counts_to_proportions(Y)
 ```
 
 ## Plot the simulated data
 
+To plot the simulate data, the count data is first transformed to proportional data with `counts_to_proportions()` so that the observations can be plotted on a common scale
+
 ```{r}
+Y_prop <- counts_to_proportions(Y)
+
 dat <- data.frame(
   y        = c(Y_prop),
   x        = X,
@@ -77,8 +73,6 @@ dat %>%
   facet_wrap(~ species, ncol = 4) +
   ggtitle("Simulated data")
 ```
-
-
 
 
 # Multinomial regression
@@ -304,17 +298,17 @@ params$n_adapt <- 500
 params$n_mcmc <- 1000
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgLM(Y, Xbs)
-inits <- default_inits_pgLM(Y, Xbs, priors)
-if (file.exists(here::here("results", "pgLM.RData"))) {
-    load(here::here("results", "pgLM.RData"))
+priors <- default_priors_pg_lm(Y, Xbs)
+inits <- default_inits_pg_lm(Y, Xbs, priors)
+if (file.exists(here::here("results", "pg_lm.RData"))) {
+    load(here::here("results", "pg_lm.RData"))
 } else {
     start <- Sys.time()
-    out <- pgLM(Y, as.matrix(Xbs), params, priors, n_cores = 6L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 6L, sample_rmvn = FALSE)
     stop <- Sys.time()
     runtime <- stop - start
 
-    save(out, runtime, file = here::here("results", "pgLM.RData"))
+    save(out, runtime, file = here::here("results", "pg_lm.RData"))
 }
 ```
 
@@ -373,20 +367,20 @@ params$n_adapt <- 500
 params$n_mcmc <- 1000
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgLM(Y_s, Xbs_s)
-inits <- default_inits_pgLM(Y_s, Xbs_s, priors)
-if (file.exists(here::here("results", "pgLM-sample.RData"))) {
-    load(here::here("results", "pgLM-sample.RData"))
+priors <- default_priors_pg_lm(Y_s, Xbs_s)
+inits <- default_inits_pg_lm(Y_s, Xbs_s, priors)
+if (file.exists(here::here("results", "pg_lm-sample.RData"))) {
+    load(here::here("results", "pg_lm-sample.RData"))
 } else {
     ## need to parallelize the polya-gamma random variables
     ## can I do this efficiently using openMP?
     ## Q: faster to parallelize using openMP or foreach?
     start <- Sys.time()
-    out <- pgLM(Y_s, as.matrix(Xbs_s), params, priors, n_cores = 6L, sample_rmvn = FALSE)
+    out <- pg_lm(Y_s, as.matrix(Xbs_s), params, priors, n_cores = 6L, sample_rmvn = FALSE)
     stop <- Sys.time()
     runtime <- stop - start
 
-    save(out, runtime, file = here::here("results", "pgLM-sample.RData"))
+    save(out, runtime, file = here::here("results", "pg_lm-sample.RData"))
 }
 ```
 
@@ -425,7 +419,7 @@ dat_plot %>%
 
 ```{r}
 ## predict from the model
-preds <- predict_pgLM(out, Xbs_oos)
+preds <- predict_pg_lm(out, Xbs_oos)
 ```
 
 
@@ -482,33 +476,33 @@ params$n_adapt <- 100
 params$n_mcmc <- 100
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgLM(Y, Xbs)
-inits <- default_inits_pgLM(Y, Xbs, priors)
-# check_inits_pgLM(Y, Xbs, params, inits)
+priors <- default_priors_pg_lm(Y, Xbs)
+inits <- default_inits_pg_lm(Y, Xbs, priors)
+# check_inits_pg_lm(Y, Xbs, params, inits)
 
-if (file.exists(here::here("results", "timings-pgLM.RData"))) {
-    load(here::here("results", "timings-pgLM.RData"))
+if (file.exists(here::here("results", "timings-pg_lm.RData"))) {
+    load(here::here("results", "timings-pg_lm.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   
   time_8 <- system.time(
-    out <- pgLM(Y, as.matrix(Xbs), params, priors, n_cores = 8L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 8L, sample_rmvn = FALSE)
   )
   time_6 <- system.time(
-    out <- pgLM(Y, as.matrix(Xbs), params, priors, n_cores = 6L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 6L, sample_rmvn = FALSE)
   )
   time_4 <- system.time(
-    out <- pgLM(Y, as.matrix(Xbs), params, priors, n_cores = 4L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 4L, sample_rmvn = FALSE)
   )
   time_2 <- system.time(
-    out <- pgLM(Y, as.matrix(Xbs), params, priors, n_cores = 2L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 2L, sample_rmvn = FALSE)
   )
   time_1 <- system.time(
-    out <- pgLM(Y, as.matrix(Xbs), params, priors, n_cores = 1L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 1L, sample_rmvn = FALSE)
   )
-  save(time_1, time_2, time_4, time_6, time_8, file = here::here("results", "timings-pgLM.RData"))
+  save(time_1, time_2, time_4, time_6, time_8, file = here::here("results", "timings-pg_lm.RData"))
 }
 
 ## Note: a large amount of computation time is not parallel -- sampling of the beta variable
@@ -531,6 +525,6 @@ knitr::kable(
 ## not run -- diagnostic profiling
 params$n_adapt <- 50
 params$n_mcmc <- 50
-profvis::profvis(pgLM_cores(Y, as.matrix(Xbs), params, priors, cores = 1L))
-profvis::profvis(pgLM(Y, as.matrix(Xbs), params, priors, cores = 8L))
+profvis::profvis(pg_lm_cores(Y, as.matrix(Xbs), params, priors, cores = 1L))
+profvis::profvis(pg_lm(Y, as.matrix(Xbs), params, priors, cores = 8L))
 ```

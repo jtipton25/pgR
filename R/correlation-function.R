@@ -29,3 +29,17 @@ correlation_function <- function(D, theta, corr_fun = "exponential") {
     }
     return(R)
 }
+
+#' Check if the correlation function type is valid
+#'
+#' this function checks if the correlation function type is valid
+#' @param corr_fun is the correlation function
+#' @keywords internal
+
+check_corr_fun <- function(corr_fun) {
+    if (!(corr_fun %in% c("matern", "exponential"))) 
+        stop('corr_fun must be either "matern" or "exponential"')
+}
+
+
+

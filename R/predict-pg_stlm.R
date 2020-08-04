@@ -8,7 +8,6 @@
 #' @param locs_pred is a \eqn{n_pred \times 2}{n_pred x 2} matrix of locations where predictions are to be made.
 #' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
 #' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
-#' @param n_cores is the number of cores for parallel computation using openMP.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' @param posterior_mean_only is a logical input that flags whether to generate the full posterior predictive distribution (`posterior_mean_only = FALSE`) or just the posterior predictive distribution of the mean response (`posterior_mean_only = TRUE`). For large dataset, the full posterior predictive distribution can be expensive to compute and the posterior distribution of the mean response is much faster to calculte.
@@ -16,7 +15,7 @@
 #' 
 #' @export 
 
-predict_pgSTLM <- function(
+predict_pg_stlm <- function(
     out,
     X,
     X_pred,
@@ -24,7 +23,6 @@ predict_pgSTLM <- function(
     locs_pred,
     corr_fun,
     shared_covariance_params,
-    n_cores             = 1L,
     progress            = TRUE, 
     verbose             = FALSE,
     posterior_mean_only = TRUE
@@ -33,8 +31,8 @@ predict_pgSTLM <- function(
     ## check the inputs
     check_corr_fun(corr_fun)
     
-    if (class(out) != "pgSTLM")
-        stop("THe MCMC object out must be of class pgSTLM which is the output of the pgSTLM() function.")
+    if (class(out) != "pg_stlm")
+        stop("The MCMC object out must be of class pg_stlm which is the output of the pg_stlm() function.")
 
     ## 
     ## extract the parameters 

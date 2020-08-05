@@ -27,7 +27,7 @@ predict_pg_stlm <- function(
     verbose             = FALSE,
     posterior_mean_only = TRUE
 ) {
-    stop("predict_pgSTLM() has been deprecated. Please use predict_pg_stlm() instead.")
+
     ## check the inputs
     check_corr_fun(corr_fun)
     

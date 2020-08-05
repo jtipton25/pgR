@@ -812,7 +812,7 @@ pgSTLM <- function(
                 for (j in 1:(J-1)) {
                     SS <- sum(
                         sapply(1:n_time, function(tt) {
-                            devs[, j, tt] * (tau2 * Sigma_inv[j, , ] %*% devs[, j, tt])
+                            devs[, j, tt] * (tau2[j] * Sigma_inv[j, , ] %*% devs[, j, tt])
                         })
                     )
                     tau2[j]    <- 1 / rgamma(1, N / 2 * n_time + priors$alpha_tau, SS / 2 + priors$beta_tau) 

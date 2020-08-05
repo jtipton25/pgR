@@ -37,6 +37,8 @@ correlation_function <- function(D, theta, corr_fun = "exponential") {
 #' @keywords internal
 
 check_corr_fun <- function(corr_fun) {
+    if (length(corr_fun) != 1) 
+        stop('corr_fun must be either "matern" or "exponential"')
     if (!(corr_fun %in% c("matern", "exponential"))) 
         stop('corr_fun must be either "matern" or "exponential"')
 }

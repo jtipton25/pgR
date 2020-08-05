@@ -89,14 +89,10 @@ test_that("checking default settings of inits", {
         },
         {
             set.seed(111)
-            list(
-                beta = t(mvnfast::rmvn(ncol(Y) - 1, priors$mu_beta, priors$Sigma_beta))
-            )
+            list(beta = t(mvnfast::rmvn(ncol(Y) - 1, priors$mu_beta, priors$Sigma_beta)))
         }
     )
-    
-    
-    
+
     Y      <- stats::rmultinom(100, 50, rep(1/5, 5))
     X      <- matrix(stats::rnorm(100 * 50), 100, 50)
     priors <- default_priors_pg_splm(Y, X, corr_fun = "exponential")

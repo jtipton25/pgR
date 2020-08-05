@@ -48,7 +48,7 @@ pgSPLM <- function(
     # corr_function = "exponential"
 ) {
     
-    stop("The function pgSPLM() has been deprecated. Please use pg_splm() instead")
+    stop("The function pgSPLM() has been deprecated. Please use pg_splm() instead.")
     # ##
     # ## Run error checks
     # ## 

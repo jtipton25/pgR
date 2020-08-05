@@ -43,6 +43,18 @@ is_numeric_matrix <- function(x, n, m) {
     is_numeric(x, n * m) && is.matrix(x) && all(dim(x) == c(n, m))
 }
 
+#' Check if a positive numeric matrix of dimension \eqn{n \times m}{n x m}
+#'
+#'  this function checks if the input is a positive numeric (double) matrix of dimension \eqn{n \times m}{n x m}
+#' @param x is the input
+#' @param n is the input length
+#' @keywords internal
+
+is_positive_numeric_matrix <- function(x, n, m) {
+    is_positive_numeric(x, n * m) && is.matrix(x) && all(dim(x) == c(n, m))
+}
+
+
 #' Check if a symmetric positive definite numeric matrix of dimension \eqn{n \times n}{n x n}
 #'
 #' this function checks if the input is a symmetrix positive definite matrix

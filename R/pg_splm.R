@@ -351,7 +351,7 @@ pg_splm <- function(
         if (corr_fun == "matern") {
             theta_batch <- matrix(0, 50, 2) 
             lambda_theta          <- 0.05
-            Sigma_theta_tune      <- 1.8 * diag(2) - .8
+            Sigma_theta_tune      <- 0.4 * diag(2) - 0.2
             Sigma_theta_tune_chol <- tryCatch(
                 chol(Sigma_theta_tune),
                 error = function(e) {
@@ -501,6 +501,12 @@ pg_splm <- function(
                 theta_star <- rnorm(1, theta, theta_tune)
             }
             Sigma_star       <- tau2 * correlation_function(D, theta_star, corr_fun = corr_fun)
+            if (any(is.na(Sigma_star)) | any(!is.finite(Sigma_star))) {
+                ## add in a check to catch rare case where proposal for theta_star gives an 
+                ## improper covariance matrix
+                theta_star <- theta
+                Sigma_star <- Sigma
+            }
             ## add in faster parallel cholesky as needed
             Sigma_chol_star <- tryCatch(
                 chol(Sigma_star),
@@ -592,6 +598,13 @@ pg_splm <- function(
                 }
                 
                 Sigma_star      <- tau2[j] * correlation_function(D, theta_star, corr_fun = corr_fun)
+                if (any(is.na(Sigma_star)) | any(!is.finite(Sigma_star))) {
+                    ## add in a check to catch rare case where proposal for theta_star gives an 
+                    ## improper covariance matrix
+                    theta_star <- theta[j, ]
+                    Sigma_star <- Sigma[, , j]
+                }
+                
                 ## add in faster parallel cholesky as needed
                 Sigma_chol_star <- tryCatch(
                     chol(Sigma_star),

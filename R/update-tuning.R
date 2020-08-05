@@ -117,7 +117,12 @@ update_tuning_mv <- function(k, accept, lambda, batch_samples,
     ## 50 is an MCMC batch size, can make this function more general later...
     Sigma_tune_out <- Sigma_tune + gamma1 *
         (t(batch_samples) %*% batch_samples / (50.0-1.0) - Sigma_tune)
-    Sigma_tune_chol_out <- chol(Sigma_tune)
+    Sigma_tune_chol_out <- tryCatch(
+        chol(Sigma_tune),
+        error = function(e) {
+            chol(Sigma_tune + 1e-8 * diag(nrow(Sigma_tune)))                    
+        }
+    )
     accept_out <- 0.0
     batch_samples_out <- matrix(0, batch_size, d)
     return(
@@ -167,7 +172,12 @@ update_tuning_mv_mat <- function(k, accept, lambda, batch_samples,
         batch_samples_tmp[, , j] <- t(t(batch_samples_tmp[, , j]) - colMeans(batch_samples_tmp[, , j]))
         Sigma_tune_tmp[, , j] <- Sigma_tune[, , j] + gamma1 *
             (t(batch_samples_tmp[, , j]) %*% batch_samples_tmp[, , j] / (50.0-1.0) - Sigma_tune[, , j])
-        Sigma_tune_chol_tmp[, , j] <- chol(Sigma_tune_tmp[, , j])
+        Sigma_tune_chol_tmp[, , j] <-  tryCatch(
+            chol(Sigma_tune_tmp[, , j]),
+            error = function(e) {
+                chol(Sigma_tune_tmp[, , j] + 1e-8 * diag(nrow(Sigma_tune_tmp[, , j])))                    
+            }
+        )
     }
     ## 50 is an MCMC batch size, can make this function more general later...
     accept_out <- rep(0, length(accept))

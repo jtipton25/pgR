@@ -30,7 +30,7 @@ check_input_pg_lm <- function(Y, X) {
 
 check_input_pg_splm <- function(Y, X, locs) {
     ## check the mcmc inputs
-    if (!is_integer_matrix(Y)) 
+    if (!is_integer_matrix(Y, nrow(Y), ncol(Y)))
         stop("Y must be an integer matrix.")
     if (any(rowSums(Y) == 0))
         stop ("There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs")
@@ -62,7 +62,7 @@ check_input_pgSTLM <- function(Y, X, locs) {
     if (length(dim(Y)) != 3)
         stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
     na_idx <- which(is.na(Y))
-    if (!pgR:::is_integer(Y[-na_idx], length(Y[-na_idx])))
+    if (!is_integer(Y[-na_idx], length(Y[-na_idx])))
         stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
     if (any(apply(Y, c(2, 3), sum) == 0))
         stop ("There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs")
@@ -93,7 +93,7 @@ check_input_pg_stlm <- function(Y, X, locs) {
     if (length(dim(Y)) != 3)
         stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
     na_idx <- which(is.na(Y))
-    if (!pgR:::is_integer(Y[-na_idx], length(Y[-na_idx])))
+    if (!is_integer(Y[-na_idx], length(Y[-na_idx])))
         stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
     if (any(apply(Y, c(2, 3), sum) == 0))
         stop ("There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs")

@@ -43,6 +43,20 @@ test_that("is_numeric_matrix function", {
     expect_true(is_numeric_matrix(matrix(1:6, 3, 2), 3, 2))
 })
 
+
+test_that("is_positive_numeric_matrix function", {
+    expect_error(is_positive_numeric_matrix(c(2, 2), 2))
+    ## add in testing on the input dimensions
+    expect_error(is_positive_numeric_matrix(matrix(c(2, 2), NA, 2)))
+    expect_false(is_positive_numeric_matrix(matrix(1:6, 3, 2), 2, 2))
+    expect_false(is_positive_numeric_matrix(matrix(c(1:5, NA), 3, 2), 2, 2))
+    expect_false(is_positive_numeric_matrix(matrix(c(1:5, "NA"), 3, 2), 2, 2))
+    expect_false(is_positive_numeric_matrix(NULL))
+    expect_false(is_positive_numeric_matrix(matrix(-(1:6), 3, 2), 3, 2))
+    expect_true(is_positive_numeric_matrix(matrix(1:6, 3, 2), 3, 2))
+
+})
+
 test_that("is_sympd_matrix function", {
     ## add in testing on the input dimensions
     expect_error(is_numeric_matrix(matrix(c(2, 2), NA, 2)))

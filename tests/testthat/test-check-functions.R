@@ -249,6 +249,7 @@ test_that("check_inits_pg_lm", {
     
     inits$beta <- matrix(c(1:2, NA), 3, 1)
     expect_error(check_inits_pg_lm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    inits$beta <- NULL
     
     expect_identical(
         {
@@ -275,56 +276,113 @@ test_that("check_inits_pg_splm", {
     X <- matrix(rnorm(20), 10, 2)
     locs <- matrix(runif(20), 10, 2)
     params <- default_params()
-    priors <- default_priors_pg_splm(Y, X, corr_fun = "exponential")
-    inits  <- default_inits_pg_splm(Y, X, priors)
-    expect_silent(default_inits_pg_splm(Y, X, inits))
     
+    for (j in c("exponential", "matern")) {
+        for (k in c(TRUE, FALSE)) {
+            priors <- default_priors_pg_splm(Y, X, corr_fun = j)
+            inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = j, shared_covariance_params = k)
+            expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = j, shared_covariance_params = k))
+        }
+    }
+    
+    priors <- default_priors_pg_splm(Y, X, corr_fun = "exponential")
+    inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = "exponential" and shared_covariance_params = FALSE.')
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.')
+    inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.')
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.')
+    
+    
+    priors <- default_priors_pg_splm(Y, X, corr_fun = "matern")
+    inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "matern", shared_covariance_params = TRUE)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.')
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.')
+    inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = \"exponential\" and shared_covariance_params = FALSE.')
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.')
+    
+    inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
     X <- matrix(rnorm(20), 10, 4)    
-    expect_error(default_inits_pg_splm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     
     Y <- matrix(1:50, 10, 5)
     X <- matrix(rnorm(10), 10, 1)
-    expect_error(default_inits_pg_splm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     
     Y <- matrix(1:50, 5, 10)
     X <- matrix(rnorm(10), 10, 1)
-    expect_error(default_inits_pg_splm(Y, X, inits), "Y and X must have the same number of rows")
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "Y and X must have the same number of rows")
     
     Y <- matrix(1:50, 5, 10)
     X <- rnorm(10)
-    expect_error(default_inits_pg_splm(Y, X, inits), "X must be a numeric matrix")        
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "X must be a numeric matrix")        
     
     Y <- matrix(1:40, 10, 4)
-    X <- matrix(rnorm(10), 10, 1)
+    X <- matrix(rnorm(20), 10, 2)
     params <- default_params()
     priors <- default_priors_pg_splm(Y, X)
     inits  <- default_inits_pg_splm(Y, X, priors)
     
     inits$beta <- NA
-    expect_error(check_inits_pg_splm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
-    
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     inits$beta <- 1:3
-    expect_error(check_inits_pg_splm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
-    
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     inits$beta <- matrix(1:9, 3, 3)
-    expect_error(check_inits_pg_splm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
-    
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     inits$beta <- matrix(c(1:2, NA), 3, 1)
-    expect_error(check_inits_pg_splm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_splm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    inits$beta <- NULL
     
-    expect_identical(
-        {
-            set.seed(111)
-            inits  <- default_inits_pg_splm(Y, X, priors)
-        }, 
-        {
-            set.seed(111)
-            inits <- list(
-                beta = t(mvnfast::rmvn(ncol(Y) - 1, priors$mu_beta, priors$Sigma_beta))
-            )
-            
-        }
-    )
+    inits$theta <- NA
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    inits$theta <- "aaa"
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    
+    inits$tau2 <- rep(5, ncol(Y)-1)
+    inits$theta <- rep(NA, ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = \"exponential\" and shared_covariance_params = FALSE.")
+    inits$theta <- rep("aaa", ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = \"exponential\" and shared_covariance_params = FALSE.")
+    inits$theta <- 1:(ncol(Y) - 1)
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    
+    inits$tau2 <- 5
+    inits$theta <- rep(NA, 2)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.")
+    inits$theta <- rep("aaa", 2)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1:2
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    
+    inits$tau2 <- rep(5, ncol(Y)- 1)
+    inits$theta <- matrix(NA, ncol(Y) - 1, 2)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.")
+    inits$theta <- matrix("aaa", ncol(Y)-1, 2)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.")
+    inits$theta <- matrix(1:(ncol(Y) * 2 - 2), ncol(Y) -1, 2)
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    
+
+    # expect_identical(
+    #     {
+    #         set.seed(111)
+    #         inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+    #     }, 
+    #     {
+    #         set.seed(111)
+    #         inits <- list(
+    #             beta = t(mvnfast::rmvn(ncol(Y) - 1, priors$mu_beta, priors$Sigma_beta)),
+    #             tau2 = min(1 / stats::rgamma(1, priors$alpha_tau, priors$beta_tau), 10),
+    #             theta = pmin(pmax(stats::rnorm(1, theta_mean, sqrt(theta_var)), -1), 0.1)
+    #         )
+    #         
+    #     }
+    # )
 
     ## check inits for pg_spvlm
     
@@ -334,78 +392,231 @@ test_that("check_inits_pg_splm", {
 test_that("check_inits_pg_stlm", {
     
     ## Check initial conditions for pg_lm
-    expect_error(check_inits_pgSTLM(), "The function check_inits_pgSTLM\\(\\) has been deprecated. Please use check_inits_pg_stlm\\(\\) instead.")
+    # expect_error(check_inits_pgSTLM(), "The function check_inits_pgSTLM\\(\\) has been deprecated. Please use check_inits_pg_stlm\\(\\) instead.")
     
-    Y <- matrix(1:40, 10, 4)
+    Y <- array(1:200, dim = c(10, 4, 5))
     X <- matrix(rnorm(20), 10, 2)
     locs <- matrix(runif(20), 10, 2)
     params <- default_params()
+
+    for (j in c("exponential", "matern")) {
+        for (k in c(TRUE, FALSE)) {
+            priors <- default_priors_pg_stlm(Y, X, corr_fun = j)
+            inits  <- default_inits_pg_stlm(Y, X, priors, corr_fun = j, shared_covariance_params = k)
+            expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = j, shared_covariance_params = k))
+        }
+    }
     priors <- default_priors_pg_stlm(Y, X, corr_fun = "exponential")
-    inits  <- default_inits_pg_stlm(Y, X, priors)
-    expect_silent(check_inits_pg_stlm(Y, X, inits))
+    inits  <- default_inits_pg_stlm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = "exponential" and shared_covariance_params = FALSE.')
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.')
+    inits  <- default_inits_pg_stlm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.')
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.')
+    
+    
+    priors <- default_priors_pg_stlm(Y, X, corr_fun = "matern")
+    inits  <- default_inits_pg_stlm(Y, X, priors, corr_fun = "matern", shared_covariance_params = TRUE)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.')
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.')
+    inits  <- default_inits_pg_stlm(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), 'If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = \"exponential\" and shared_covariance_params = FALSE.')
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), 'If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.')
+
+    
+    priors <- default_priors_pg_stlm(Y, X, corr_fun = "matern")
+    inits  <- default_inits_pg_stlm(Y, X, priors, corr_fun = "matern")
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern"))
     
     X <- matrix(rnorm(20), 10, 4)    
-    expect_error(check_inits_pg_lm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     
     Y <- matrix(1:50, 10, 5)
     X <- matrix(rnorm(10), 10, 1)
-    expect_error(check_inits_pg_lm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
     
     Y <- matrix(1:50, 5, 10)
     X <- matrix(rnorm(10), 10, 1)
-    expect_error(check_inits_pg_lm(Y, X, inits), "Y and X must have the same number of rows")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+
+    Y <- array(1:250, dim=c(5, 10, 5))
+    X <- matrix(rnorm(10), 10, 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), " and X must have the same number of rows.")
     
-    Y <- matrix(1:50, 5, 10)
+    Y <- array(1:200, dim = c(10, 4, 5))
     X <- rnorm(10)
-    expect_error(check_inits_pg_lm(Y, X, inits), "X must be a numeric matrix")        
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "X must be a numeric matrix")        
     
-    Y <- matrix(1:40, 10, 4)
-    X <- matrix(rnorm(10), 10, 1)
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(rnorm(20), 10, 2)
     params <- default_params()
-    priors <- default_priors_pg_lm(Y, X)
-    inits  <- default_inits_pg_lm(Y, X, priors)
+    priors <- default_priors_pg_stlm(Y, X, corr_fun = "matern")
+    inits  <- default_inits_pg_stlm(Y, X, priors)
     
     inits$beta <- NA
-    expect_error(check_inits_pg_lm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     
     inits$beta <- 1:3
-    expect_error(check_inits_pg_lm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     
     inits$beta <- matrix(1:9, 3, 3)
-    expect_error(check_inits_pg_lm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
     
     inits$beta <- matrix(c(1:2, NA), 3, 1)
-    expect_error(check_inits_pg_lm(Y, X, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "If beta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of X and columns equal to the number of columns of Y - 1.")
+    inits$beta <- NULL
     
-    expect_identical(
-        {
-            set.seed(111)
-            inits  <- default_inits_pg_lm(Y, X, priors)
-        }, 
-        {
-            set.seed(111)
-            inits <- list(
-                beta = t(mvnfast::rmvn(ncol(Y) - 1, priors$mu_beta, priors$Sigma_beta))
-            )
-            
-        }
-    )
+    inits$theta <- NA
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    inits$theta <- "aaa"
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    
+    inits$tau2 <- rep(5, ncol(Y)-1)
+    inits$theta <- rep(NA, ncol(Y) - 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = \"exponential\" and shared_covariance_params = FALSE.")
+    inits$theta <- rep("aaa", ncol(Y) - 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = \"exponential\" and shared_covariance_params = FALSE.")
+    inits$theta <- 1:(ncol(Y) - 1)
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    
+    inits$tau2 <- 5
+    inits$theta <- rep(NA, 2)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.")
+    inits$theta <- rep("aaa", 2)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1:2
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    
+    inits$tau2 <- rep(5, ncol(Y)- 1)
+    inits$theta <- matrix(NA, ncol(Y) - 1, 2)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.")
+    inits$theta <- matrix("aaa", ncol(Y)-1, 2)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.")
+    inits$theta <- matrix(1:(ncol(Y) * 2 - 2), ncol(Y) -1, 2)
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    
+    
+    # expect_identical(
+    #     {
+    #         set.seed(111)
+    #         inits  <- default_inits_pg_lm(Y, X, priors)
+    #     }, 
+    #     {
+    #         set.seed(111)
+    #         inits <- list(
+    #             beta = t(mvnfast::rmvn(ncol(Y) - 1, priors$mu_beta, priors$Sigma_beta))
+    #         )
+    #         
+    #     }
+    # )
     
     ## check inits for pg_spvlm
 
 })    
 
-test_that("check_input", {
+test_that("check_input_pg_lm", {
     
-    ## check input for pg_lm
+    Y <- matrix(1:40, 10, 4)
+    X <- matrix(1:20, 10, 2)
+    expect_silent(check_input_pg_lm(Y, X))
     
-    ## check input for pg_splm
+    Y <- rnorm(10)
+    expect_error(check_input_pg_lm(Y, X), "Y must be an integer matrix.")
+    Y <- matrix(1:40, 10, 4)
+    Y[1, 1] <- NA
+    expect_error(check_input_pg_lm(Y, X), "Y must be an integer matrix.")
+    Y <- matrix(1:20, 5, 4)
+    expect_error(check_input_pg_lm(Y, X), "Y and X must have the same number of rows.")
+    Y <- matrix(1:20, 5, 4)
+    X <- matrix(1:30, 15, 2)
+    expect_error(check_input_pg_lm(Y, X), "Y and X must have the same number of rows.")
+    X <- matrix("aaa", 10, 2)
+    expect_error(check_input_pg_lm(Y, X), "X must be a numeric matrix.")
+    X <- matrix(1:20, 10, 2)
+    Y[1, ] <- 0
+    expect_error(check_input_pg_lm(Y, X), "There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+
+})
+
+test_that("check_input_pg_splm", {
+    Y <- matrix(1:40, 10, 4)
+    X <- matrix(1:20, 10, 2)
+    locs <- matrix(runif(20), 10, 2)
+    expect_silent(check_input_pg_splm(Y, X, locs))
     
-    ## check input for pg_spvlm
+    Y <- rnorm(10)
+    expect_error(check_input_pg_splm(Y, X, locs), "Y must be an integer matrix.")
+    Y <- matrix(1:40, 10, 4)
+    Y[1, 1] <- NA
+    expect_error(check_input_pg_splm(Y, X, locs), "Y must be an integer matrix.")
+    Y <- matrix(1:20, 5, 4)
+    expect_error(check_input_pg_splm(Y, X, locs), "Y and X must have the same number of rows.")
+    Y <- matrix(1:20, 5, 4)
+    X <- matrix(1:30, 15, 2)
+    expect_error(check_input_pg_splm(Y, X, locs), "Y and X must have the same number of rows.")
+    X <- matrix("aaa", 10, 2)
+    expect_error(check_input_pg_splm(Y, X, locs), "X must be a numeric matrix.")
+    X <- matrix(1:20, 10, 2)
+    Y[1, ] <- 0
+    expect_error(check_input_pg_splm(Y, X, locs), "There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+    Y <- matrix(1:40, 10, 4)
+    locs <- matrix(1:30, 15, 2)
+    expect_error(check_input_pg_splm(Y, X, locs), "Y and locs must have the same number of rows.")
+    locs <- matrix(1:30, 10, 3)
+    expect_error(check_input_pg_splm(Y, X, locs), "locs must be a numeric matrix with rows equal to the number of rows of Y and 2 columns.")
+    locs <- matrix("aaa", 10, 2)
+    expect_error(check_input_pg_splm(Y, X, locs), "locs must be a numeric matrix with rows equal to the number of rows of Y and 2 columns.")
+
+})
+
+test_that("check_input_pg_stlm", {
     
-    ## check input for pg_stlm
+    
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(1:20, 10, 2)
+    locs <- matrix(runif(20), 10, 2)
+    expect_silent(check_input_pg_stlm(Y, X, locs))
+    expect_error(check_input_pgSTLM(Y, X, locs, "The function check_input_pgSTLM() is now deprecated. Please use check_input_pg_stlm()."))
+    Y <- array(1:200, dim = c(5, 4, 5, 2))
+    expect_error(check_input_pg_stlm(Y, X, locs), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+
+    Y <- array(1:200, dim = c(10, 4, 5))
+    # Y[1, 1, 1] <- NA
+    # expect_error(check_input_pg_stlm(Y, X, locs), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y[1, 1, 1] <- 0.5
+    expect_error(check_input_pg_stlm(Y, X, locs), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y[1, 1, 2] <- NA
+    expect_error(check_input_pg_stlm(Y, X, locs), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y <- matrix(1:20, 5, 4)
+    expect_error(check_input_pg_stlm(Y, X, locs), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(1:30, 15, 2)
+    expect_error(check_input_pg_stlm(Y, X, locs), "Y and X must have the same number of rows.")
+    X <- matrix("aaa", 10, 2)
+    expect_error(check_input_pg_stlm(Y, X, locs), "X must be a numeric matrix.")
+    X <- matrix(1:20, 10, 2)
+    Y[1, , 1] <- 0
+    expect_error(check_input_pg_stlm(Y, X, locs), "There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+    Y <- array(1:200, dim = c(10, 4, 5))
+    locs <- matrix(1:30, 15, 2)
+    expect_error(check_input_pg_stlm(Y, X, locs), "Y and locs must have the same number of rows.")
+    locs <- matrix(1:30, 10, 3)
+    expect_error(check_input_pg_stlm(Y, X, locs), "locs must be a numeric matrix with rows equal to the number of rows of Y and 2 columns.")
+    locs <- matrix("aaa", 10, 2)
+    expect_error(check_input_pg_stlm(Y, X, locs), "locs must be a numeric matrix with rows equal to the number of rows of Y and 2 columns.")
+    
     
 })
+
+# test_that("check_input_pt_svlm", {
+# 
+#     ## check input for pg_spvlm
+# 
+# })
 
 test_that("check_params", {
     params <- default_params()

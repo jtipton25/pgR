@@ -374,13 +374,6 @@ pgSTLM <- function(
     omega <- array(0, dim = c(N, J-1, n_time))
     omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
     
-    if (!is.null(inits[['omega']])) {
-        if (!is.na(inits[['omega']])) {
-            omega <- inits[['omega']]
-        }
-    }
-    
-    
     ##
     ## setup save variables
     ##

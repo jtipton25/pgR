@@ -8,9 +8,10 @@ counts_to_proportions <- function(Y) {
     
     ## take a N times d matrix y of counts and return an N times d matrix 
     ## of proportions where each of the N rows sums to 1 
-    
-    if (!is.matrix(Y)) {
-        stop("y must be a matrix of count observations")
+    if (!is.matrix(Y))
+        stop("Y must be a matrix of integer count observations.")
+    if (!is_integer_matrix(Y, nrow(Y), ncol(Y))) {
+        stop("Y must be a matrix of integer count observations.")
     }
     N <- nrow(Y)
     d <- ncol(Y)

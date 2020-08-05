@@ -31,5 +31,3 @@ arma::vec rmvn_arma(arma::mat& A, arma::vec& b){
     arma::vec temp = solve(trimatl(A_chol.t()), b);
     return arma::vec(solve(trimatu(A_chol), temp + devs));
 }
-
-

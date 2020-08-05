@@ -59,7 +59,3 @@ arma::vec dmvnrm_arma_mc(arma::mat const &x,
         return out;
     return exp(out);
 }
-        
-        
-        
-        

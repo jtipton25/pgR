@@ -126,11 +126,6 @@ pg_lm <- function(
     #         }
     #     }
     # }
-    if (!is.null(inits[['omega']])) {
-        if (!is.na(inits[['omega']])) {
-            omega <- inits[['omega']]
-        }
-    }
     
     ## don't need a diagonal matrix form
     # Omega <- vector(mode = "list", length = J-1)

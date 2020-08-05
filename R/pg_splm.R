@@ -288,12 +288,6 @@ pg_splm <- function(
     omega <- matrix(0, N, J-1)
     omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
     
-    if (!is.null(inits[['omega']])) {
-        if (!is.na(inits[['omega']])) {
-            omega <- inits[['omega']]
-        }
-    }
-    
     Omega <- vector(mode = "list", length = J-1)
     for (j in 1:(J - 1)) {
         Omega[[j]] <- diag(omega[, j])

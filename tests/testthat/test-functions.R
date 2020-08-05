@@ -219,6 +219,10 @@ if (require(LaplacesDemon)) {
             mvnfast::dmvn(X, mu, Sigma, log = TRUE),
             as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE, cores = 4))
         )
+        expect_equal(
+            mvnfast::dmvn(X, mu, Sigma, log = FALSE),
+            as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = FALSE, cores = 4))
+        )
         
         # expect_error(setup_splines(params), "the model type must be bspline to run setup_splines")
     })
@@ -247,3 +251,55 @@ if (require(LaplacesDemon)) {
         )
     })
 }
+
+test_that("log_sum_exp", {
+    x <- 1:5
+    expect_equal(logsumexp(x), 5.45191439593759)
+    x <- -(1:5)
+    expect_equal(logsumexp(x), -0.548085604062407)
+    x <- rep("aaa", 5)
+    expect_error(logsumexp(x), "x must be a numeric vector")
+    x <- c(1:5, NA)
+    expect_error(logsumexp(x), "x must be a numeric vector")
+})
+
+test_that("log_sum_exp", {
+    x <- 1:5
+    expect_equal(softmax(x), c(0.0116562309560396, 0.0316849207961243, 0.0861285444362687, 
+                               0.234121657252737, 0.636408646558831))
+    x <- -(1:5)
+    expect_equal(softmax(x), c(0.636408646558831, 0.234121657252737, 0.0861285444362687, 0.0316849207961243, 
+                               0.0116562309560396))
+    x <- rep("aaa", 5)
+    expect_error(softmax(x), "x must be a numeric vector")
+    x <- c(1:5, NA)
+    expect_error(softmax(x), "x must be a numeric vector")
+})
+
+
+test_that("counts_to_propotions", {
+    Y <- matrix(1:20, 5, 4)
+    expect_equal(
+        counts_to_proportions(Y), 
+        structure(c(0.0294117647058824, 0.0526315789473684, 0.0714285714285714, 
+                    0.0869565217391304, 0.1, 0.176470588235294, 0.184210526315789, 
+                    0.19047619047619, 0.195652173913043, 0.2, 0.323529411764706, 
+                    0.315789473684211, 0.30952380952381, 0.304347826086957, 0.3, 
+                    0.470588235294118, 0.447368421052632, 0.428571428571429, 0.41304347826087, 
+                    0.4), .Dim = 5:4)
+    )
+    
+    Y <- rnorm(1:20)
+    expect_error(counts_to_proportions(Y), "Y must be a matrix of integer count observations.")
+    Y <- matrix("aaa", 5, 4)
+    expect_error(counts_to_proportions(Y), "Y must be a matrix of integer count observations.")
+    Y <- array(1:60, dim = c(5, 4, 3))
+    expect_error(counts_to_proportions(Y), "Y must be a matrix of integer count observations.")
+    Y <- matrix(1:20, 5, 4)
+    Y[1, 1] <- NA
+    expect_error(counts_to_proportions(Y), "Y must be a matrix of integer count observations.")
+    Y[1, 1] <- 0.5
+    expect_error(counts_to_proportions(Y), "Y must be a matrix of integer count observations.")
+    
+})
+

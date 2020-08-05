@@ -5,5 +5,7 @@
 #' @export
 
 softmax <- function (x) {
-  exp(x - logsumexp(x))
+    if (!is_numeric_vector(x, length(x)))
+        stop("x must be a numeric vector")
+    exp(x - logsumexp(x))
 }

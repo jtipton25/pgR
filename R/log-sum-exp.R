@@ -1,12 +1,13 @@
 #' log sum of exponentials
 #'
-#' this function exaluates a log sum of exponential
+#' this function evaluates a log sum of exponential
 #' @param x is the input
 #' @export
 #' @keywords internal
   
 logsumexp <- function (x) {
-    ## from http://tr.im/hH5A
+    if (!is_numeric_vector(x, length(x)))
+        stop("x must be a numeric vector")
     y <- max(x)
-  y + log(sum(exp(x - y)))
+    y + log(sum(exp(x - y)))
 }

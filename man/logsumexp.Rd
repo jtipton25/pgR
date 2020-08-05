@@ -10,6 +10,6 @@ logsumexp(x)
 \item{x}{is the input}
 }
 \description{
-this function exaluates a log sum of exponential
+this function evaluates a log sum of exponential
 }
 \keyword{internal}

@@ -1,8 +1,8 @@
 Package: pgR
 Type: Package
 Title: Bayesian Polya-gamma Regression
-Version: 1.0
-Date: 2020-05-04
+Version: 1.0.0
+Date: 2020-08-06
 Authors@R: c(
     person("John", "Tipton", email = "jrtipton@uark.edu", role = c("aut", "cre")),
     person("Andria", "Dawson", role = "ctb", comment = "Contribued code and code review"),
@@ -18,6 +18,7 @@ Description: Software for fitting Bayesian Polya-gamma regression
 License: GPL (>= 3)
 Depends: R (>= 3.5.0)
 Imports: 
+    BayesMRA,
     fields,
     geoR,
     hms,
@@ -29,6 +30,7 @@ Imports:
     Rcpp (>= 1.0.4.6),
     spam,
     sparseMVN
+Remotes: github::jtipton25/BayesMRA
 LinkingTo:
     Rcpp,
     RcppArmadillo

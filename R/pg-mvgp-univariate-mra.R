@@ -35,6 +35,7 @@
 #' @importFrom sparseMVN rmvn.sparse
 #' @importFrom Matrix Cholesky
 #' @importFrom MASS ginv
+#' @import BayesMRA
 #' @import spam  
 
 ## polya-gamma spatial linear regression model

@@ -71,7 +71,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">pgR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.0</span>
       </span>
     </div>
 
@@ -85,6 +85,18 @@
 </li>
 <li>
   <a href="../reference/index.html">Reference</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/pg_lm.html">Multinomial Regression Using `pg_lm()`</a>
+    </li>
+  </ul>
 </li>
 <li>
   <a href="../news/index.html">Changelog</a>
@@ -172,6 +184,12 @@
       </tr><tr>
         
         <td>
+          <p><code><a href="default_inits_pg_stlm.html">default_inits_pg_stlm()</a></code> </p>
+        </td>
+        <td><p>Initialized default initial conditions</p></td>
+      </tr><tr>
+        
+        <td>
           <p><code><a href="default_params.html">default_params()</a></code> </p>
         </td>
         <td><p>Initialized default values of parameters</p></td>
@@ -238,24 +256,6 @@
       </tr><tr>
         
         <td>
-          <p><code><a href="make_Q.html">make_Q()</a></code> </p>
-        </td>
-        <td><p>Generate CAR precision matrix</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="make_Q_alpha_2d.html">make_Q_alpha_2d()</a></code> </p>
-        </td>
-        <td><p>Generate CAR precision matrix</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="make_Q_alpha_tau2.html">make_Q_alpha_tau2()</a></code> </p>
-        </td>
-        <td><p>Make a sparse MRA precision matrix</p></td>
-      </tr><tr>
-        
-        <td>
           <p><code><a href="make_alpha.html">make_alpha()</a></code> </p>
         </td>
         <td><p>Contruct the Dirichlet-multinomial parameter matrix <code>alpha</code></p></td>
@@ -265,18 +265,6 @@
           <p><code><a href="make_gelman_rubin.html">make_gelman_rubin()</a></code> </p>
         </td>
         <td><p>Calculate the Gelman-Rubin statistic for custom MCMC output</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="mra_wendland_2d.html">mra_wendland_2d()</a></code> </p>
-        </td>
-        <td><p>Code to construct the mutli-resolution sparse basis function representation for fitting spatial processes</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="mra_wendland_2d_pred.html">mra_wendland_2d_pred()</a></code> </p>
-        </td>
-        <td><p>Code to construct the mutli-resolution sparse basis function representation for fitting spatial processes</p></td>
       </tr><tr>
         
         <td>
@@ -409,6 +397,12 @@
           <p><code><a href="rmvn_arma_scalar.html">rmvn_arma_scalar()</a></code> </p>
         </td>
         <td><p>A function for sampling from conditional multivariate normal distributions with mean A^-1b and covariance matrix A^-1.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="setup_splines.html">setup_splines()</a></code> </p>
+        </td>
+        <td><p>this function setups the bspline parameters</p></td>
       </tr><tr>
         
         <td>

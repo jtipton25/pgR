@@ -105,7 +105,7 @@ pgdraw <- function(b, c, cores = 1L) {
   if (length(b) > 1 && length(b) != length(c))
     stop("b parameter must either be of length one, or the same length as the c parameter")
   if (any(b <= 0) || !all(floor(b) == b, na.rm = T))
-    stop("b parameter must contain only postive integers")
+    stop("b parameter must contain only positive integers")
   if (!is.integer(cores) || length(cores) != 1 || cores <= 0)
     stop("cores must be a positive integer")
   
@@ -156,6 +156,11 @@ pgdraw <- function(b, c, cores = 1L) {
 #' @export
 pgdraw.moments <- function(b, c)
 {
+  if (!is_positive_integer(b, 1))
+    stop("b must be a positive integer value.")
+  if (!is_numeric(c, 1))
+    stop("c must be a numeric value.")
+  
   rv     = list()
   if (c == 0) {
     rv$mu = 1.0 / 4.0

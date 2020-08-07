@@ -9,11 +9,11 @@
 default_priors_pgLM <- function(Y, X) {
     
     stop("The function default_priors_pgLM() has been deprecated. Please use default_priors_pg_lm() instead.")
-    priors <- list(
-        mu_beta        = rep(0, ncol(X)),
-        Sigma_beta     = diag(ncol(X))
-    )
-    return(priors)
+    # priors <- list(
+    #     mu_beta        = rep(0, ncol(X)),
+    #     Sigma_beta     = diag(ncol(X))
+    # )
+    # return(priors)
 }
 
 #' Initialized default values of priors for `pg_lm()`
@@ -45,29 +45,29 @@ default_priors_pg_lm <- function(Y, X) {
 
 default_priors_pgSPLM <- function(Y, X, corr_fun = "exponential") {
     stop("The function default_priors_pgSPLM() has been deprecated. Please use default_priors_pg_splm() instead.")
-    check_corr_fun(corr_fun)
-    priors <- NULL
-    if (corr_fun == "matern") {
-        priors <- list(
-            mu_beta        = rep(0, ncol(X)),
-            Sigma_beta     = diag(ncol(X)),
-            alpha_tau      = 0.1,
-            beta_tau       = 0.1,
-            mean_nu        = -1,
-            sd_nu          = 1,
-            mean_range     = 0,
-            sd_range       = 10
-        )
-    } else if (corr_fun == "exponential") {
-        priors <- list(
-            mu_beta        = rep(0, ncol(X)),
-            Sigma_beta     = diag(ncol(X)),
-            alpha_tau      = 0.1,
-            beta_tau       = 0.1,
-            mean_range     = 0,
-            sd_range       = 10
-        )
-    }
+    # check_corr_fun(corr_fun)
+    # priors <- NULL
+    # if (corr_fun == "matern") {
+    #     priors <- list(
+    #         mu_beta        = rep(0, ncol(X)),
+    #         Sigma_beta     = diag(ncol(X)),
+    #         alpha_tau      = 0.1,
+    #         beta_tau       = 0.1,
+    #         mean_nu        = -1,
+    #         sd_nu          = 1,
+    #         mean_range     = 0,
+    #         sd_range       = 10
+    #     )
+    # } else if (corr_fun == "exponential") {
+    #     priors <- list(
+    #         mu_beta        = rep(0, ncol(X)),
+    #         Sigma_beta     = diag(ncol(X)),
+    #         alpha_tau      = 0.1,
+    #         beta_tau       = 0.1,
+    #         mean_range     = 0,
+    #         sd_range       = 10
+    #     )
+    # }
     return(priors)
 }
 
@@ -121,30 +121,30 @@ default_priors_pg_splm <- function(Y, X, corr_fun = "exponential") {
 
 default_priors_pgSTLM <- function(Y, X, corr_fun = "exponential") {
     stop("The function default_priors_pgSTLM() has been deprecated. Please use default_priors_pg_stlm() instead.")
-    check_corr_fun(corr_fun)
-    priors <- NULL
-    if (corr_fun == "matern") {
-        priors <- list(
-            mu_beta        = rep(0, ncol(X)),
-            Sigma_beta     = diag(ncol(X)),
-            alpha_tau      = 0.1,
-            beta_tau       = 0.1,
-            mean_nu        = -1,
-            sd_nu          = 1,
-            mean_range     = 0,
-            sd_range       = 10
-        )
-    } else if (corr_fun == "exponential") {
-        priors <- list(
-            mu_beta        = rep(0, ncol(X)),
-            Sigma_beta     = diag(ncol(X)),
-            alpha_tau      = 0.1,
-            beta_tau       = 0.1,
-            mean_range     = 0,
-            sd_range       = 10
-        )
-    }
-    return(priors)
+    # check_corr_fun(corr_fun)
+    # priors <- NULL
+    # if (corr_fun == "matern") {
+    #     priors <- list(
+    #         mu_beta        = rep(0, ncol(X)),
+    #         Sigma_beta     = diag(ncol(X)),
+    #         alpha_tau      = 0.1,
+    #         beta_tau       = 0.1,
+    #         mean_nu        = -1,
+    #         sd_nu          = 1,
+    #         mean_range     = 0,
+    #         sd_range       = 10
+    #     )
+    # } else if (corr_fun == "exponential") {
+    #     priors <- list(
+    #         mu_beta        = rep(0, ncol(X)),
+    #         Sigma_beta     = diag(ncol(X)),
+    #         alpha_tau      = 0.1,
+    #         beta_tau       = 0.1,
+    #         mean_range     = 0,
+    #         sd_range       = 10
+    #     )
+    # }
+    # return(priors)
 }
 
 #' Initialized default values of priors for `pg_stlm()`

@@ -9,6 +9,9 @@
 #' @export
 
 expit <- function(x) {
+    if (!is_numeric(x, length(x)))
+        stop("x must be a numeric value.")
+    
     1 / (1 + exp(-x))    
 }
 
@@ -18,6 +21,12 @@ expit <- function(x) {
 #' @export 
 
 logit <- function(p) {
+    if (any(is.na(p)))
+        stop("p must be a numeric value between 0 and 1.")
+    if (!is_numeric(p, length(p)))
+        stop("p must be a numeric value between 0 and 1.")
+    if (any(p <= 0) | any(p >= 1))
+        stop("p must be a numeric value between 0 and 1.")
     log(p) - log(1 - p)
 }
 
@@ -31,6 +40,11 @@ eta_to_pi <- function(eta) {
     ## can make this more general by first checking if vector vs. matrix and then
     ## calculating the response
 
+    if (!is_numeric(eta, length(eta)))
+        stop("eta must be either a numeric vector or a numeric matrix.")
+    if (!(is.matrix(eta) | is.vector(eta)))
+        stop("eta must be either a numeric vector or a numeric matrix.")
+    
     pi <- NULL
     if (is.vector(eta)) {
         N <- length(eta) 

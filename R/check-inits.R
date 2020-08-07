@@ -191,17 +191,24 @@ check_inits_pg_stlm <- function(Y, X, locs, inits, corr_fun = "exponential", sha
                     stop('If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.')
         }
         
-        if (!is.null(inits[['rho']]))
-            if (!is_numeric(inits[['rho']], 1) | inits[['rho']] < -1 | inits[['rho']] > 1)
+        if (!is.null(inits[['rho']])) {
+            if (!is_numeric(inits[['rho']], 1))
                 ## check if rho is of the correct dimension and value
                 stop("If rho is specified in inits, it must be a numeric value between -1 and 1.")
+            
+            if (inits[['rho']] < -1 | inits[['rho']] > 1)
+                ## check if rho is of the correct dimension and value
+                stop("If rho is specified in inits, it must be a numeric value between -1 and 1.")
+        }
         
-        
-        if (!is.null(inits[['eta']]))
-            if (!is_numeric(inits[['eta']], nrow(Y) * (ncol(Y) - 1) * dim(Y)[3]) | !is.array(Y) | length(dim(Y)) != 3)
+        if (!is.null(inits[['eta']])) {
+            if (!is_numeric(inits[['eta']], dim(Y)[1] * (dim(Y)[2] - 1) * dim(Y)[3]))
                 ## check if eta is an array of the correct dimension
                 stop("If eta is specified in inits, it must be a numeric array with dimension equal to the dimensions of Y.")
-        
+            if(!is.array(inits[['eta']]) | length(dim(inits[['eta']])) != 3)
+                ## check if eta is an array of the correct dimension
+                stop("If eta is specified in inits, it must be a numeric array with dimension equal to the dimensions of Y.")
+        }
     }
 }
 

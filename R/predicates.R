@@ -70,6 +70,18 @@ is_sympd_matrix <- function(x, n) {
     is_numeric_matrix(x, n, n) && n == n && isSymmetric(x) && all(eigen(x)$values > 0)
 }
 
+
+#' Check if a distance matrix of dimension \eqn{n \times n}{n x n} (symmetic and non-negative values)
+#'
+#' this function checks if the input is a symmetrix positive definite matrix
+#' @param x is the input
+#' @param n is the input matrix dimension (assuming a square matrix)
+#' @keywords internal
+
+is_dist_matrix <- function(x, n, m) {
+    is_numeric_matrix(x, n, m) && all(x >= 0)
+}
+
 #' Check if value is an integer or integer-like
 #'
 #' this function checks if the input is an integer scalar (integer-like value -- i.e., both 1L and 1.0 pass this check)

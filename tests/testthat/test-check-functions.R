@@ -276,6 +276,10 @@ test_that("check_inits_pg_splm", {
     X <- matrix(rnorm(20), 10, 2)
     locs <- matrix(runif(20), 10, 2)
     params <- default_params()
+    priors <- default_priors_pg_splm(Y, X, corr_fun = "exponential")
+    inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+    
+    expect_error(check_inits_pgSPLM(Y, X, inits), "The function check_inits_pgSPLM\\(\\) has been deprecated. Please use check_inits_pg_splm\\(\\) instead.")
     
     for (j in c("exponential", "matern")) {
         for (k in c(TRUE, FALSE)) {
@@ -340,6 +344,10 @@ test_that("check_inits_pg_splm", {
     expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
     inits$theta <- 1:(ncol(Y) - 1)
     expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    inits$theta <- -1
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
     
     inits$tau2 <- rep(5, ncol(Y)-1)
     inits$theta <- rep(NA, ncol(Y) - 1)
@@ -347,6 +355,8 @@ test_that("check_inits_pg_splm", {
     inits$theta <- rep("aaa", ncol(Y) - 1)
     expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric vector of length equal to the number of columns of Y - 1 when corr_fun = \"exponential\" and shared_covariance_params = FALSE.")
     inits$theta <- 1:(ncol(Y) - 1)
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    inits$theta <- -(1:(ncol(Y) - 1))
     expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
     
     inits$tau2 <- 5
@@ -358,6 +368,8 @@ test_that("check_inits_pg_splm", {
     expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric vector of length 2 when corr_fun = \"matern\" and shared_covariance_params = TRUE.")
     inits$theta <- 1:2
     expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    inits$theta <- -c(1:2)
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
     
     inits$tau2 <- rep(5, ncol(Y)- 1)
     inits$theta <- matrix(NA, ncol(Y) - 1, 2)
@@ -366,8 +378,55 @@ test_that("check_inits_pg_splm", {
     expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.")
     inits$theta <- matrix(1:(ncol(Y) * 2 - 2), ncol(Y) -1, 2)
     expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    inits$theta <- matrix(-(1:(ncol(Y) * 2 - 2)), ncol(Y) -1, 2)
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
     
 
+    inits$theta <- 1
+    inits$tau2 <- NA
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- "aaa"
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- -3
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    
+    inits$theta <- rep(5, ncol(Y)-1)
+    inits$tau2 <- rep(NA, ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- rep("aaa", ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- -c(1:(ncol(Y) - 1))
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    
+    inits$theta <- c(5, 5)
+    inits$tau2 <- rep(NA, 2)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- rep("aaa", 2)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- -1
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    
+    inits$theta <- matrix(5, ncol(Y) - 1, 2)
+    inits$tau2 <- rep(NA, ncol(Y)- 1)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- matrix("aaa", ncol(Y)-1, 2)
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- -c(1:(ncol(Y) - 1))
+    expect_error(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_silent(check_inits_pg_splm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    
+    
     # expect_identical(
     #     {
     #         set.seed(111)
@@ -389,6 +448,17 @@ test_that("check_inits_pg_splm", {
     ## check inits for pg_stlm
 })    
 
+
+
+test_that("check_inits_pgSTLM", {
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(rnorm(20), 10, 2)
+    locs <- matrix(runif(20), 10, 2)
+    params <- default_params()
+    priors <- default_priors_pg_stlm(Y, X)
+    inits  <- default_inits_pg_stlm(Y, X, priors)
+    expect_error(check_inits_pgSTLM(Y, X, inits), "The function check_inits_pgSTLM\\(\\) has been deprecated. Please use check_inits_pg_stlm\\(\\) instead.")
+})
 test_that("check_inits_pg_stlm", {
     
     ## Check initial conditions for pg_lm
@@ -434,6 +504,8 @@ test_that("check_inits_pg_stlm", {
     Y <- matrix(1:50, 10, 5)
     X <- matrix(rnorm(10), 10, 1)
     expect_error(check_inits_pg_stlm(Y, X, locs, inits), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y <- list(1:50)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
     
     Y <- matrix(1:50, 5, 10)
     X <- matrix(rnorm(10), 10, 1)
@@ -472,6 +544,8 @@ test_that("check_inits_pg_stlm", {
     expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
     inits$theta <- 1:(ncol(Y) - 1)
     expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If theta is specified in inits, it must be a numeric value when corr_fun = \"exponential\" and shared_covariance_params = TRUE.")
+    inits$theta <- 1
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
     
     inits$tau2 <- rep(5, ncol(Y)-1)
     inits$theta <- rep(NA, ncol(Y) - 1)
@@ -498,6 +572,118 @@ test_that("check_inits_pg_stlm", {
     expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If theta is specified in inits, it must be a numeric matrix with rows equal to the number of columns of Y - 1 and 2 columns when corr_fun = \"matern\" and shared_covariance_params = FALSE.")
     inits$theta <- matrix(1:(ncol(Y) * 2 - 2), ncol(Y) -1, 2)
     expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    
+    
+    inits$theta <- 1
+    inits$tau2 <- NA
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- "aaa"
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- -1
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    
+    inits$theta <- rep(5, ncol(Y) - 1)
+    inits$tau2 <- rep(NA, ncol(Y)-1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- rep("aaa", ncol(Y) - 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- -c(1:(ncol(Y) - 1))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    
+    inits$theta <- rep(5, 2)
+    inits$tau2 <- NA
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- rep("aaa", 2)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- -1
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If tau2 is specified in inits, it must be a positive numeric value when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    
+    inits$theta <- matrix(5, ncol(Y) - 1, 2)
+    inits$tau2 <- rep(NA, ncol(Y)- 1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- rep("aaa", ncol(Y)-1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- -c(1:(ncol(Y) - 1))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If tau2 is specified in inits, it must be a positive numeric vector of length equal to the number of columns Y - 1 when shared_covariance_params = TRUE.")
+    inits$tau2 <- 1:(ncol(Y) - 1)
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+
+    inits <- NULL
+    inits$rho <- 0.5
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    inits$rho <- -0.5
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    
+    inits$rho <- -1.1
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    
+    inits$rho <- 1.1
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    
+    inits$rho <- NA
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    
+    inits$rho <- "aaa"
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    
+    inits$rho <- 1:5
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE), "If rho is specified in inits, it must be a numeric value between -1 and 1.")
+    
+    inits <- NULL
+    inits$eta <- array(1, dim = c(dim(Y)[1], dim(Y)[2] - 1, dim(Y)[3]))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    expect_silent(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    
+    inits$eta <- c(array(1, dim = c(dim(Y)[1], dim(Y)[2] - 1, dim(Y)[3])))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+
+    inits$eta <- array(1, dim = c(dim(Y)[1], dim(Y)[2] - 1, dim(Y)[3], 5))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
+    
+    inits$eta <- list(1)
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = TRUE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "exponential", shared_covariance_params = FALSE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = TRUE))
+    expect_error(check_inits_pg_stlm(Y, X, locs, inits, corr_fun = "matern", shared_covariance_params = FALSE))
     
     
     # expect_identical(
@@ -571,6 +757,13 @@ test_that("check_input_pg_splm", {
     locs <- matrix("aaa", 10, 2)
     expect_error(check_input_pg_splm(Y, X, locs), "locs must be a numeric matrix with rows equal to the number of rows of Y and 2 columns.")
 
+})
+
+test_that("check_input_pg_stlm", {
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(1:20, 10, 2)
+    locs <- matrix(runif(20), 10, 2)
+    expect_error(check_input_pgSTLM(Y, X, locs), "The function check_input_pgSTLM\\(\\) is now deprecated. Please use check_input_pg_stlm\\(\\).")
 })
 
 test_that("check_input_pg_stlm", {

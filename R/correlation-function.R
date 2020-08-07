@@ -16,15 +16,19 @@
  
 correlation_function <- function(D, theta, corr_fun = "exponential") {
     R <- NULL
+    
+    if (!is_dist_matrix(D, nrow(D), ncol(D)))
+        stop("D must be a distance matrix with only non-negative values.")
+    
     check_corr_fun(corr_fun)
     if (corr_fun == "matern") {
         if (!is_numeric_vector(theta, 2))
-            stop('theta must be a numeric vector of length 2 for matern correlation function')
+            stop('theta must be a numeric vector of length 2 for the matern correlation function.')
         ## calculate the Matern correlation using parameters theta on the log scale 
         R <- geoR::matern(D, exp(theta[1]), exp(theta[2]))
     } else if (corr_fun == "exponential") {
         if (!is_numeric(theta, 1))
-            stop('theta must be a numeric value for the exponential correlation function')
+            stop('theta must be a numeric value for the exponential correlation function.')
         R <- exp( - D / exp(theta))
     }
     return(R)

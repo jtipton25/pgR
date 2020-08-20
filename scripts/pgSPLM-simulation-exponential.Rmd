@@ -306,21 +306,21 @@ params$n_adapt <- 500
 params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgSPLM(Y, X)
-inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = TRUE)
+priors <- default_priors_pg_splm(Y, X)
+inits  <- default_inits_pg_splm(Y, X, priors, shared_covariance_params = TRUE)
 
-if (file.exists(here::here("results", "pgSPLM-exponential-shared.RData"))) {
-  load(here::here("results", "pgSPLM-exponential-shared.RData"))
+if (file.exists(here::here("results", "pg_splm-exponential-shared.RData"))) {
+  load(here::here("results", "pg_splm-exponential-shared.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = TRUE)
+  out <- pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 3L, shared_covariance_params = TRUE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-exponential-shared.RData"))
+  save(out, runtime, file = here::here("results", "pg_splm-exponential-shared.RData"))
 }
 ```
 

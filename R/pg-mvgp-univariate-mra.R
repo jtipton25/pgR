@@ -176,15 +176,6 @@ pg_mvgp_univariate_mra <- function(
         }
     }
     
-    ## do we sample the climate spatial covariance parameters? This is
-    ## primarily used to troubleshoot model fitting using simulated data
-    sample_theta <- TRUE
-    if (!is.null(config)) {
-        if (!is.null(config[['sample_theta']])) {
-            sample_theta <- config[['sample_theta']]
-        }
-    }
-    
     ## do we sample the overdispersion parameter
     sample_sigma2 <- TRUE
     if (!is.null(config)) {

@@ -25,7 +25,7 @@
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' @param use_spam is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).
 #' @importFrom stats rmultinom
-#' @importFrom LaplacesDemon rtrunc
+#' @importFrom truncnorm rtruncnorm
 #' @importFrom hms as_hms
 #' @import BayesMRA
 #' @import spam  
@@ -93,6 +93,14 @@ pg_stlm_mra <- function(
     if (!is.null(config)) {
         if (!is.null(config[['sample_tau2']])) {
             sample_tau2 <- config[['sample_tau2']]
+        }
+    }
+    
+    ## do we sample the latent spatial random effect alpha
+    sample_alpha <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_alpha']])) {
+            sample_alpha <- config[['sample_alpha']]
         }
     }
     
@@ -207,6 +215,21 @@ pg_stlm_mra <- function(
     sigma2 <- pmin(rgamma(J-1, alpha_sigma2, beta_sigma2), 5)
 
     ##
+    ## initialized temporal autocorrelation
+    ##
+    rho <- runif(J-1, 0, 1)
+    if (!is.null(inits[['rho']])) {
+        if (all(!is.na(inits[['rho']]))) {
+            if (!is_numeric_vector(inits[['rho']], J-1))
+                stop ("If specified, inits$rho must be a vector of length J-1 with values between -1 and 1.")
+            if (any(rho > 1) | any(rho < -1))
+                stop ("If specified, inits$rho must be a vector of length J-1 with values between -1 and 1.")
+            ## if rho passes error checks
+            rho <- inits[['rho']]
+        }
+    }
+    
+    ##
     ## setup MRA spatial basis
     ##
     
@@ -300,9 +323,10 @@ pg_stlm_mra <- function(
     a_constraint <- rep(0, M)
     
     alpha <- array(0, dim = c(sum(n_dims), J-1, n_time))
+    eta <- kappa   ## default initial value based on data Y to get started
     if (use_spam) {
         for (j in 1:(J-1)) {
-            A_alpha_1  <- 1 / sigma2[j] * tWW + (1 + rho^2) * Q_alpha_tau2[[j]]
+            A_alpha_1  <- 1 / sigma2[j] * tWW + (1 + rho[j]^2) * Q_alpha_tau2[[j]]
             b_alpha    <- 1 / sigma2[j] * tW %*% (eta[, j, 1] - Xbeta[, j]) 
             alpha[, j, 1] <- rmvnorm.canonical.const(1, b_alpha, A_alpha_1, 
                                                   A = A_constraint, a = a_constraint)
@@ -340,10 +364,10 @@ pg_stlm_mra <- function(
     Rstruct_1      <- NULL
     Rstruct_n_time <- NULL
     if (use_spam) {
-        A1        <- 1 / sigma2[1] * tWW + (1 + rho^2) * Q_alpha_tau2[[1]]
+        A1        <- 1 / sigma2[1] * tWW + (1 + rho[1]^2) * Q_alpha_tau2[[1]]
         Rstruct_1 <- chol(A1)
         
-        A <- 1 / sigma2[1] * tWW + (1 + rho^2) * Q_alpha_tau2[[1]]
+        A <- 1 / sigma2[1] * tWW + (1 + rho[1]^2) * Q_alpha_tau2[[1]]
         Rstruct <- chol(A)
         
         A_n_time <- 1 / sigma2[1] * tWW + Q_alpha_tau2[[1]]
@@ -355,20 +379,10 @@ pg_stlm_mra <- function(
         W_alpha[, , tt] <- W %*% alpha[, , tt]
     }
     
+ 
     ##
-    ## initialized temporal autocorrelation
+    ## initialize the latent random process eta
     ##
-    rho <- runif(J-1, 0, 1)
-    if (!is.null(inits[['rho']])) {
-        if (all(!is.na(inits[['rho']]))) {
-            if (!is_numeric_vector(inits[['rho']], J-1))
-                stop ("If specified, inits$rho must be a vector of length J-1 with values between -1 and 1.")
-            if (any(rho > 1) | any(rho < -1))
-                stop ("If specified, inits$rho must be a vector of length J-1 with values between -1 and 1.")
-            ## if rho passes error checks
-            rho <- inits[['rho']]
-        }
-    }
     
     eta  <- array(0, dim = c(N, J-1, n_time))
     for (tt in 1:n_time) {
@@ -402,7 +416,32 @@ pg_stlm_mra <- function(
     beta_save   <- array(0, dim = c(n_save, p, J-1))
     tau2_save   <- array(0, dim = c(n_save, M, J-1))
     alpha_save  <- array(0, dim = c(n_save, sum(n_dims), J-1, n_time))
-    eta_save    <- array(0, dim = c(n_save, N, J-1, n_time))
+    ## check memory requirements for saved objects
+    eta_save      <- NULL
+    eta_save_mean <- FALSE
+    n_save        <- params$n_mcmc / params$n_thin
+    if (!is.null(config)) {
+        if (!is.null(config[['eta_save_mean']])) {
+            eta_save_mean <- config[['eta_save_mean']]
+        }
+    }
+    if (eta_save_mean) {
+        eta_save      <- tryCatch(
+            array(0, dim = c(N, J-1, n_time)),
+            error = function(e) {
+                stop('The memory needed to save the mean of the eta parameter is too large. Please contact the package maintainer for solutions.')
+            }
+        )
+        
+    } else {
+        eta_save      <- tryCatch(
+            array(0, dim = c(n_save, N, J-1, n_time)),
+            error = function(e) {
+                stop('The memory needed to save the eta parameter is too large. Either set config$save_eta_mean = TRUE or increase "params$n_thin')
+            }
+        )
+    }
+    
     pi_save     <- array(0, dim = c(n_save, N, J, n_time))
     sigma2_save <- matrix(0, n_save, J-1)
     rho_save    <- matrix(0, n_save, J-1)
@@ -534,6 +573,8 @@ pg_stlm_mra <- function(
                             })
                     }       
                 }
+                ## update the latent process variable
+                W_alpha[, , tt] <- W %*% alpha[, , tt]
             }
         }
         
@@ -557,6 +598,7 @@ pg_stlm_mra <- function(
                     tau2[m, j]  <- rgamma(1, alpha_tau2 + n_dims[m] * n_time / 2, beta_tau2 + SS / 2)
                 }
             }
+            Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
         }        
 
         ##
@@ -670,7 +712,7 @@ pg_stlm_mra <- function(
                 
                 a_rho  <- rho_vals[1]
                 b_rho  <- rho_vals[2]
-                rho[j] <- rtrunc(1, "norm", a = -1, b = 1, mean = b_rho / a_rho, sd = sqrt(1 / a_rho))
+                rho[j] <- rtruncnorm(1, a = -1, b = 1, mean = b_rho / a_rho, sd = sqrt(1 / a_rho))
             }
         }
         
@@ -696,7 +738,11 @@ pg_stlm_mra <- function(
                 beta_save[save_idx, , ]    <- beta
                 tau2_save[save_idx, , ]    <- tau2
                 alpha_save[save_idx, , , ] <- alpha
-                eta_save[save_idx, , , ]   <- eta
+                if (eta_save_mean) {
+                    eta_save[, , , ] <- 1 / n_save * eta
+                } else {
+                    eta_save[save_idx, , , ] <- eta
+                }
                 sigma2_save[save_idx, ]    <- sigma2
                 for (tt in 1:n_time) {
                     pi_save[save_idx, , , tt]  <- eta_to_pi(eta[, , tt])

@@ -45,7 +45,8 @@ pg_splm_mra <- function(
     config        = NULL,
     n_chain       = 1,
     progress      = FALSE,
-    verbose       = FALSE
+    verbose       = FALSE,
+    use_spam      = TRUE
 ) {
     
     ##
@@ -236,7 +237,12 @@ pg_splm_mra <- function(
     )
     a_constraint <- rep(0, M)
     
+
+
+    
     alpha <- matrix(0, sum(n_dims), J-1)
+    eta <- kappa   ## default initial value based on data Y
+    
     if (use_spam) {
         for (j in 1:(J-1)) {
             ## double check this full conditional
@@ -400,6 +406,7 @@ pg_splm_mra <- function(
                                                   A = A_constraint,
                                                   a = a_constraint)
         }        
+        W_alpha <- W %*% alpha
         
         ##
         ## sample spatial process variance tau2
@@ -415,6 +422,9 @@ pg_splm_mra <- function(
                 SS       <- as.numeric(devs %*% (Q_alpha[[m]] %*% devs))
                 tau2[m, j]  <- rgamma(1, alpha_tau2 + n_dims[m] / 2, beta_tau2 + SS / 2)
             }
+        }
+        for (j in 1:(J-1)) {
+            Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
         }
         
         ##

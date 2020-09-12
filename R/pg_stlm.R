@@ -680,39 +680,24 @@ pgSTLM <- function(
                         }
                     )
                     Sigma_inv_star  <- chol2inv(Sigma_chol_star)
+                    
                     ## parallelize this
-                    mh1 <- sum(
-                        sapply(1:(J-1), function(j) {
-                            mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
-                        })
-                    ) +
-                        sum(
-                            sapply(2:n_time, function(tt) {
-                                sapply(1:(J-1), function(j) {
-                                    mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
-                                })
-                            }) 
-                            
-                        ) +
-                        ## prior
-                        mvnfast::dmvn(theta_star, theta_mean, theta_var, log = TRUE)
+                    mh1 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) +
+                      sum(
+                        sapply(2:n_time, function(tt) {
+                            mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                        })) +
+                      ## prior
+                      mvnfast::dmvn(theta_star, theta_mean, theta_var, log = TRUE)
+
                     ## parallelize this        
-                    mh2 <- sum(
-                        sapply(1:(J-1), function(j) {
-                            mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
-                        })
-                    ) +
-                        sum(
-                            sapply(2:n_time, function(tt) {
-                                sapply(1:(J-1), function(j) {
+                    mh2 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
+                        sum(sapply(2:n_time, function(tt) {
                                     mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
-                                })
-                            }) 
-                            
-                        ) +
+                            })) +
                         ## prior
                         mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
-                    
+
                     mh <- exp(mh1 - mh2)
                     if (mh > runif(1, 0, 1)) {
                         if (corr_fun == "matern") {

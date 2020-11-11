@@ -23,6 +23,7 @@
 
 //#include <omp.h>
 
+#include <cmath>
 #include <Rcpp.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -130,6 +131,8 @@ double samplepg(double z)
       // truncated Inverse Gaussian
       X = tinvgauss(z, t);
     }
+
+    if (!std::isfinite(X)) continue;
 
     // Step 2: Iteratively calculate Sn(X|z), starting at S1(X|z), until U ? Sn(X|z) for an odd n or U > Sn(X|z) for an even n
     int i = 1;

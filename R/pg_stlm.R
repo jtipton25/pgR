@@ -28,7 +28,7 @@
 #' @export
 
 ## polya-gamma spatial linear regression model
-pgSTLM <- function(
+pg_stlm <- function(
     Y, 
     X,
     locs, 

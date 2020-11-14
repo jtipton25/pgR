@@ -597,8 +597,11 @@ pg_stlm_mra <- function(
                     SS       <- sum(sapply(1:n_time, function(tt) devs[, tt] %*% (Q_alpha[[m]] %*% devs[, tt])))
                     tau2[m, j]  <- rgamma(1, alpha_tau2 + n_dims[m] * n_time / 2, beta_tau2 + SS / 2)
                 }
+                ## moved this inside the loop to update this parameter
+                Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
             }
-            Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
+            ##  this was outside the loop for tau2
+            # Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
         }        
 
         ##

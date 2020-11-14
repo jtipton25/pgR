@@ -124,7 +124,7 @@ if (file.exists(here::here("results", "pg_approx.RData"))) {
 
 
 zlims = range(c(c(dat_out$mean_pg), c(dat_out$mean_pg_approx)))
-zlims_sd = range(c(c(dat_out$mean_pg), c(dat_out$mean_pg_approx)))
+zlims_sd = range(c(c(dat_out$sd_pg), c(dat_out$sd_pg_approx)))
 p1 <- dat_out %>%
     ggplot(aes(x = b, y = c, fill = mean_pg)) +
     geom_raster() +
@@ -228,3 +228,12 @@ dat_out %>%
     xlab("b") +
     ylab("c") +
     ggtitle("relative speed up")
+
+
+
+
+
+
+
+
+

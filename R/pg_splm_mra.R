@@ -126,6 +126,9 @@ pg_splm_mra <- function(
     ##
     
     beta <- t(rmvn(J-1, mu_beta, Sigma_beta_chol, isChol = TRUE))
+
+    ## initialize with mean 0
+    beta[1, ] <- 0
     ## clean up this check
     if (!is.null(inits[['beta']])) {
         if (all(!is.na(inits[['beta']]))) {
@@ -143,6 +146,14 @@ pg_splm_mra <- function(
     beta_sigma2  <- 1
     
     sigma2 <- pmin(rgamma(J-1, alpha_sigma2, beta_sigma2), 5)
+    
+    ## initial values for sigma2
+    ## add in checking later
+    if (!is.null(inits[['sigma2']])) {
+        if (all(!is.na(inits[['sigma2']]))) {
+            sigma2 <- inits[['sigma2']]
+        }
+    }
     
     ##
     ## setup MRA spatial basis
@@ -185,8 +196,8 @@ pg_splm_mra <- function(
     ## priors for tau2
     ##
     
-    alpha_tau2 <- 1
-    beta_tau2  <- 1
+    alpha_tau2 <- 0.01
+    beta_tau2  <- 0.01
     
     ## check if priors for alpha_tau2 are specified
     if (!is.null(priors[['alpha_tau2']])) {
@@ -210,7 +221,7 @@ pg_splm_mra <- function(
     
     if (!is.null(inits[['tau2']])) {
         if (all(!is.na(inits[['tau2']]))) {
-            if (is_positive_numeric_matrix(inits[['tau2']], M, J-1))
+            if (!is_positive_numeric_matrix(inits[['tau2']], M, J-1))
                 stop ("If specified, inits$tau2 must be a M x J-1 matrix of positive values")
             ## if tau2 passes error checks
             tau2 <- inits[['tau2']]
@@ -279,21 +290,86 @@ pg_splm_mra <- function(
         Rstruct <- chol(A)
     }
     
-    W_alpha <- NULL
+    
+    ## initial values for alpha
+    ## add in checking later
+    if (!is.null(inits[['alpha']])) {
+        if (all(!is.na(inits[['alpha']]))) {
+            alpha <- inits[['alpha']]
+        }
+    }
+    
     W_alpha <- W %*% alpha
     
     
     eta <- Xbeta + W_alpha + sapply(1:(J-1), function(j) rnorm(N, 0, sqrt(sigma2[j])))
-        
+
+    ## initial values for eta
+    ## add in checking later
+    if (!is.null(inits[['eta']])) {
+        if (all(!is.na(inits[['eta']]))) {
+            eta <- inits[['eta']]
+        }
+    }
+    
+    
     ##
-    ## sampler config options -- to be added later
+    ## sampler config options 
     ## 
-    #
-    # bool sample_beta = true;
-    # if (params.containsElementNamed("sample_beta")) {
-    #     sample_beta = as<bool>(params["sample_beta"]);
-    # }
-    # 
+    
+    ## do we sample the functional relationship parameters? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_beta <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_beta']])) {
+            sample_beta <- config[['sample_beta']]
+        }
+    }
+    
+    ## do we sample the latent spatial parameters? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_alpha <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_alpha']])) {
+            sample_alpha <- config[['sample_alpha']]
+        }
+    }
+    
+    ## do we sample the climate autocorrelation parameter? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_rho <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_rho']])) {
+            sample_rho <- config[['sample_rho']]
+        }
+    }
+    
+    ## do we sample the climate variance parameter? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_tau2 <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_tau2']])) {
+            sample_tau2 <- config[['sample_tau2']]
+        }
+    }
+    
+    ## do we sample the overdispersion parameter? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_sigma2 <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_sigma2']])) {
+            sample_sigma2 <- config[['sample_sigma2']]
+        }
+    }
+    
+    ## do we sample the latent intensity parameter eta
+    sample_eta <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_eta']])) {
+            sample_eta <- config[['sample_eta']]
+        }
+    }
+    
     
     ##
     ## initialize omega
@@ -378,89 +454,97 @@ pg_splm_mra <- function(
         
         ## parallelize this update -- each group of parameters is 
         ## conditionally independent given omega and kappa(y)
-        if (verbose)
-            message("sample beta")
-        
-        for (j in 1:(J-1)) {
-            A <- tXX / sigma2[j] + Sigma_beta_inv
-            ## guarantee a symmetric matrix
-            A         <- (A + t(A)) / 2
-            b         <- tX %*% (eta[, j] - W_alpha[, j]) / sigma2[j] + Sigma_beta_inv %*% mu_beta
-            beta[, j] <- rmvn_arma(A, b)
+        if (sample_beta) {
+            if (verbose)
+                message("sample beta")
+            
+            for (j in 1:(J-1)) {
+                A <- tXX / sigma2[j] + Sigma_beta_inv
+                ## guarantee a symmetric matrix
+                A         <- (A + t(A)) / 2
+                b         <- tX %*% (eta[, j] - W_alpha[, j]) / sigma2[j] + Sigma_beta_inv %*% mu_beta
+                beta[, j] <- rmvn_arma(A, b)
+            }
+            Xbeta <- X %*% beta
         }
-        Xbeta <- X %*% beta
         
         ##
         ## sample spatial random effects alpha
         ##
         
-        if (verbose)
-            message("sample alpha")
-        
-        ## double check this full conditional
-        for (j in 1:(J-1)) {      
-            A_alpha    <- 1 / sigma2[j] * tWW + Q_alpha_tau2[[j]]
-            b_alpha    <- 1 / sigma2[j] * tW %*% (eta[, j] - Xbeta[, j]) 
-            alpha[, j] <- rmvnorm.canonical.const(1, b_alpha, A_alpha, 
-                                                  Rstruct = Rstruct,
-                                                  A = A_constraint,
-                                                  a = a_constraint)
-        }        
-        W_alpha <- W %*% alpha
+        if(sample_alpha) {
+            if (verbose)
+                message("sample alpha")
+            
+            ## double check this full conditional
+            for (j in 1:(J-1)) {      
+                A_alpha    <- 1 / sigma2[j] * tWW + Q_alpha_tau2[[j]]
+                b_alpha    <- 1 / sigma2[j] * tW %*% (eta[, j] - Xbeta[, j]) 
+                alpha[, j] <- rmvnorm.canonical.const(1, b_alpha, A_alpha, 
+                                                      Rstruct = Rstruct,
+                                                      A = A_constraint,
+                                                      a = a_constraint)
+            }        
+            W_alpha <- W %*% alpha
+        }
         
         ##
         ## sample spatial process variance tau2
         ##
         
-        if (verbose)
-            message("sample tau2")
-        
-        ## double check this full conditional
-        for (j in 1:(J-1)) {
-            for (m in 1:M) {
-                devs <- alpha[dims_idx == m, j]
-                SS       <- as.numeric(devs %*% (Q_alpha[[m]] %*% devs))
-                tau2[m, j]  <- rgamma(1, alpha_tau2 + n_dims[m] / 2, beta_tau2 + SS / 2)
+        if (sample_tau2) {
+            if (verbose)
+                message("sample tau2")
+            
+            ## double check this full conditional
+            for (j in 1:(J-1)) {
+                for (m in 1:M) {
+                    devs       <- alpha[dims_idx == m, j]
+                    SS         <- as.numeric(devs %*% (Q_alpha[[m]] %*% devs))
+                    tau2[m, j] <- rgamma(1, alpha_tau2 + n_dims[m] / 2, beta_tau2 + SS / 2)
+                }
             }
-        }
-        for (j in 1:(J-1)) {
-            Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
+            for (j in 1:(J-1)) {
+                Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
+            }
         }
         
         ##
         ## sample eta
         ##
         
-        if (verbose)
-            message("sample eta")
-        
-        ## double check this full conditional
-        eta <- sapply(1:(J-1), function(j) {
-            sigma2_tilde <- 1 / (1 / sigma2[j] + omega[, j])
-            mu_tilde     <- 1 / sigma2[j] * (Xbeta[, j] + W_alpha[, j]) + kappa[, j]
+        if (sample_eta) {
+            if (verbose)
+                message("sample eta")
             
-            return(
-                rnorm(
-                    N, 
-                    sigma2_tilde * mu_tilde,
-                    sqrt(sigma2_tilde)
+            ## double check this full conditional
+            eta <- sapply(1:(J-1), function(j) {
+                sigma2_tilde <- 1 / (1 / sigma2[j] + omega[, j])
+                mu_tilde     <- 1 / sigma2[j] * (Xbeta[, j] + W_alpha[, j]) + kappa[, j]
+                
+                return(
+                    rnorm(
+                        N, 
+                        sigma2_tilde * mu_tilde,
+                        sqrt(sigma2_tilde)
+                    )
                 )
-            )
-        })
+            })
+        }
         
         ## 
         ## sample sigma2
         ## 
         
-        if (verbose)
-            message("sample sigma2")
-        
-        for (j in 1:(J-1)) {
-            SS <- sum((eta[, j] - Xbeta[, j] - W_alpha[, j])^2)
-            sigma2[j] <- 1 / rgamma(1, alpha_sigma2 + N / 2, beta_sigma2 + SS / 2)
-        }
-        
-        
+        if (sample_sigma2) {
+            if (verbose)
+                message("sample sigma2")
+            
+            for (j in 1:(J-1)) {
+                SS <- sum((eta[, j] - Xbeta[, j] - W_alpha[, j])^2)
+                sigma2[j] <- 1 / rgamma(1, alpha_sigma2 + N / 2, beta_sigma2 + SS / 2)
+            }
+        }      
         
         ##
         ## save variables

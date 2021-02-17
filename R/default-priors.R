@@ -68,7 +68,7 @@ default_priors_pgSPLM <- function(Y, X, corr_fun = "exponential") {
     #         sd_range       = 10
     #     )
     # }
-    return(priors)
+    # return(priors)
 }
 
 

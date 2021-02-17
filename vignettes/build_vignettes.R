@@ -1,6 +1,7 @@
-## Code for building large
+## Code for building long running vignettes
 ##
-##
+## From: https://ropensci.org/blog/2019/12/08/precompute-vignettes/
+## From: https://blog.r-hub.io/2020/06/03/vignettes/#how-to-include-a-compute-intensive--authentication-dependent-vignette
 
 library(filesstrings)
 library(xfun)
@@ -57,4 +58,4 @@ devtools::build_vignettes()
 ## build the documentation site
 ##
 
-pkgdown::build_site()
+# pkgdown::build_site()

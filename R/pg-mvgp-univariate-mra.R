@@ -270,24 +270,29 @@ pg_mvgp_univariate_mra <- function(
     
     MRA      <- mra_wendland_2d(locs, M, n_coarse_grid = n_coarse_grid, use_spam = use_spam)
     # MRA      <- mra_wendland_2d(locs, M, n_max_fine_grid = n_max_fine_grid, use_spam = use_spam)
-    W_list   <- MRA$W
-    tW_list  <- vector(mode = 'list', length = M)
-    tWW_list <- vector(mode = 'list', length = M)
-    for (m in 1:M) {
-        if (use_spam) {
-            tW_list[[m]] <- t(W_list[[m]])
-        } else {
-            tW_list[[m]] <- Matrix::t(W_list[[m]])
-        }
-        tWW_list[[m]] <- tW_list[[m]] %*% W_list[[m]]
-    }
-    n_dims <- rep(NA, length(W_list))
-    dims_idx <- c()
-    for (i in 1:M) {
-        n_dims[i] <- ncol(W_list[[i]])
-        dims_idx <- c(dims_idx, rep(i, n_dims[i]))
-    }
-    W <- do.call(cbind, W_list)
+    # W_list   <- MRA$W
+    # tW_list  <- vector(mode = 'list', length = M)
+    # tWW_list <- vector(mode = 'list', length = M)
+    # for (m in 1:M) {
+    #     if (use_spam) {
+    #         tW_list[[m]] <- t(W_list[[m]])
+    #     } else {
+    #         tW_list[[m]] <- Matrix::t(W_list[[m]])
+    #     }
+    #     tWW_list[[m]] <- tW_list[[m]] %*% W_list[[m]]
+    # }
+    # n_dims <- rep(NA, length(W_list))
+    # dims_idx <- c()
+    # for (i in 1:M) {
+    #     n_dims[i] <- ncol(W_list[[i]])
+    #     dims_idx <- c(dims_idx, rep(i, n_dims[i]))
+    # }
+    # W <- do.call(cbind, W_list)
+    
+    W        <- MRA$W
+    n_dims   <- MRA$n_dims
+    dims_idx <- MRA$dims_idx
+    
     
     # if (RSR) {
     #     W <- IMPX %*% W

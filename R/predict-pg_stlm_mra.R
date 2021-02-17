@@ -57,9 +57,7 @@ predict_pg_stlm_mra <- function(
     }    
     
     ## generate the MRA spatial basis
-    W_pred      <- mra_wendland_2d_pred(locs, locs_pred, MRA = MRA)$W
-    W_pred      <- do.call(cbind, W_pred)
-    
+    W_pred      <- mra_wendland_2d_pred(locs_pred, MRA = MRA)$W
     
     eta_pred <- array(0, dim = c(n_samples, n_pred, J-1, n_time))
     

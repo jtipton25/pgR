@@ -5,12 +5,11 @@
 
 <!-- badges: start -->
 
-[![Travis build
-status](https://travis-ci.com/jtipton25/pgR.svg?branch=master)](https://travis-ci.com/jtipton25/pgR)
 [![Codecov test
 coverage](https://codecov.io/gh/jtipton25/pgR/branch/master/graph/badge.svg)](https://codecov.io/gh/jtipton25/pgR?branch=master)
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
+[![R-CMD-check](https://github.com/jtipton25/pgR/workflows/R-CMD-check/badge.svg)](https://github.com/jtipton25/pgR/actions)
 <!-- badges: end -->
 
 ## About the package

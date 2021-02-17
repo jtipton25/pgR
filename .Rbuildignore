@@ -7,7 +7,6 @@
 ^results$
 ^doc$
 ^Meta$
-^\.travis\.yml$
 ^README\.Rmd$
 ^\.github$
 ^codecov\.yml$

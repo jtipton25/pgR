@@ -20,7 +20,6 @@ Depends: R (>= 3.5.0)
 Imports: 
     BayesMRA,
     fields,
-    geoR,
     hms,
     igraph,
     LaplacesDemon,

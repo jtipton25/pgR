@@ -429,8 +429,7 @@ test_that("correlation_function", {
                     0.997672153868553, 1, 0.99890525192009, 0.99866263075097, 0.997879018284853, 
                     0.998010412436649, 0.997362470198384, 0.998462232732003, 0.999292602758792, 
                     0.998924822873654, 0.998326488035227, 0.99890525192009, 1), 
-                  .Dim = c(10L, 10L), 
-                  .Dimnames = list(NULL, NULL))
+                  .Dim = c(10L, 10L))
     )
     
     expect_error(correlation_function(D, 1:5, "exponential"), "theta must be a numeric value for the exponential correlation function.")

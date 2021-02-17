@@ -25,7 +25,8 @@ correlation_function <- function(D, theta, corr_fun = "exponential") {
         if (!is_numeric_vector(theta, 2))
             stop('theta must be a numeric vector of length 2 for the matern correlation function.')
         ## calculate the Matern correlation using parameters theta on the log scale 
-        R <- geoR::matern(D, exp(theta[1]), exp(theta[2]))
+        # R <- geoR::matern(D, exp(theta[1]), exp(theta[2]))
+        R <- fields::Matern(D, range = exp(theta[1]), smoothness = exp(theta[2]))
     } else if (corr_fun == "exponential") {
         if (!is_numeric(theta, 1))
             stop('theta must be a numeric value for the exponential correlation function.')

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>this function updates a block Gaussian random walk proposal Metropolis-Hastings tuning parameters — update_tuning_mv • pgR</title>
+<title>Articles • pgR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,7 @@
 
 
 
-<meta property="og:title" content="this function updates a block Gaussian random walk proposal Metropolis-Hastings tuning parameters — update_tuning_mv" />
-<meta property="og:description" content="this function updates a block Gaussian random walk proposal Metropolis-Hastings tuning parameters" />
+<meta property="og:title" content="Articles" />
 
 
 
@@ -59,7 +58,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-reference-topic">
+    <div class="container template-article-index">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -123,52 +122,18 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>this function updates a block Gaussian random walk proposal Metropolis-Hastings tuning parameters</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/update-tuning.R'><code>R/update-tuning.R</code></a></small>
-    <div class="hidden name"><code>update_tuning_mv.Rd</code></div>
+      <h1>Articles</h1>
     </div>
 
-    <div class="ref-description">
-    <p>this function updates a block Gaussian random walk proposal Metropolis-Hastings tuning parameters</p>
+    <div class="section ">
+      <h3>All vignettes</h3>
+      <p class="section-desc"></p>
+
+      <dl>
+        <dt><a href="pg_lm.html">Multinomial Regression Using `pg_lm()`</a></dt>
+        <dd></dt>
+      </dl>
     </div>
-
-    <pre class="usage"><span class='fu'>update_tuning_mv</span><span class='op'>(</span><span class='va'>k</span>, <span class='va'>accept</span>, <span class='va'>lambda</span>, <span class='va'>batch_samples</span>, <span class='va'>Sigma_tune</span>, <span class='va'>Sigma_tune_chol</span><span class='op'>)</span></pre>
-
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
-    <table class="ref-arguments">
-    <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>k</th>
-      <td><p>is a positive integer that is the current MCMC iteration.</p></td>
-    </tr>
-    <tr>
-      <th>accept</th>
-      <td><p>is a positive number between 0 and 1 that represents the batch accpetance rate. The target of this adaptive tuning algorithm is an acceptance rate of between 0.44 (a univariate update) and 0.234 (5+ dimensional upate).</p></td>
-    </tr>
-    <tr>
-      <th>lambda</th>
-      <td><p>is a positive scalar that scales the covariance matrix Sigma_tune and diminishes towards 0 as k increases.</p></td>
-    </tr>
-    <tr>
-      <th>batch_samples</th>
-      <td><p>is a \(50 \times d\) dimensional matrix that consists of the 50 batch samples of the d-dimensional parameter being sampled.</p></td>
-    </tr>
-    <tr>
-      <th>Sigma_tune</th>
-      <td><p>is a \(d \times d\) positive definite covariance matrix of the batch samples used to generate the multivariate Gaussian random walk proposal.</p></td>
-    </tr>
-    <tr>
-      <th>Sigma_tune_chol</th>
-      <td><p>is the \(d \times d\)  Cholesky decomposition of Sigma_tune.</p></td>
-    </tr>
-    </table>
-
-
-  </div>
-  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
-    <nav id="toc" data-toggle="toc" class="sticky-top">
-      <h2 data-toc-skip>Contents</h2>
-    </nav>
   </div>
 </div>
 

@@ -42,6 +42,9 @@ pg_lm <- function(
     
     check_input_pg_lm(Y, X)
     check_params(params)
+    
+    if (!is_positive_integer(n_cores, 1))
+        stop("n_cores must be a positive integer")
     # check_inits_pgLM(params, inits)
     # check_config(params, config)
     

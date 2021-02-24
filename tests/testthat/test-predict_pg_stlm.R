@@ -1,23 +1,33 @@
+test_that("predict_pgSTLM", {
+    set.seed(111)
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- cbind(1, as.matrix(1:10))
+    locs <- matrix(runif(20), 10, 2)
+    params <- default_params()
+    params$n_adapt <- 5
+    params$n_mcmc <- 5
+    priors <- default_priors_pg_stlm(Y, X, corr_fun = "exponential")
+    X_pred <- cbind(1, rnorm(5))
+    locs_pred <- matrix(runif(10), 5, 2)
+    
+    # check the different MCMC settings
+    suppressMessages(out <- pg_stlm(Y, X, locs, params, priors, corr_fun = "exponential", shared_covariance_params = TRUE))
+    expect_error(predict_pgSTLM(out, X, X_pred, locs, locs_pred, corr_fun = "exponential", shared_covariance_params = TRUE, progress = FALSE), "predict_pgSTLM\\(\\) has been deprecated. Please use predict_pg_stlm\\(\\) instead.")
+})
+# predict_pg_stlm --------------------------------------------------------------
 
-## test pg_splm_mra
-
-## test pg_stlm_mra
-
-
-# predict_pg_splm_mra ----------------------------------------------------------
-
-test_that("predict_pg_splm_mra", {
-    # set.seed(2021)
+test_that("predict_pg_stlm", {
+    # set.seed(111)
     # Y <- matrix(1:40, 10, 4)
     # X <- cbind(1, as.matrix(1:10))
     # locs <- matrix(runif(20), 10, 2)
     # params <- default_params()
-    # priors <- default_priors_pg_splm_mra(Y, X)
+    # priors <- default_priors_pg_splm(Y, X, corr_fun = "exponential")
     # X_pred <- cbind(1, rnorm(5))
     # locs_pred <- matrix(runif(10), 5, 2)
     # 
     # # check the different MCMC settings
-    # suppressMessages(out <- pg_splm_mra(Y, X, locs, params, priors, M = 2, n_coarse_grid = 4))
+    # suppressMessages(out <- pg_splm(Y, X, locs, params, priors, corr_fun = "exponential", shared_covariance_params = TRUE))
     # expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "exponential", shared_covariance_params = TRUE, progress = FALSE), style = "serialize")
     # 
     # suppressMessages(out <- pg_splm(Y, X, locs, params, priors, corr_fun = "exponential", shared_covariance_params = FALSE))
@@ -66,16 +76,3 @@ test_that("predict_pg_splm_mra", {
     # expect_error(predict_pg_splm(out, X), "The MCMC object out must be of class pg_splm which is the output of the pg_splm\\(\\) function.")
     
 })
-
-
-
-# predict_pg_stlm --------------------------------------------------------------
-
-
-# predict_pgSTLM -- deprecated -------------------------------------------------
-
-
-
-
-# predict_pg_spvlm -------------------------------------------------------------
-

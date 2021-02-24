@@ -1,5 +1,4 @@
-context("testing functions")
-
+# default_params ---------------------------------------------------------------
 
 test_that("checking default settings of params -- keep updated as model list grows", {
     expect_identical(
@@ -14,38 +13,112 @@ test_that("checking default settings of params -- keep updated as model list gro
 })
 
 
-test_that("checking default settings of priors", {
+# default_priors_pg_lm ---------------------------------------------------------
+
+test_that("default_priors_pg_lm", {
     
-    Y <- stats::rmultinom(100, 50, rep(1/5, 5))
-    X <- as.matrix(stats::rnorm(100))
+    Y <- t(stats::rmultinom(100, 50, rep(1/5, 5)))
+    X <- cbind(1, stats::rnorm(100))
     
     expect_error(default_priors_pgLM(Y, X), "default_priors_pgLM\\(\\) has been deprecated. Please use default_priors_pg_lm\\(\\) instead.")
 
     expect_identical(    
         default_priors_pg_lm(Y, X),
         list(
-            mu_beta    = 0,
-            Sigma_beta = as.matrix(1)
+            mu_beta    = c(0, 0),
+            Sigma_beta = 25 * diag(2)
         )
     )
+    expect_error(default_priors_pg_lm(rbind(Y, 1), X), "Y and X must have the same number of rows.")
+    expect_error(default_priors_pg_lm(Y, rbind(X, 1)), "Y and X must have the same number of rows.")
+    expect_error(default_priors_pg_lm(rbind(Y, 0), X), "There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+    Y[1] <- NA
+    expect_error(default_priors_pg_lm(Y, X), "Y must be an integer matrix.")
+    Y[1] <- 1
+    expect_error(default_priors_pg_lm(Y[, 1], X), "Y must be an integer matrix.")
+    X[1] <- NA
+    expect_error(default_priors_pg_lm(Y, X), "X must be a numeric matrix.")
+})
+
+# default_priors_pg_splm -------------------------------------------------------
+
+test_that("default_priors_pg_splm", {
+        
+    Y <- matrix(1:40, 10, 4)
+    X <- matrix(1:20, 10, 2)
     
-    Y <- stats::rmultinom(100, 50, rep(1/5, 5))
-    X <- matrix(stats::rnorm(100 * 50), 100, 50)
+    Y <- rnorm(10)
+    expect_error(default_priors_pg_splm(Y, X), "Y must be an integer matrix.")
+    Y <- matrix(1:40, 10, 4)
+    Y[1, 1] <- NA
+    expect_error(default_priors_pg_splm(Y, X), "Y must be an integer matrix.")
+    Y <- matrix(1:20, 5, 4)
+    expect_error(default_priors_pg_splm(Y, X), "Y and X must have the same number of rows.")
+    Y <- matrix(1:20, 5, 4)
+    X <- matrix(1:30, 15, 2)
+    expect_error(default_priors_pg_splm(Y, X), "Y and X must have the same number of rows.")
+    X <- matrix("aaa", 10, 2)
+    expect_error(default_priors_pg_splm(Y, X), "X must be a numeric matrix.")
+    X <- matrix(1:20, 10, 2)
+    Y[1, ] <- 0
+    expect_error(default_priors_pg_splm(Y, X), "There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+    Y <- matrix(1:40, 10, 4)
     
     expect_identical(    
-        default_priors_pg_lm(Y, X),
-        list(
-            mu_beta    = rep(0, 50),
-            Sigma_beta = diag(50)
-        )
-    )
+        default_priors_pg_splm(Y, X, corr_fun = "exponential"),
+        list(mu_beta = c(0, 0),
+             Sigma_beta = structure(c(25, 0, 0, 25), .Dim = c(2L, 2L)),
+             alpha_tau = 0.1, beta_tau = 0.1, mean_range = 0, sd_range = 10))
+    expect_identical(    
+        default_priors_pg_splm(Y, X, corr_fun = "matern"),
+        list(mu_beta = c(0, 0),
+            Sigma_beta = structure(c(25, 0, 0, 25), .Dim = c(2L, 2L)),
+            alpha_tau = 0.1, beta_tau = 0.1, mean_nu = -1, sd_nu = 1,
+            mean_range = 0, sd_range = 10))
     
     expect_error(default_priors_pgSPLM(Y, X, corr_fun = "exponential"), "default_priors_pgSPLM\\(\\) has been deprecated. Please use default_priors_pg_splm\\(\\) instead.")
+    expect_error(
+        default_priors_pg_splm(Y, X, corr_fun = "adfs"),
+        'corr_fun must be either "matern" or "exponential"'
+    )
+})
+
+# default_priors_pg_stlm -------------------------------------------------------
+
+test_that("default_priors_pg_stlm", {
+    
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(1:20, 10, 2)
+    locs <- matrix(runif(20), 10, 2)
+    expect_silent(default_priors_pg_stlm(Y, X))
+    Y <- array(1:200, dim = c(5, 4, 5, 2))
+    expect_error(default_priors_pg_stlm(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    
+    Y <- array(1:200, dim = c(10, 4, 5))
+    # Y[1, 1, 1] <- NA
+    # expect_error(default_priors_pg_stlm(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y[1, 1, 1] <- 0.5
+    expect_error(default_priors_pg_stlm(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y[1, 1, 2] <- NA
+    expect_error(default_priors_pg_stlm(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y <- matrix(1:20, 5, 4)
+    expect_error(default_priors_pg_stlm(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(1:30, 15, 2)
+    expect_error(default_priors_pg_stlm(Y, X), "Y and X must have the same number of rows.")
+    X <- matrix("aaa", 10, 2)
+    expect_error(default_priors_pg_stlm(Y, X), "X must be a numeric matrix.")
+    X <- matrix(1:20, 10, 2)
+    Y[1, , 1] <- 0
+    expect_error(default_priors_pg_stlm(Y, X), "There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+    Y <- array(1:200, dim = c(10, 4, 5))
+    
+    expect_error(default_priors_pgSTLM(Y, X, corr_fun = "exponential"), "default_priors_pgSTLM\\(\\) has been deprecated. Please use default_priors_pg_stlm\\(\\) instead.")
     expect_equal(
-        default_priors_pg_splm(Y, X, corr_fun = "exponential"),
+        default_priors_pg_stlm(Y, X, corr_fun = "exponential"),
         list(        
-            mu_beta    = rep(0, 50),
-            Sigma_beta = diag(50),
+            mu_beta    = rep(0, ncol(X)),
+            Sigma_beta = 25 * diag(ncol(X)),
             alpha_tau  = 0.1,
             beta_tau   = 0.1,
             mean_range = 0,
@@ -53,10 +126,10 @@ test_that("checking default settings of priors", {
         )
     )
     expect_equal(
-        default_priors_pg_splm(Y, X, corr_fun = "matern"),
+        default_priors_pg_stlm(Y, X, corr_fun = "matern"),
         list(        
-            mu_beta    = rep(0, 50),
-            Sigma_beta = diag(50),
+            mu_beta    = rep(0, ncol(X)),
+            Sigma_beta = 25 * diag(ncol(X)),
             alpha_tau  = 0.1,
             beta_tau   = 0.1,
             mean_nu    = -1,
@@ -65,18 +138,19 @@ test_that("checking default settings of priors", {
             sd_range   = 10
         )
     )
- 
+    
     expect_error(
-        default_priors_pg_splm(Y, X, corr_fun = "adfs"),
+        default_priors_pg_stlm(Y, X, corr_fun = "adfs"),
         'corr_fun must be either "matern" or "exponential"'
     )
-    
 })
 
 
+# default_inits ----------------------------------------------------------------
+
 test_that("checking default settings of inits", {
 
-    Y      <- stats::rmultinom(100, 50, rep(1/5, 5))
+    Y      <- t(stats::rmultinom(100, 50, rep(1/5, 5)))
     X      <- matrix(stats::rnorm(100 * 50), 100, 50)
     priors <- default_priors_pg_lm(Y, X)
     
@@ -93,7 +167,7 @@ test_that("checking default settings of inits", {
         }
     )
 
-    Y      <- stats::rmultinom(100, 50, rep(1/5, 5))
+    Y      <- t(stats::rmultinom(100, 50, rep(1/5, 5)))
     X      <- matrix(stats::rnorm(100 * 50), 100, 50)
     priors <- default_priors_pg_splm(Y, X, corr_fun = "exponential")
     
@@ -181,6 +255,7 @@ test_that("checking default settings of inits", {
 })
 
 
+# make_alpha -------------------------------------------------------------------
 
 test_that("make_alpha function", {
     Xbs <- matrix(1:8, 2, 4)
@@ -200,57 +275,84 @@ test_that("make_alpha function", {
 # expect_error(make_alpha(Y, X, params))
 
 
+# dmvn_arma_mc -----------------------------------------------------------------
 
 
-if (require(LaplacesDemon)) {
-    test_that("dvmn_arma_mc function", {
-        ## add in error checking and type checking
-        N     <- 100
-        d     <- 6
-        mu    <- stats::rnorm(6)
-        Sigma <- LaplacesDemon::rwishart(d+2, diag(d))
-        X     <- mvnfast::rmvn(N, mu, Sigma)
-        
-        expect_equal(
-            mvnfast::dmvn(X, mu, Sigma, log = TRUE),
-            as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE))
-        )
-        expect_equal(
-            mvnfast::dmvn(X, mu, Sigma, log = TRUE),
-            as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE, cores = 4))
-        )
-        expect_equal(
-            mvnfast::dmvn(X, mu, Sigma, log = FALSE),
-            as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = FALSE, cores = 4))
-        )
-        
-        # expect_error(setup_splines(params), "the model type must be bspline to run setup_splines")
-    })
-}
+test_that("dvmn_arma_mc function", {
+    ## add in error checking and type checking
+    N     <- 100
+    d     <- 6
+    mu    <- stats::rnorm(6)
+    Sigma <- rWishart(1, d+2, diag(d))[, , 1]
+    X     <- mvnfast::rmvn(N, mu, Sigma)
+    
+    expect_equal(
+        mvnfast::dmvn(X, mu, Sigma, log = TRUE),
+        as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE))
+    )
+    expect_equal(
+        mvnfast::dmvn(X, mu, Sigma, log = TRUE),
+        as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = TRUE, cores = 4))
+    )
+    expect_equal(
+        mvnfast::dmvn(X, mu, Sigma, log = FALSE),
+        as.vector(dmvnrm_arma_mc(X, mu, Sigma, logd = FALSE, cores = 4))
+    )
+    
+    # expect_error(setup_splines(params), "the model type must be bspline to run setup_splines")
+})
 
 
-if (require(LaplacesDemon)) {
-    test_that("rmvn_arma function", {
-        ## check that the rmvn_arma function generates draws from the
-        ## same distribution -- verify Monte Carlo mean and covariance
-        ## are the same up to Monte Carlo error
-        set.seed(11)
-        N     <- 10000
-        d     <- 6
-        mu    <- stats::rnorm(6)
-        Sigma <- LaplacesDemon::rwishart(d + 2, diag(d))
-        
-        X <- mvnfast::rmvn(N, solve(Sigma) %*% mu, solve(Sigma))
-        Y <- t(sapply(1:N, function(i) rmvn_arma(Sigma, mu)))
-        expect_equal(
-            colMeans(X), colMeans(Y), tol = 0.05
-        )
-        
-        expect_equal(
-            var(X), var(Y), tol = 0.05
-        )
-    })
-}
+# rmnv_arma --------------------------------------------------------------------
+
+test_that("rmvn_arma function", {
+    ## check that the rmvn_arma function generates draws from the
+    ## same distribution -- verify Monte Carlo mean and covariance
+    ## are the same up to Monte Carlo error
+    set.seed(11)
+    N     <- 10000
+    d     <- 6
+    mu    <- stats::rnorm(6)
+    Sigma <- rWishart(1, d + 2, diag(d))[, , 1]
+    
+    X <- mvnfast::rmvn(N, solve(Sigma) %*% mu, solve(Sigma))
+    Y <- t(sapply(1:N, function(i) rmvn_arma(Sigma, mu)))
+    expect_equal(
+        colMeans(X), colMeans(Y), tolerance = 0.05
+    )
+    
+    expect_equal(
+        var(X), var(Y), tolerance = 0.05
+    )
+    
+    expect_equal(
+        rmvn_arma(matrix(1, 2, 2), c(0, 0)), 
+        structure(c(823.282799034561, -823.295000227375), .Dim = 2:1))
+})
+# rmnv_arma_scalar -------------------------------------------------------------
+
+test_that("rmvn_arma_scalar function", {
+    ## check that the rmvn_arma function generates draws from the
+    ## same distribution -- verify Monte Carlo mean and covariance
+    ## are the same up to Monte Carlo error
+    set.seed(11)
+    N <- 1000
+    a <- 3
+    b <- 5
+    X <- rnorm(N, b / a, sqrt(1 / a))
+    Y <- replicate(N, rmvn_arma_scalar(a, b))
+    expect_equal(
+        mean(X), mean(Y), tolerance = 0.05
+    )
+    
+    expect_equal(
+        var(X), var(Y), tolerance =  0.05
+    )
+    
+})
+
+
+# log_sum_exp ------------------------------------------------------------------
 
 test_that("log_sum_exp", {
     x <- 1:5
@@ -263,7 +365,9 @@ test_that("log_sum_exp", {
     expect_error(logsumexp(x), "x must be a numeric vector")
 })
 
-test_that("log_sum_exp", {
+# softmax ----------------------------------------------------------------------
+
+test_that("softmax", {
     x <- 1:5
     expect_equal(softmax(x), c(0.0116562309560396, 0.0316849207961243, 0.0861285444362687, 
                                0.234121657252737, 0.636408646558831))
@@ -276,6 +380,7 @@ test_that("log_sum_exp", {
     expect_error(softmax(x), "x must be a numeric vector")
 })
 
+# counts_to_proportions --------------------------------------------------------
 
 test_that("counts_to_propotions", {
     Y <- matrix(1:20, 5, 4)
@@ -304,6 +409,8 @@ test_that("counts_to_propotions", {
 })
 
 
+# expit ------------------------------------------------------------------------
+
 test_that("expit", {
     x <- 1:5
     expect_equal(pgR::expit(x), c(0.731058578630005, 0.880797077977882, 0.952574126822433, 0.982013790037908, 0.993307149075715))
@@ -312,6 +419,8 @@ test_that("expit", {
     x <- rep("aaa", 5)
     expect_error(pgR::expit(x), "x must be a numeric value")
 })
+
+# logit ------------------------------------------------------------------------
 
 test_that("logit", {
     set.seed(111)
@@ -327,6 +436,7 @@ test_that("logit", {
     expect_error(pgR::logit(x), "p must be a numeric value between 0 and 1")
 })
 
+# eta_to_pi --------------------------------------------------------------------
 
 test_that("eta_to_pi", {
     eta <- 1:5
@@ -371,6 +481,8 @@ test_that("eta_to_pi", {
     expect_error(eta_to_pi(eta), "eta must be either a numeric vector or a numeric matrix.")
     
 })
+
+# correlation_function ---------------------------------------------------------
 
 test_that("correlation_function", {
     set.seed(111)
@@ -449,6 +561,8 @@ test_that("correlation_function", {
 })
 
 
+# pgdraw -----------------------------------------------------------------------
+
 test_that("pgdraw", {
     b <- 1:5
     set.seed(111)
@@ -460,7 +574,10 @@ test_that("pgdraw", {
     expect_error(pgdraw(5, 4, cores = 3.5), "cores must be a positive integer")
 })
 
+# pgdraw.moments ---------------------------------------------------------------
+
 test_that("pgdraw.moments", {
+    expect_equal(pgdraw.moments(2, 0), list(mu = 0.25, var = 0.0416666666666667))
     expect_equal(pgdraw.moments(2, 3), list(mu = 0.301716084548289, var = 0.0234847516762738))
     expect_error(pgdraw.moments(1:4, 4), "b must be a positive integer value")
     expect_error(pgdraw.moments(-5, 4), "b must be a positive integer value")
@@ -472,4 +589,5 @@ test_that("pgdraw.moments", {
     expect_error(pgdraw.moments(5, NA), "c must be a numeric value")
     expect_error(pgdraw.moments(5, "aaa"), "c must be a numeric value")    
 })
+
 

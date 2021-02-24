@@ -24,13 +24,34 @@ predict_pg_splm <- function(
     progress = TRUE, 
     verbose = FALSE
 ) {
-    stop("predict_pgSPLM() is deprecated. Please use predict_pg_splm() instead.")
     
     ##
     ## check the inputs
     ##
-    if (class(out) != "pg_splm")
+    if (!inherits(out, "pg_splm"))
         stop("The MCMC object out must be of class pg_splm which is the output of the pg_splm() function.")
+    if (!is_numeric_matrix(X, nrow(X), ncol(X)))
+        stop("X must be a numeric matrix")
+    if (ncol(X) != dim(out$beta)[2])
+        stop("The number of colums of X must be equal to the number of columns of beta in the object out")
+    if (!is_numeric_matrix(X_pred, nrow(X_pred), ncol(X_pred)))
+        stop("X_pred must be a numeric matrix")
+    if (ncol(X_pred) != dim(out$beta)[2])
+        stop("The number of colums of X_pred must be equal to the number of columns of beta in the object out")
+    if (!is_numeric_matrix(locs, nrow(locs), 2))
+        stop("locs must be a numeric matrix with 2 columns")
+    if (!is_numeric_matrix(locs_pred, nrow(locs_pred), 2))
+        stop("locs_pred must be a numeric matrix with 2 columns")
+    if (nrow(X_pred) != nrow(locs_pred))
+        stop("X_pred and locs_pred must be numeric matrices with the same number of rows")
+    
+    check_corr_fun(corr_fun)
+    
+    
+    if (nrow(locs_pred) != nrow(X_pred))
+        stop("The number of rows of X_pred must equal the number of rows of locs_pred")
+    if (nrow(locs) != nrow(X))
+        stop("The number of rows of X must equal the number of rows of locs")
     
     check_corr_fun(corr_fun)
     

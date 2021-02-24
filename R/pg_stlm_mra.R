@@ -60,6 +60,8 @@ pg_stlm_mra <- function(
     
     if (!use_spam)
         stop("The only sparse matrix pacakage available is spam")
+    if (!is_positive_integer(n_cores, 1))
+        stop("n_cores must be a positive integer")
 
     # check_inits_pgLM(params, inits)
     # check_config(params, config)

@@ -1,4 +1,3 @@
-context("testing predicates")
 
 test_that("is_numeric function", {
     expect_false(is_numeric(c(2, 2), 1))

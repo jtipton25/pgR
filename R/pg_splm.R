@@ -55,6 +55,10 @@ pg_splm <- function(
     check_input_pg_splm(Y, X, locs)
     check_params(params)
     check_corr_fun(corr_fun)
+    
+    if (!is_positive_integer(n_cores, 1))
+        stop("n_cores must be a positive integer")
+    
     # check_inits_pgLM(params, inits)
     # check_config(params, config)
     
@@ -62,6 +66,8 @@ pg_splm <- function(
     
     ## add in a counter for the number of regularized Cholesky
     num_chol_failures <- 0
+    ## add in a counter for the number of failed theta proposals
+    num_invalid_thetas <- 0
     
     
     N  <- nrow(Y)
@@ -226,7 +232,7 @@ pg_splm <- function(
     Sigma_chol <- NULL
     if (shared_covariance_params) {
         Sigma_chol <- tryCatch(
-            chol(Sigma[j, , ]),
+            chol(Sigma),
             error = function(e) {
                 if (verbose)
                     message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
@@ -373,7 +379,7 @@ pg_splm <- function(
             Sigma_theta_tune_chol <- array(0, dim = c(2, 2, J-1))
             for (j in 1:(J-1)) {
                 Sigma_theta_tune_chol[, , j] <- tryCatch(
-                    chol(Sigma_theta_tune[,,j]),
+                    chol(Sigma_theta_tune[, , j]),
                     error = function(e) {
                         if (verbose)
                             message("The Cholesky decomposition of the Metroplois-Hastings adaptive tuning matrix for Matern parameters theta was ill-conditioned and mildy regularized.")
@@ -595,8 +601,15 @@ pg_splm <- function(
                 if (any(is.na(Sigma_star)) | any(!is.finite(Sigma_star))) {
                     ## add in a check to catch rare case where proposal for theta_star gives an 
                     ## improper covariance matrix
-                    theta_star <- theta[j, ]
-                    Sigma_star <- Sigma[, , j]
+                    if (k > params$n_adapt) {
+                        num_invalid_thetas <- num_invalid_thetas + 1
+                    }
+                    if (corr_fun == "exponential") {
+                        theta_star <- theta[j]
+                    } else if (corr_fun == "matern") {
+                        theta_star <- theta[j, ]
+                    }
+                    Sigma_star <- Sigma[j, , ]
                 }
                 
                 ## add in faster parallel cholesky as needed
@@ -817,6 +830,9 @@ pg_splm <- function(
     
     if (num_chol_failures > 0)
         warning("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized ", num_chol_failures, " times. If this warning is rare, this should be safe to ignore.")
+
+    if (num_invalid_thetas > 0)
+        warning("There were ", num_invalid_thetas, " times post adaptation where numerically impossible values for theta were proposed. If this warning is rare, this should be safe to ignore.")
     
     ## eventually create a model class and include this as a variable in the class
     message("Acceptance rate for theta is ", mean(theta_accept))

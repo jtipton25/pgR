@@ -31,139 +31,139 @@ predict_pgSPLM <- function(
     ##
     ## check the inputs
     ##
-    if (class(out) != "pgSPLM")
-        stop("THe MCMC object out must be of class pgSPLM which is the output of the pgSPLM() function.")
+    # if (class(out) != "pgSPLM")
+    #     stop("THe MCMC object out must be of class pgSPLM which is the output of the pgSPLM() function.")
     
-    check_corr_fun(corr_fun)
-    
-    ## 
-    ## extract the parameters 
-    ##
-    
-    beta      <- out$beta
-    theta     <- out$theta
-    tau2      <- out$tau2
-    eta       <- out$eta
-    n_samples <- nrow(beta)  
-    N         <- nrow(X)
-    n_pred    <- nrow(X_pred)
-    J         <- dim(beta)[3] + 1
-    
-    if (n_pred > 10000) {
-        stop("Number of prediction points must be less than 10000")
-    }
-    
-    ## add in a counter for the number of regularized Cholesky
-    num_chol_failures <- 0
-    
-    D_obs      <- fields::rdist(locs)
-    D_pred     <- fields::rdist(locs_pred)
-    D_pred_obs <- fields::rdist(locs_pred, locs)
-    
-    eta_pred <- array(0, dim = c(n_samples, n_pred, J-1))
-    
-    if (progress) {
-        message("Beginning Kriging estimates")
-        progressBar <- utils::txtProgressBar(style = 3)
-    }
-    percentage_points <- round((1:100 / 100) * n_samples)   
-    
-    ## parallelize this later
-    for (k in 1:n_samples) {
-        if (shared_covariance_params) {
-            if (corr_fun == "matern") {
-                Sigma           <- tau2[k] * correlation_function(D_obs, theta[k, ], corr_fun = corr_fun)
-                Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k, ], corr_fun = corr_fun)
-                Sigma_unobs_obs <- tau2[k] * correlation_function(D_pred_obs, theta[k, ], corr_fun = corr_fun)
-            } else if (corr_fun == "exponential") {
-                Sigma           <- tau2[k] * correlation_function(D_obs, theta[k], corr_fun = corr_fun)
-                Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k], corr_fun = corr_fun)
-                Sigma_unobs_obs <- tau2[k] * correlation_function(D_pred_obs, theta[k], corr_fun = corr_fun)
-            }           
-            Sigma_chol <- tryCatch(
-                chol(Sigma),
-                error = function(e) {
-                    if (verbose)
-                        message("The Cholesky decomposition of the observed covariance Sigma was ill-conditioned and mildy regularized.")
-                    num_chol_failures <- num_chol_failures + 1
-                    chol(Sigma + 1e-8 * diag(N))                    
-                }
-            )
-            Sigma_inv       <- chol2inv(Sigma_chol)        
-            for (j in 1:(J - 1)) {
-                pred_mean     <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[k, , j] - X %*% beta[k, , j])) + X_pred %*% beta[k, , j]
-                pred_var      <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
-                pred_var_chol <- tryCatch(
-                    chol(pred_var),
-                    error = function(e) {
-                        if (verbose)
-                            message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-                        num_chol_failures <- num_chol_failures + 1
-                        chol(pred_var + 1e-8 * diag(n_pred))                    
-                    }
-                )
-                eta_pred[k, , j] <- mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE)
-            } 
-        } else {
-            for (j in 1:(J - 1)) {
-                if (corr_fun == "matern") {
-                    Sigma           <- tau2[k, j] * correlation_function(D_obs, theta[k, j, ], corr_fun = corr_fun)
-                    Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j, ], corr_fun = corr_fun)
-                    Sigma_unobs_obs <- tau2[k, j] * correlation_function(D_pred_obs, theta[k, j, ], corr_fun = corr_fun)
-                } else if (corr_fun == "exponential") {
-                    Sigma           <- tau2[k, j] * correlation_function(D_obs, theta[k, j], corr_fun = corr_fun)
-                    Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j], corr_fun = corr_fun)
-                    Sigma_unobs_obs <- tau2[k, j] * correlation_function(D_pred_obs, theta[k, j], corr_fun = corr_fun)
-                }
-                
-                Sigma_chol <- tryCatch(
-                    chol(Sigma),
-                    error = function(e) {
-                        if (verbose)
-                            message("The Cholesky decomposition of the observed covariance Sigma was ill-conditioned and mildy regularized.")
-                        num_chol_failures <- num_chol_failures + 1
-                        chol(Sigma + 1e-8 * diag(N))                    
-                    }
-                )
-                Sigma_inv       <- chol2inv(Sigma_chol)        
-                
-                pred_mean <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[k, , j] - X %*% beta[k, , j])) + X_pred %*% beta[k, , j]
-                pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
-                pred_var_chol <- tryCatch(
-                    chol(pred_var),
-                    error = function(e) {
-                        if (verbose)
-                            message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-                        num_chol_failures <- num_chol_failures + 1
-                        chol(pred_var + 1e-8 * diag(n_pred))                    
-                    }
-                )
-                eta_pred[k, , j] <- mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE)
-            } 
-        }
-        if (k %in% percentage_points && progress) {
-            utils::setTxtProgressBar(progressBar, k / n_samples)
-        }
-    }
-    
-    if (progress) {
-        close(progressBar)
-    }
-    
-    ## convert from eta to pi
-    pi_pred <- sapply(1:n_samples, function(i) eta_to_pi(eta_pred[i, , ]), simplify = "array")
-    ## permute to be in order of MCMC samples (rows), 
-    ##    observations (columns), components (slices)
-    pi_pred <- aperm(pi_pred, c(3, 1, 2))
-    
-    if (num_chol_failures > 0)
-        warning("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized ", num_chol_failures, " times. If this warning is rare, this should be safe to ignore. To better aid in diagnosing the problem, run with vebose = TRUE")
-    
-    return(
-        list(
-            eta = eta_pred, 
-            pi  = pi_pred
-        )
-    )
+    # check_corr_fun(corr_fun)
+    # 
+    # ## 
+    # ## extract the parameters 
+    # ##
+    # 
+    # beta      <- out$beta
+    # theta     <- out$theta
+    # tau2      <- out$tau2
+    # eta       <- out$eta
+    # n_samples <- nrow(beta)  
+    # N         <- nrow(X)
+    # n_pred    <- nrow(X_pred)
+    # J         <- dim(beta)[3] + 1
+    # 
+    # if (n_pred > 10000) {
+    #     stop("Number of prediction points must be less than 10000")
+    # }
+    # 
+    # ## add in a counter for the number of regularized Cholesky
+    # num_chol_failures <- 0
+    # 
+    # D_obs      <- fields::rdist(locs)
+    # D_pred     <- fields::rdist(locs_pred)
+    # D_pred_obs <- fields::rdist(locs_pred, locs)
+    # 
+    # eta_pred <- array(0, dim = c(n_samples, n_pred, J-1))
+    # 
+    # if (progress) {
+    #     message("Beginning Kriging estimates")
+    #     progressBar <- utils::txtProgressBar(style = 3)
+    # }
+    # percentage_points <- round((1:100 / 100) * n_samples)   
+    # 
+    # ## parallelize this later
+    # for (k in 1:n_samples) {
+    #     if (shared_covariance_params) {
+    #         if (corr_fun == "matern") {
+    #             Sigma           <- tau2[k] * correlation_function(D_obs, theta[k, ], corr_fun = corr_fun)
+    #             Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k, ], corr_fun = corr_fun)
+    #             Sigma_unobs_obs <- tau2[k] * correlation_function(D_pred_obs, theta[k, ], corr_fun = corr_fun)
+    #         } else if (corr_fun == "exponential") {
+    #             Sigma           <- tau2[k] * correlation_function(D_obs, theta[k], corr_fun = corr_fun)
+    #             Sigma_unobs     <- tau2[k] * correlation_function(D_pred, theta[k], corr_fun = corr_fun)
+    #             Sigma_unobs_obs <- tau2[k] * correlation_function(D_pred_obs, theta[k], corr_fun = corr_fun)
+    #         }           
+    #         Sigma_chol <- tryCatch(
+    #             chol(Sigma),
+    #             error = function(e) {
+    #                 if (verbose)
+    #                     message("The Cholesky decomposition of the observed covariance Sigma was ill-conditioned and mildy regularized.")
+    #                 num_chol_failures <- num_chol_failures + 1
+    #                 chol(Sigma + 1e-8 * diag(N))                    
+    #             }
+    #         )
+    #         Sigma_inv       <- chol2inv(Sigma_chol)        
+    #         for (j in 1:(J - 1)) {
+    #             pred_mean     <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[k, , j] - X %*% beta[k, , j])) + X_pred %*% beta[k, , j]
+    #             pred_var      <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
+    #             pred_var_chol <- tryCatch(
+    #                 chol(pred_var),
+    #                 error = function(e) {
+    #                     if (verbose)
+    #                         message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
+    #                     num_chol_failures <- num_chol_failures + 1
+    #                     chol(pred_var + 1e-8 * diag(n_pred))                    
+    #                 }
+    #             )
+    #             eta_pred[k, , j] <- mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE)
+    #         } 
+    #     } else {
+    #         for (j in 1:(J - 1)) {
+    #             if (corr_fun == "matern") {
+    #                 Sigma           <- tau2[k, j] * correlation_function(D_obs, theta[k, j, ], corr_fun = corr_fun)
+    #                 Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j, ], corr_fun = corr_fun)
+    #                 Sigma_unobs_obs <- tau2[k, j] * correlation_function(D_pred_obs, theta[k, j, ], corr_fun = corr_fun)
+    #             } else if (corr_fun == "exponential") {
+    #                 Sigma           <- tau2[k, j] * correlation_function(D_obs, theta[k, j], corr_fun = corr_fun)
+    #                 Sigma_unobs     <- tau2[k, j] * correlation_function(D_pred, theta[k, j], corr_fun = corr_fun)
+    #                 Sigma_unobs_obs <- tau2[k, j] * correlation_function(D_pred_obs, theta[k, j], corr_fun = corr_fun)
+    #             }
+    #             
+    #             Sigma_chol <- tryCatch(
+    #                 chol(Sigma),
+    #                 error = function(e) {
+    #                     if (verbose)
+    #                         message("The Cholesky decomposition of the observed covariance Sigma was ill-conditioned and mildy regularized.")
+    #                     num_chol_failures <- num_chol_failures + 1
+    #                     chol(Sigma + 1e-8 * diag(N))                    
+    #                 }
+    #             )
+    #             Sigma_inv       <- chol2inv(Sigma_chol)        
+    #             
+    #             pred_mean <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[k, , j] - X %*% beta[k, , j])) + X_pred %*% beta[k, , j]
+    #             pred_var  <- Sigma_unobs - (Sigma_unobs_obs %*% Sigma_inv) %*% t(Sigma_unobs_obs)
+    #             pred_var_chol <- tryCatch(
+    #                 chol(pred_var),
+    #                 error = function(e) {
+    #                     if (verbose)
+    #                         message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
+    #                     num_chol_failures <- num_chol_failures + 1
+    #                     chol(pred_var + 1e-8 * diag(n_pred))                    
+    #                 }
+    #             )
+    #             eta_pred[k, , j] <- mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE)
+    #         } 
+    #     }
+    #     if (k %in% percentage_points && progress) {
+    #         utils::setTxtProgressBar(progressBar, k / n_samples)
+    #     }
+    # }
+    # 
+    # if (progress) {
+    #     close(progressBar)
+    # }
+    # 
+    # ## convert from eta to pi
+    # pi_pred <- sapply(1:n_samples, function(i) eta_to_pi(eta_pred[i, , ]), simplify = "array")
+    # ## permute to be in order of MCMC samples (rows), 
+    # ##    observations (columns), components (slices)
+    # pi_pred <- aperm(pi_pred, c(3, 1, 2))
+    # 
+    # if (num_chol_failures > 0)
+    #     warning("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized ", num_chol_failures, " times. If this warning is rare, this should be safe to ignore. To better aid in diagnosing the problem, run with vebose = TRUE")
+    # 
+    # return(
+    #     list(
+    #         eta = eta_pred, 
+    #         pi  = pi_pred
+    #     )
+    # )
 }
 

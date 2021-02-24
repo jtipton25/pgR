@@ -53,6 +53,10 @@ pg_stlm <- function(
     check_input_pg_stlm(Y, X, locs)
     check_params(params)
     check_corr_fun(corr_fun)
+    
+    if (!is_positive_integer(n_cores, 1))
+        stop("n_cores must be a positive integer")
+    
     # check_inits_pgLM(params, inits)
     # check_config(params, config)
     
@@ -691,12 +695,19 @@ pg_stlm <- function(
                       mvnfast::dmvn(theta_star, theta_mean, theta_var, log = TRUE)
 
                     ## parallelize this        
+                    theta_mh <- NULL
+                    if (corr_fun == "matern") {
+                        theta_mh <- theta[j, ]
+                    } else if (corr_fun == "exponential") {
+                        theta_mh <- theta[j]                        
+                    }
                     mh2 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
                         sum(sapply(2:n_time, function(tt) {
                                     mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
                             })) +
                         ## prior
-                        mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
+                        mvnfast::dmvn(theta_mh, theta_mean, theta_var, log = TRUE)
+                    # mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
 
                     mh <- exp(mh1 - mh2)
                     if (mh > runif(1, 0, 1)) {

@@ -1,4 +1,4 @@
-context("test check functions")
+# check_corr_fun ---------------------------------------------------------------
 
 test_that("check_corr_function", {
     expect_silent(check_corr_fun(corr_fun = "exponential"))
@@ -9,6 +9,8 @@ test_that("check_corr_function", {
     expect_error(check_corr_fun(corr_fun = 43), 'corr_fun must be either "matern" or "exponential"')
     expect_error(check_corr_fun(corr_fun = c("exponential", "matern")), 'corr_fun must be either "matern" or "exponential"')
 })
+
+# check_priors_pg_lm -----------------------------------------------------------
 
 test_that("check_priors_pg_lm", {
     Y <- matrix(1:40, 10, 4)
@@ -32,6 +34,8 @@ test_that("check_priors_pg_lm", {
     priors$Sigma_beta[1, 1] <- NA
     expect_error(check_priors_pg_lm(Y, X, priors), "If priors contains a value for Sigma_beta, it must be a symmertic positive definite matrix with rows and columns equal to the number of columns of X")
 })
+
+# check_priors_pg_splm ---------------------------------------------------------
 
 test_that("check_priors_pg_splm", {
     Y <- matrix(1:40, 10, 4)
@@ -118,6 +122,7 @@ test_that("check_priors_pg_splm", {
 
 })
 
+# check_priors_pg_stlm -----------------------------------------------------------
 
 test_that("check_priors_pg_stlm", {
     Y <- array(1:160, dim = c(10, 4, 4))
@@ -204,6 +209,7 @@ test_that("check_priors_pg_stlm", {
 })
 
 
+# check_inits_pg_lm ------------------------------------------------------------
 
 test_that("check_inits_pg_lm", {
     
@@ -266,6 +272,8 @@ test_that("check_inits_pg_lm", {
     )
 })    
 
+
+# check_inits_pg_splm ----------------------------------------------------------
 
 test_that("check_inits_pg_splm", {
     
@@ -442,13 +450,11 @@ test_that("check_inits_pg_splm", {
     #         
     #     }
     # )
-
-    ## check inits for pg_spvlm
-    
-    ## check inits for pg_stlm
 })    
 
+# check_inits_pg_svlm ------------------------------------------------------------
 
+# check_inits_pgSTLM ------------------------------------------------------------
 
 test_that("check_inits_pgSTLM", {
     Y <- array(1:200, dim = c(10, 4, 5))
@@ -459,6 +465,8 @@ test_that("check_inits_pgSTLM", {
     inits  <- default_inits_pg_stlm(Y, X, priors)
     expect_error(check_inits_pgSTLM(Y, X, inits), "The function check_inits_pgSTLM\\(\\) has been deprecated. Please use check_inits_pg_stlm\\(\\) instead.")
 })
+
+# check_inits_pg_stlm ------------------------------------------------------------
 test_that("check_inits_pg_stlm", {
     
     ## Check initial conditions for pg_lm
@@ -704,6 +712,8 @@ test_that("check_inits_pg_stlm", {
 
 })    
 
+# check_input_pg_lm ------------------------------------------------------------
+
 test_that("check_input_pg_lm", {
     
     Y <- matrix(1:40, 10, 4)
@@ -727,6 +737,8 @@ test_that("check_input_pg_lm", {
     expect_error(check_input_pg_lm(Y, X), "There must not be a row of counts that are all 0s. Please change any observations that have 0 total count to a vector of NAs.")
 
 })
+
+# check_input_pg_splm ----------------------------------------------------------
 
 test_that("check_input_pg_splm", {
     Y <- matrix(1:40, 10, 4)
@@ -759,12 +771,16 @@ test_that("check_input_pg_splm", {
 
 })
 
-test_that("check_input_pg_stlm", {
+# check_input_pg_stlm ----------------------------------------------------------
+
+test_that("check_input_pgSTLM", {
     Y <- array(1:200, dim = c(10, 4, 5))
     X <- matrix(1:20, 10, 2)
     locs <- matrix(runif(20), 10, 2)
     expect_error(check_input_pgSTLM(Y, X, locs), "The function check_input_pgSTLM\\(\\) is now deprecated. Please use check_input_pg_stlm\\(\\).")
 })
+
+# check_input_pg_stlm ----------------------------------------------------------
 
 test_that("check_input_pg_stlm", {
     
@@ -810,6 +826,8 @@ test_that("check_input_pg_stlm", {
 #     ## check input for pg_spvlm
 # 
 # })
+
+# check_params -----------------------------------------------------------------
 
 test_that("check_params", {
     params <- default_params()

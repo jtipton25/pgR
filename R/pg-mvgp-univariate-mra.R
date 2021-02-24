@@ -72,6 +72,8 @@ pg_mvgp_univariate_mra <- function(
     
     if(!is.vector(Z0))
         stop("Z must be a vector of climate variable inputs")
+    if (!is_positive_integer(n_cores, 1))
+        stop("n_cores must be a positive integer")
     
     N      <- nrow(Y)
     J      <- ncol(Y)

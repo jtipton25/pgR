@@ -14,8 +14,13 @@ predict_pg_lm <- function(
     ##
     ## check the inputs 
     ##
-    if (class(out) != "pg_lm")
-        stop("THe MCMC object out must be of class pg_lm which is the output of the pg_lm() function.")
+    if (!inherits(out, "pg_lm"))
+        stop("The MCMC object out must be of class pg_lm which is the output of the pg_lm() function.")
+    if (!is_numeric_matrix(X_pred, nrow(X_pred), ncol(X_pred)))
+        stop("X_pred must be a numeric matrix")
+    if (ncol(X_pred) != dim(out$beta)[2])
+        stop("The number of colums of X_pred must be equal to the number of columns of beta in the object out")
+    
     
     ## 
     ## extract the parameters 

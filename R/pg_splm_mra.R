@@ -58,6 +58,8 @@ pg_splm_mra <- function(
     
     if (!use_spam)
         stop("The only sparse matrix pacakage available is spam")
+    if (!is_positive_integer(n_cores, 1))
+        stop("n_cores must be a positive integer")
     
     # check_inits_pgLM(params, inits)
     # check_config(params, config)
@@ -373,7 +375,7 @@ pg_splm_mra <- function(
     
     n_save      <- params$n_mcmc / params$n_thin
     beta_save   <- array(0, dim = c(n_save, p, J-1))
-    tau2_save   <- array(0, dim = c(n_save, p, J-1))
+    tau2_save   <- array(0, dim = c(n_save, M, J-1))
     alpha_save  <- array(0, dim = c(n_save, sum(n_dims), J-1))
     eta_save    <- array(0, dim = c(n_save, N, J-1))
     sigma2_save <- matrix(0, n_save, J-1)

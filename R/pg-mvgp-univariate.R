@@ -55,6 +55,8 @@ pg_mvgp_univariate <- function(
     
     if(!is.vector(Z0))
         stop("Z must be a vector of climate variable inputs")
+    if (!is_positive_integer(n_cores, 1))
+        stop("n_cores must be a positive integer")
     
     
     

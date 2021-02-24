@@ -15,44 +15,44 @@ predict_pgLM <- function(
     
     stop("predict_pgLM() has been deprecated. Please use predict_pg_lm() instead.")
    
-    ##
-    ## check the inputs 
-    ##
-    if (class(out) != "pgLM")
-        stop("THe MCMC object out must be of class pgLM which is the output of the pgLM() function.")
-    
-    ## 
-    ## extract the parameters 
-    ##
-    
-    beta      <- out$beta
-    n_samples <- nrow(beta)    
-    n_pred    <- nrow(X_pred)
-    J         <- dim(beta)[3] + 1
-    eta_pred <- array(0, dim = c(n_samples, n_pred, J - 1))
-   
-    eta_pred <- sapply(1:n_samples, function(i) X_pred %*% beta[i, , ], simplify = "array")
-    ## permute to be in order of MCMC samples (rows), 
-    ##    observations (columns), components (slices)
-    eta_pred <- aperm(eta_pred, c(3, 1, 2))
-    
-    ## convert from eta to pi
-    pi_pred <- sapply(1:n_samples, function(i) eta_to_pi(eta_pred[i, , ]), simplify = "array")
-    ## permute to be in order of MCMC samples (rows), 
-    ##    observations (columns), components (slices)
-
-    ## check in J=2
-    if (length(dim(pi_pred)) == 2) {
-        pi_pred <- aperm(pi_pred, c(2, 1))   
-    } else {
-        pi_pred <- aperm(pi_pred, c(3, 1, 2))
-    }    
-
-    return(
-        list(
-            eta = eta_pred, 
-            pi  = pi_pred
-        )
-    )
+    # ##
+    # ## check the inputs 
+    # ##
+    # if (class(out) != "pgLM")
+    #     stop("THe MCMC object out must be of class pgLM which is the output of the pgLM() function.")
+    # 
+    # ## 
+    # ## extract the parameters 
+    # ##
+    # 
+    # beta      <- out$beta
+    # n_samples <- nrow(beta)    
+    # n_pred    <- nrow(X_pred)
+    # J         <- dim(beta)[3] + 1
+    # eta_pred <- array(0, dim = c(n_samples, n_pred, J - 1))
+    # 
+    # eta_pred <- sapply(1:n_samples, function(i) X_pred %*% beta[i, , ], simplify = "array")
+    # ## permute to be in order of MCMC samples (rows), 
+    # ##    observations (columns), components (slices)
+    # eta_pred <- aperm(eta_pred, c(3, 1, 2))
+    # 
+    # ## convert from eta to pi
+    # pi_pred <- sapply(1:n_samples, function(i) eta_to_pi(eta_pred[i, , ]), simplify = "array")
+    # ## permute to be in order of MCMC samples (rows), 
+    # ##    observations (columns), components (slices)
+    # 
+    # ## check in J=2
+    # if (length(dim(pi_pred)) == 2) {
+    #     pi_pred <- aperm(pi_pred, c(2, 1))   
+    # } else {
+    #     pi_pred <- aperm(pi_pred, c(3, 1, 2))
+    # }    
+    # 
+    # return(
+    #     list(
+    #         eta = eta_pred, 
+    #         pi  = pi_pred
+    #     )
+    # )
 }
 

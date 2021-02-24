@@ -1,4 +1,4 @@
-#' Bayesian Polya-gamma regression
+#' Bayesian Polya-gamma regression with spatially-varying coefficients
 #' 
 #' this function runs the Bayesian multinomial regression using Polya-gamma data augmentation
 #' @param Y is a \eqn{n \times J}{n x J} matrix of compositional count data.
@@ -19,8 +19,8 @@
 #' @param inits is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.
 #' @param config is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.
 #' @param n_chain is the MCMC chain id. The default is 1.
+#' @export
 
-## polya-gamma spatially varying linear regression model
 pg_spvlm <- function(
     Y, 
     X,

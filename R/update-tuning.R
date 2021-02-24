@@ -118,9 +118,9 @@ update_tuning_mv <- function(k, accept, lambda, batch_samples,
     Sigma_tune_out <- Sigma_tune + gamma1 *
         (t(batch_samples) %*% batch_samples / (50.0-1.0) - Sigma_tune)
     Sigma_tune_chol_out <- tryCatch(
-        chol(Sigma_tune),
+        chol(Sigma_tune_out),
         error = function(e) {
-            chol(Sigma_tune + 1e-8 * diag(nrow(Sigma_tune)))                    
+            chol(Sigma_tune_out + 1e-8 * diag(nrow(Sigma_tune_out)))                    
         }
     )
     accept_out <- 0.0

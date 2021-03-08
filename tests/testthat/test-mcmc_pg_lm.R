@@ -18,7 +18,7 @@ test_that("pg_lm", {
     expect_error(pg_lm(Y, X, params), 'argument "priors" is missing, with no default')
     priors <- default_priors_pg_lm(Y, X)
     suppressMessages(out <- pg_lm(Y, X, params, priors))
-    capture_output(expect_snapshot_value(out, style = "serialize"))
+    # suppressMessages(expect_snapshot_value(out, style = "serialize"))
     expect_true(class(out) == "pg_lm")
     
     ## check inputs

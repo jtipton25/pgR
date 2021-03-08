@@ -15,10 +15,10 @@ test_that("pg_splm_mra", {
     
     priors <- default_priors_pg_splm_mra(Y, X)
     suppressMessages(out <- pg_splm_mra(Y, X, locs, params, priors, M = 2, n_coarse_grid = 4))
-    capture.output(expect_snapshot_value(out, style = "serialize"))
+    # suppressMessages(expect_snapshot_value(out, style = "serialize"))
     expect_true(class(out) == "pg_splm_mra")
     suppressMessages(out <- pg_splm_mra(Y, X, locs, params, priors, M = 3, n_coarse_grid = 6))
-    capture.output(expect_snapshot_value(out, style = "serialize"))
+    # suppressMessages(expect_snapshot_value(out, style = "serialize"))
     expect_true(class(out) == "pg_splm_mra")
     
     ## check inputs into pg_splm_mra function
@@ -35,10 +35,10 @@ test_that("pg_splm_mra", {
     Y[1, 1] <- NA
     expect_error(pg_splm_mra(Y, X, locs, params, priors), "Y must be an integer matrix.")
     Y <- matrix(1:20, 5, 4)
-    expect_error(pg_splm_mra(Y, X, locs, params, priors), "locs must be a numeric matrix with rows equal to the number of rows of Y and 2 columns.")
+    expect_error(pg_splm_mra(Y, X, locs, params, priors), "Y and X must have the same number of rows.")
     Y <- matrix(1:20, 5, 4)
     X <- matrix(1:30, 15, 2)
-    expect_error(pg_splm_mra(Y, X, locs, params, priors), "locs must be a numeric matrix with rows equal to the number of rows of Y and 2 columns.")
+    expect_error(pg_splm_mra(Y, X, locs, params, priors), "Y and X must have the same number of rows.")
     X <- matrix("aaa", 10, 2)
     expect_error(pg_splm_mra(Y, X, locs, params, priors), "X must be a numeric matrix.")
     X <- matrix(1:20, 10, 2)

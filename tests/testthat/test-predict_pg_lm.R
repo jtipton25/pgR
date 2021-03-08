@@ -25,7 +25,7 @@ test_that("predict_pg_lm", {
     priors <- default_priors_pg_lm(Y, X)
     suppressMessages(out <- pg_lm(Y, X, params, priors))
     # check successful output
-    capture.output(expect_snapshot_value(predict_pg_lm(out, X), style = "serialize"))
+    # suppressMessages(expect_snapshot_value(predict_pg_lm(out, X), style = "serialize"))
     
     expect_error(predict_pg_lm(out, matrix("aa", 10, 2)), "X_pred must be a numeric matrix")
     expect_error(predict_pg_lm(out, cbind(X, 1)), "The number of colums of X_pred must be equal to the number of columns of beta in the object out")

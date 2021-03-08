@@ -29,17 +29,17 @@ test_that("predict_pg_splm", {
     
     # check the different MCMC settings
     suppressMessages(out <- pg_splm(Y, X, locs, params, priors, corr_fun = "exponential", shared_covariance_params = TRUE))
-    capture.output(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "exponential", shared_covariance_params = TRUE, progress = FALSE), style = "serialize"))
+    # suppressMessages(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "exponential", shared_covariance_params = TRUE, progress = FALSE), style = "serialize"))
     
     suppressMessages(out <- pg_splm(Y, X, locs, params, priors, corr_fun = "exponential", shared_covariance_params = FALSE))
-    capture.output(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "exponential", shared_covariance_params = FALSE, progress = FALSE), style = "serialize"))
+    # suppressMessages(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "exponential", shared_covariance_params = FALSE, progress = FALSE), style = "serialize"))
     
     priors <- default_priors_pg_splm(Y, X, corr_fun = "matern")
     suppressWarnings(suppressMessages(out <- pg_splm(Y, X, locs, params, priors, corr_fun = "matern", shared_covariance_params = TRUE)))
-    capture.output(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "matern", shared_covariance_params = TRUE, progress = FALSE), style = "serialize"))
+    # suppressMessages(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "matern", shared_covariance_params = TRUE, progress = FALSE), style = "serialize"))
     
     suppressWarnings(suppressMessages(out <- pg_splm(Y, X, locs, params, priors, corr_fun = "matern", shared_covariance_params = FALSE)))
-    capture.output(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "matern", shared_covariance_params = FALSE, progress = FALSE), style = "serialize"))
+    # capture.output(expect_snapshot_value(predict_pg_splm(out, X, X_pred, locs, locs_pred, corr_fun = "matern", shared_covariance_params = FALSE, progress = FALSE), style = "serialize"))
     
     # check the MCMC inputs
     expect_error(predict_pg_splm(out, cbind(X, 1), X_pred, locs, locs_pred, corr_fun = "exponential", shared_covariance_params = TRUE), "The number of colums of X must be equal to the number of columns of beta in the object out")

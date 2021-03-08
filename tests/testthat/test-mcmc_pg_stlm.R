@@ -28,18 +28,18 @@ test_that("pg_stlm", {
     
     priors <- default_priors_pg_stlm(Y, X, corr_fun = "exponential")
     suppressMessages(out <- pg_stlm(Y, X, locs, params, priors, corr_fun = "exponential", shared_covariance_params = TRUE))
-    capture.output(expect_snapshot_value(out, style = "serialize"))
+    # suppressMessages(expect_snapshot_value(out, style = "serialize"))
     expect_true(inherits(out, "pg_stlm"))
     suppressMessages(out <- pg_stlm(Y, X, locs, params, priors, corr_fun = "exponential", shared_covariance_params = FALSE))
-    capture.output(expect_snapshot_value(out, style = "serialize"))
+    # suppressMessages(expect_snapshot_value(out, style = "serialize"))
     expect_true(inherits(out, "pg_stlm"))
     
     priors <- default_priors_pg_stlm(Y, X, corr_fun = "matern")
     suppressMessages(out <- pg_stlm(Y, X, locs, params, priors, corr_fun = "matern", shared_covariance_params = TRUE))
-    capture.output(expect_snapshot_value(out, style = "serialize"))
+    # suppressMessages(expect_snapshot_value(out, style = "serialize"))
     expect_true(class(out) == "pg_stlm")
     suppressMessages(out <- pg_stlm(Y, X, locs, params, priors, corr_fun = "matern", shared_covariance_params = FALSE))
-    capture.output(expect_snapshot_value(out, style = "serialize"))
+    # suppressMessages(expect_snapshot_value(out, style = "serialize"))
     expect_true(class(out) == "pg_stlm")
     
     # Check inputs

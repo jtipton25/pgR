@@ -146,6 +146,50 @@ test_that("default_priors_pg_stlm", {
 })
 
 
+# default_priors_pg_stlm_mra ---------------------------------------------------
+
+test_that("default_priors_pg_stlm_mra", {
+    
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(1:20, 10, 2)
+    locs <- matrix(runif(20), 10, 2)
+    expect_silent(default_priors_pg_stlm_mra(Y, X))
+    Y <- array(1:200, dim = c(5, 4, 5, 2))
+    expect_error(default_priors_pg_stlm_mra(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    
+    Y <- array(1:200, dim = c(10, 4, 5))
+    # Y[1, 1, 1] <- NA
+    # expect_error(default_priors_pg_stlm_mra(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y[1, 1, 1] <- 0.5
+    expect_error(default_priors_pg_stlm_mra(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y[1, 1, 2] <- NA
+    expect_error(default_priors_pg_stlm_mra(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y <- matrix(1:20, 5, 4)
+    expect_error(default_priors_pg_stlm_mra(Y, X), "Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    Y <- array(1:200, dim = c(10, 4, 5))
+    X <- matrix(1:30, 15, 2)
+    expect_error(default_priors_pg_stlm_mra(Y, X), "Y and X must have the same number of rows.")
+    X <- matrix("aaa", 10, 2)
+    expect_error(default_priors_pg_stlm_mra(Y, X), "X must be a numeric matrix.")
+    X <- matrix(1:20, 10, 2)
+    Y[1, , 1] <- 0
+    expect_error(default_priors_pg_stlm_mra(Y, X), "There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+    Y <- array(1:200, dim = c(10, 4, 5))
+    
+    expect_equal(
+        default_priors_pg_stlm_mra(Y, X),
+        list(        
+            mu_beta    = rep(0, ncol(X)),
+            Sigma_beta = 25 * diag(ncol(X)),
+            alpha_tau  = 0.1,
+            beta_tau   = 0.1,
+            alpha_tau2 = 0.1,
+            beta_tau2  = 0.1
+        )
+    )
+
+})
+
 # default_inits ----------------------------------------------------------------
 
 test_that("checking default settings of inits", {

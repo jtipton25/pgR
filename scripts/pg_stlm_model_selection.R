@@ -19,8 +19,8 @@ locs <- expand.grid(
 )
 D <- fields::rdist(locs)
 # use the same parameters for each of the J-1 components
-tau2 <- 4
-theta <- log(0.1) 
+tau2 <- 4.5
+theta <- log(0.5) 
 rho <- 0.9
 Sigma <- tau2 * correlation_function(D, theta, corr_fun = "exponential") 
 psi <- array(0, dim = c(N, J-1, n_time))
@@ -32,15 +32,16 @@ for (tt in 2:n_time) {
 }
 
 ## setup the fixed effects process
-X <- cbind(1, rnorm(N), locs[, 2])
+X <- cbind(1, locs[, 1], locs[, 2])
 beta <- matrix(0, ncol(X), J-1)
 beta[-1, ] <- matrix(c(4, -4, -3, 4, 5, -2, -3, 2, 1, -2), 2, 5)
     # matrix(rnorm((J-1) * (ncol(X)-1), 0, 2.25), ncol(X)-1, (J-1))
 beta[1, ] <- rnorm(J-1, 0, 0.5)
 ## make the intercepts smaller to reduce stochastic ordering effect
 beta[1, ] <- beta[1, ] - seq(from = 2, to = 0, length.out = J-1) - 2
+
 # make the spatial covariate more informative
-beta[3, ] <- 3 * beta[3, ]
+# beta[3, ] <- 3 * beta[3, ]
 
 eta <- array(0, dim = c(N, J-1, n_time))
 pi <- array(0, dim = c(N, J, n_time))
@@ -129,6 +130,27 @@ p_Xbeta <- ggplot(data = dat_Xbeta, aes(x = lon, y = lat, fill =Xbeta)) +
 (p_effects + p_simulated) / (p_psi + p_Xbeta)
 
 
+dimnames(pi) <- list(
+    site      = 1:dim(pi)[1],
+    species   = 1:dim(pi)[2],
+    time      = 1:dim(pi)[3])
+
+dat_locs <- data.frame(
+    lon     = locs[, 1],
+    lat     = locs[, 2],
+    site    = 1:N )
+
+pi_map <- as.data.frame.table(pi, responseName = "pi_truth") %>%
+    mutate(site = as.numeric(site)) %>%
+    left_join(dat_locs) %>%
+    ggplot(aes(x = lon, y = lat, fill = pi_truth)) +
+    geom_raster() +
+    facet_grid(time ~ species) +
+    ggtitle("Simulated spatio-temporal process") +
+    theme(legend.position = "none")
+
+pi_map
+
 # fit model with covariates ----------------------------------------------------
 params <- default_params()
 params$n_adapt <- 1000
@@ -142,11 +164,11 @@ if (file.exists(here::here("results", "pg_stlm-with-covariates.RData"))) {
     load(here::here("results", "pg_stlm-with-covariates.RData"))
 } else {
     start <- Sys.time()
-    out <- pg_stlm(Y, as.matrix(X), as.matrix(locs), params, priors, n_cores = 32L)
+    out_X <- pg_stlm(Y, as.matrix(X), as.matrix(locs), params, priors, n_cores = 32L)
     stop <- Sys.time()
     runtime <- stop - start
     
-    save(out, runtime, file = here::here("results", "pg_stlm-with-covariates.RData"))
+    save(out_X, runtime, file = here::here("results", "pg_stlm-with-covariates.RData"))
 }
 
 
@@ -156,7 +178,7 @@ dimnames(eta) <- list(
     species   = 1:dim(eta)[2],
     time      = 1:dim(eta)[3])
 
-eta_post <- out$eta
+eta_post <- out_X$eta
 dimnames(eta_post) <- list(
     iteration = 1:dim(eta_post)[1],
     site      = 1:dim(eta_post)[2],
@@ -166,7 +188,7 @@ dimnames(eta_post) <- list(
 
 dat_eta <- as.data.frame.table(eta_post, responseName = "eta") %>%
     mutate(iteration = as.numeric(iteration))
-dat_eta_truth <- 
+# dat_eta_truth <- 
 
 dat_plot <- dat_eta %>%
     group_by(site, species, time) %>%
@@ -193,7 +215,7 @@ dimnames(pi) <- list(
     species   = 1:dim(pi)[2],
     time      = 1:dim(pi)[3])
 
-pi_post <- out$pi
+pi_post <- out_X$pi
 dimnames(pi_post) <- list(
     iteration = 1:dim(pi_post)[1],
     site      = 1:dim(pi_post)[2],
@@ -203,9 +225,9 @@ dimnames(pi_post) <- list(
 
 dat_pi <- as.data.frame.table(pi_post, responseName = "pi") %>%
     mutate(iteration = as.numeric(iteration))
-dat_pi_truth <- 
+# dat_pi_truth <- 
     
-    dat_plot <- dat_pi %>%
+dat_plot <- dat_pi %>%
     group_by(site, species, time) %>%
     summarize(
         pi_mean = mean(pi), 
@@ -225,7 +247,23 @@ p_pi_covariates <- ggplot(dat_plot, aes(x = pi_truth, y = pi_mean)) +
 
 p_plot_covariates + p_pi_covariates
 
+dat_locs <- data.frame(
+    lon     = locs[, 1],
+    lat     = locs[, 2],
+    site    = 1:N 
+)
+pi_map_covariates <- dat_pi %>%
+    group_by(site, species, time) %>%
+    summarize(pi_mean = mean(pi)) %>%
+    mutate(site = as.numeric(site)) %>%
+    left_join(dat_locs) %>%
+    ggplot(aes(x = lon, y = lat, fill = pi_mean)) +
+    geom_raster() +
+    facet_grid(time ~ species) +
+    ggtitle("Fit with covariates") +
+    theme(legend.position = "none")
 
+pi_map_covariates
 
 
 # fit model without covariates -------------------------------------------------
@@ -237,14 +275,14 @@ if (file.exists(here::here("results", "pg_stlm-no-covariates.RData"))) {
     load(here::here("results", "pg_stlm-no-covariates.RData"))
 } else {
     start <- Sys.time()
-    out <- pg_stlm(Y, as.matrix(rep(1, N)), as.matrix(locs), params, priors, n_cores = 32L)
+    out_no_X <- pg_stlm(Y, as.matrix(rep(1, N)), as.matrix(locs), params, priors, n_cores = 32L)
     stop <- Sys.time()
     runtime <- stop - start
     
-    save(out, runtime, file = here::here("results", "pg_stlm-no-covariates.RData"))
+    save(out_no_X, runtime, file = here::here("results", "pg_stlm-no-covariates.RData"))
 }
 
-eta_post <- out$eta
+eta_post <- out_no_X$eta
 dimnames(eta_post) <- list(
     iteration = 1:dim(eta_post)[1],
     site      = 1:dim(eta_post)[2],
@@ -254,7 +292,7 @@ dimnames(eta_post) <- list(
 
 dat_eta <- as.data.frame.table(eta_post, responseName = "eta") %>%
     mutate(iteration = as.numeric(iteration))
-dat_eta_truth <- 
+# dat_eta_truth <- 
     
     dat_plot <- dat_eta %>%
     group_by(site, species, time) %>%
@@ -279,7 +317,7 @@ dimnames(pi) <- list(
     species   = 1:dim(pi)[2],
     time      = 1:dim(pi)[3])
 
-pi_post <- out$pi
+pi_post <- out_no_X$pi
 dimnames(pi_post) <- list(
     iteration = 1:dim(pi_post)[1],
     site      = 1:dim(pi_post)[2],
@@ -289,9 +327,9 @@ dimnames(pi_post) <- list(
 
 dat_pi <- as.data.frame.table(pi_post, responseName = "pi") %>%
     mutate(iteration = as.numeric(iteration))
-dat_pi_truth <- 
-    
-    dat_plot <- dat_pi %>%
+# dat_pi_truth <- 
+
+dat_plot <- dat_pi %>%
     group_by(site, species, time) %>%
     summarize(
         pi_mean = mean(pi), 
@@ -308,22 +346,39 @@ p_pi_no_covariates <- ggplot(dat_plot, aes(x = pi_truth, y = pi_mean)) +
     facet_grid(time ~ species) +
     theme_bw(base_size = 12)
 
-
-p_plot_covariates + p_pi_covariates
-
 p_plot_no_covariates + p_pi_no_covariates
 
-(p_plot_covariates + p_plot_no_covariates) /(p_pi_covariates + p_pi_no_covariates)
+(p_plot_covariates + p_plot_no_covariates) / (p_pi_covariates + p_pi_no_covariates)
 
+
+dat_locs <- data.frame(
+    lon     = locs[, 1],
+    lat     = locs[, 2],
+    site    = 1:N 
+)
+pi_map_no_covariates <- dat_pi %>%
+    group_by(site, species, time) %>%
+    summarize(pi_mean = mean(pi)) %>%
+    mutate(site = as.numeric(site)) %>%
+    left_join(dat_locs) %>%
+    ggplot(aes(x = lon, y = lat, fill = pi_mean)) +
+    geom_raster() +
+    facet_grid(time ~ species) +
+    ggtitle("Fit without covariates") +
+    theme(legend.position = "none")
+
+pi_map + pi_map_covariates + pi_map_no_covariates
+# this code sends a notification to my phone 
 # pushoverr::pushover(message = "Finished pgR model comparison fit")
+
 # compare model fit using loo --------------------------------------------------
 
-load(here::here("results", "pg_stlm-with-covariates.RData"))
+# Need to fiture out how to deal with missing observations here
+
 # model fit using covariates
-ll_X <- calc_ll_pg_stlm(Y, X, out)
+ll_X <- calc_ll_pg_stlm(Y, X, out_X)
 # fit model without covariates
-load(here::here("results", "pg_stlm-no-covariates.RData"))
-ll_no_X <- calc_ll_pg_stlm(Y, as.matrix(rep(1, N)), out)
+ll_no_X <- calc_ll_pg_stlm(Y, as.matrix(rep(1, N)), out_no_X)
 
 # convert ll to a matrix for loo and WAIC (need to figure out missing values)
 ll_mat_X <- t(apply(ll_X$ll, 1, c))
@@ -346,10 +401,13 @@ loo_waic_X <- waic(ll_mat_X)
 loo_waic_no_X <- waic(ll_mat_no_X)
 loo_compare(loo_waic_X, loo_waic_no_X)
 
-
-loo_X <- loo(ll_mat_X, cores = 32L)
-loo_no_X <- loo(ll_mat_no_X, cores = 32L)
+r_eff_X <- relative_eff(ll_mat_X, chain_id = rep(1, nrow(ll_mat_X)))
+r_eff_no_X <- relative_eff(ll_mat_no_X, chain_id = rep(1, nrow(ll_mat_no_X)))
+loo_X <- loo(ll_mat_X, cores = 32L, r_eff = r_eff_X)
+loo_no_X <- loo(ll_mat_no_X, cores = 32L, r_eff = r_eff_no_X)
 comp <- loo_compare(loo_X, loo_no_X)
+
+# the loo diagnostics don't look good -- maybe if we increase the sample size?
 print(comp)
 plot(loo_X)
 plot(loo_no_X)

@@ -375,6 +375,9 @@ pi_map + pi_map_covariates + pi_map_no_covariates
 
 # Need to fiture out how to deal with missing observations here
 
+# make a value NA to test how this works with calc_ll
+Y[1, , 1] <- NA
+
 # model fit using covariates
 ll_X <- calc_ll_pg_stlm(Y, X, out_X)
 # fit model without covariates
@@ -383,6 +386,11 @@ ll_no_X <- calc_ll_pg_stlm(Y, as.matrix(rep(1, N)), out_no_X)
 # convert ll to a matrix for loo and WAIC (need to figure out missing values)
 ll_mat_X <- t(apply(ll_X$ll, 1, c))
 ll_mat_no_X <- t(apply(ll_no_X$ll, 1, c))
+
+# drop the NA values
+
+ll_mat_X <- ll_mat_X[, apply(ll_mat_X, 2, function(x) !any(is.na(x)))]
+ll_mat_no_X <- ll_mat_no_X[, apply(ll_mat_no_X, 2, function(x) !any(is.na(x)))]
 
 # WAIC using LaplacesDemon package
 WAIC_LD_X <- LaplacesDemon::WAIC(ll_mat_X)

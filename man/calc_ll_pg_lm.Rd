@@ -4,14 +4,14 @@
 \alias{calc_ll_pg_lm}
 \title{Log-likelihood for pg_lm() model for use in model selection}
 \usage{
-calc_ll_pg_lm(y, X, out)
+calc_ll_pg_lm(Y, X, out)
 }
 \arguments{
+\item{Y}{is a \eqn{n \times J}{n x J} matrix of compositional count data.}
+
 \item{X}{is a \eqn{n \times p}{n x p} matrix of climate variables.}
 
 \item{out}{is a list of MCMC outputs from \code{pg_lm()}}
-
-\item{Y}{is a \eqn{n \times J}{n x J} matrix of compositional count data.}
 }
 \description{
 this function generates the log-linkelihood for data fit using the pg_lm()

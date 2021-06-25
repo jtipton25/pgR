@@ -6,9 +6,11 @@
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param out is a list of MCMC outputs from `pg_lm()`
 #' 
+#' @importFrom stats dmultinom
+#' 
 #' @export 
 
-calc_ll_pg_lm <- function(y, X, out) {
+calc_ll_pg_lm <- function(Y, X, out) {
     ##
     ## check the inputs 
     ##
@@ -61,6 +63,8 @@ calc_ll_pg_lm <- function(y, X, out) {
 #' @param X is a \eqn{n \times p}{n x p} matrix of climate variables.
 #' @param out is a list of MCMC outputs from `pg_splm()`
 #' 
+#' @importFrom stats dmultinom
+#' 
 #' @export 
 
 calc_ll_pg_splm <- function(Y, X, out) {
@@ -109,6 +113,8 @@ calc_ll_pg_splm <- function(Y, X, out) {
 #' @param Y is a \eqn{N \times J \times T}{N x J x T} array of compositional count data.
 #' @param X is a \eqn{N \times p}{n_sites x p} matrix of climate variables.
 #' @param out is a list of MCMC outputs from `pg_stlm()`
+#' 
+#' @importFrom stats dmultinom
 #' 
 #' @export 
 
@@ -163,7 +169,11 @@ calc_ll_pg_stlm <- function(Y, X, out) {
     for (k in 1:n_samples) {
         for (i in 1:N) {
             for (tt in 1:n_time) {
-                ll[k, i, tt] <- dmultinom(Y[i, , tt], prob = pi[k, i, , tt], log = TRUE)
+                if (any(is.na(Y[i, , tt]))) {
+                    ll[k, i, tt] <- NA
+                } else {
+                    ll[k, i, tt] <- dmultinom(Y[i, , tt], prob = pi[k, i, , tt], log = TRUE)
+                }
             }
         }
     }

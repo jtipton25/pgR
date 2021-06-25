@@ -134,11 +134,15 @@ function. The log-likelihood can be used for model selection and evaluation." />
 function. The log-likelihood can be used for model selection and evaluation.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>calc_ll_pg_lm</span><span class='op'>(</span><span class='va'>y</span>, <span class='va'>X</span>, <span class='va'>out</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>calc_ll_pg_lm</span><span class='op'>(</span><span class='va'>Y</span>, <span class='va'>X</span>, <span class='va'>out</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>Y</th>
+      <td><p>is a \(n \times J\) matrix of compositional count data.</p></td>
+    </tr>
     <tr>
       <th>X</th>
       <td><p>is a \(n \times p\) matrix of climate variables.</p></td>
@@ -146,10 +150,6 @@ function. The log-likelihood can be used for model selection and evaluation.</p>
     <tr>
       <th>out</th>
       <td><p>is a list of MCMC outputs from <code><a href='pg_lm.html'>pg_lm()</a></code></p></td>
-    </tr>
-    <tr>
-      <th>Y</th>
-      <td><p>is a \(n \times J\) matrix of compositional count data.</p></td>
     </tr>
     </table>
 

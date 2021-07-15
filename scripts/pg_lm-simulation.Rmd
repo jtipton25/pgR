@@ -1,5 +1,5 @@
 ---
-title: "pg_splm_mra Simulation test"
+title: "pg_lm Simulation"
 bibliography: pg.bib
 output:
   bookdown::html_document2: default
@@ -8,75 +8,40 @@ output:
 nocite: '@*'  
 ---
 
-We are testing the spatial Polya-gamma linear model `pgSPLM()`
+# To Do
+
+- Figure out issue with fast `rmvn_*()` functions
+- add in Polya-gamma data augmentation to DAG
+
+We are testing the Polya-gamma linear model `pg_lm()`
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.width = 16, fig.height = 9)
 library(pgR)
-library(mvnfast)
 # library(MCMCpack)
 library(splines)
 library(tidyverse)
 library(patchwork)
-library(BayesMRA)
-library(spam)
 ```
+
 
 ## simulate some data
 ```{r}
 set.seed(11)
-N <- 30^2
-J <- 6
-M <- 3
-p <- 2
-## setup the spatial process
-locs <- as.matrix(
-  expand.grid(
-    seq(0, 1, length = sqrt(N)),
-    seq(0, 1, length = sqrt(N))
-  )
-)
-
-## generate the MRA basis
-MRA <- mra_wendland_2d(locs, M = M, n_coarse_grid = 8)
-W <- MRA$W
-
-## generate the MRA spatially-correlated random effects precision matrix
-tau2 <- sapply(1:(J-1), function(j) 100 * 2^(1:M) * rgamma(M, 1, 1))
-
-Q_alpha <-  make_Q_alpha_2d(sqrt(MRA$n_dims), rep(0.999, length(MRA$n_dims)))
-Q_alpha_tau2 <- vector(mode = "list", length = J-1)
-for (j in 1:(J-1)) {
-  Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j])
-}
-
-## define the sum-to-0 constraint for alpha
-constraints <- make_constraint(MRA, constraint = "resolution", joint = TRUE)
-A_constraint <- constraints$A_constraint
-a_constraint <- constraints$a_constraint
-
-## simulate the spatial random effects
-alpha <- matrix(0, sum(MRA$n_dims), J-1)
-for (j in 1:(J-1)) {
-  alpha[, j] <- rmvnorm.prec.const(n = 1, mu = rep(0, sum(MRA$n_dims)), Q = Q_alpha_tau2[[j]])
-}
-W_alpha <- W %*% alpha
-
-## setup the fixed effects process
-X <- cbind(1, matrix(runif(N*p), N, p))
-beta <- matrix(rnorm((J-1) * ncol(X), 0, 0.25), ncol(X), (J-1))
+N <- 5000
+J <- 10
+X <- runif(N)
+df <- 4
+Xbs <- bs(X, df)
+beta <- matrix(rnorm((J-1) * df), df, (J-1))
 ## make the intercepts smaller to reduce stochastic ordering effect
-beta[1, ] <- beta[1, ] - seq(from = 2, to = 0, length.out = J-1)
-
-## add in some residual error
-sigma2 <- rgamma(J-1, 1, 5)
-eta <- X %*% beta + W_alpha + sapply(1:(J-1), function(j) rnorm(N, 0, sqrt(sigma2[j])))
+beta[1, ] <- beta[1, ] - seq(from = 4, to = 0, length.out = J - 1)
+eta <- Xbs %*% beta 
 pi <- eta_to_pi(eta)
 
 Y <- matrix(0, N, J)
 
 for (i in 1:N) {
-  Y[i, ] <- rmultinom(1, 500, pi[i, ])
+    Y[i, ] <- rmultinom(1, 500, pi[i, ])
 }
 Y_prop     <- counts_to_proportions(Y)
 ```
@@ -84,29 +49,34 @@ Y_prop     <- counts_to_proportions(Y)
 ## Plot the simulated data
 
 ```{r}
-## put data into data.frame for plotting
 dat <- data.frame(
-  Y       = c(Y_prop),
-  lon     = locs[, 1],
-  lat     = locs[, 2],
-  species = factor(rep(1:J, each = N)), 
-  pi      = c(pi)
-)
-p_simulated <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
-  geom_raster() +
-  scale_fill_viridis_c() +
-  facet_wrap(~ species) +
-  ggtitle("Simulated data") +
-  theme(legend.position = "none")
-p_simulated
+  y        = c(Y_prop),
+  
+  x        = X,
+  species  = factor(rep(1:J, each = N)))
+
+dat_truth <- data.frame(
+  y        = c(pi),
+  x        = X,
+  species  = factor(rep(1:J, each = N)))
+
+dat %>%
+  group_by(species) %>%
+  sample_n(pmin(nrow(Y), 500)) %>%
+  ggplot(aes(y = y, x = x, group = species, color = species)) +
+  geom_point(alpha = 0.2) +
+  ylab("Proportion of count") +
+  geom_line(data = dat_truth, aes(y = y, x = x, group = species), color = "black", lwd = 0.5) +
+  facet_wrap(~ species, ncol = 4) +
+  ggtitle("Simulated data")
 ```
 
 
-# Spatial Polya-gamma multinomial regression
 
-Below is a DAG for the model
 
-```{r, message = FALSE, echo = FALSE, fig.cap = "Directed acyclic graph (DAG) representation of the Polya-gamma spatial model"}
+# Multinomial regression
+
+```{r, message = FALSE, echo = FALSE, fig.cap = "Directed acyclic graph (DAG) representation of the Polya-gamma linear regression model"}
 ## GGDags
 
 ## https://cran.r-project.org/web/packages/ggdag/vignettes/intro-to-ggdag.html
@@ -124,9 +94,6 @@ coords <- tibble::tribble(
   ~name,        ~x,   ~y,
   "Y",          3,    1, 
   "eta",        2,    1,
-  "locs",       2.5,  1.25,
-  "tau2",       1.5,  0.75,
-  "theta",      1.5,  1.25, 
   "beta",       1,    1,
   "X",          0,    1,
   "mu_beta",    0.5,  0.75,
@@ -136,7 +103,7 @@ coords <- tibble::tribble(
 
 dag <- dagify(
   Y ~ eta,
-  eta ~ beta + locs + theta + tau2,
+  eta ~ beta,
   beta ~ X + mu_beta + Sigma_beta,
   # exposure = "X",
   outcome = "Y",
@@ -150,7 +117,6 @@ dag_tidy <- dag %>%
   arrange(name) %>%
   mutate(type = case_when(
     name %in% c("X", "Y", "locs") ~ "data",
-    name %in% c("tau2", "theta") ~ "hyperparameter",
     name %in% c("mu_beta", "Sigma_beta") ~ "prior",
     TRUE ~ "parameter"
   ))
@@ -170,11 +136,8 @@ dag_tidy %>%
     label = c(
       TeX("$\\beta"),
       TeX("$\\eta"),
-      "lat/lon",
       TeX("$\\mu_{\\beta}$"),
       TeX("$\\Sigma_{\\beta}$"),
-      TeX("$\\tau^2"),
-      TeX("$\\theta$"),
       "X",
       "Y"
     )
@@ -279,7 +242,7 @@ Equation \@ref(eq:pg-identity) allows for the expression of the likelihood in \@
 (\#eq:da)
 \end{align}
 
-where $[\mathbf{y}, \boldsymbol{\eta}, \boldsymbol{\omega}]$ is a joint density over the data augmented likelihood. When the prior on $\boldsymbol{\eta}$ is Gaussian, the marginal density $[\boldsymbol{\eta} | \mathbf{y}, \boldsymbol{\omega}] \propto \prod_{i=1}^N \prod_{j=1}^{J-1}  e^{\kappa(y_{i, j}) \eta_{i, j}} e^{- \omega_{i, j} \eta_{i, j}^2 / 2} [\boldsymbol{\eta}]$ induced by the integrand in \@ref(eq:da) is also Gaussian. In addition, the exponential tilting property of the P&oacute;lya-gamma distribution [@polson2013bayesian] gives the conditional distribution 
+where $[\mathbf{y}, \boldsymbol{\eta}, \boldsymbol{\omega}]$ is a joint density over the data augmented likelihood. When the prior on $\boldsymbol{\eta}$ is Gaussian, the marginal density $[\boldsymbol{\eta} | \mathbf{y}, \boldsymbol{\omega}] \propto \prod_{i=1}^N \prod_{j=1}^{J-1}  e^{\kappa(y_{i, j}) \eta_{i, j}} e^{- \omega_{i, j} \eta_{i, j}^2 / 2} [\boldsymbol{\eta}]$ induced by the integrand in \@ref(eq:da) is also Gaussian. In addition, the exponential tilting property of the P&oacute;lya-gamma distribution [@polson2013bayesian] gives the conditional distribtuion 
 
 \begin{align*}
 [\omega_{i, j} | \mathbf{y}, \boldsymbol{\eta}] & \sim \operatorname{PG}(\widetilde{M}_{i, j}, \eta_{i, j})
@@ -328,304 +291,279 @@ If $\widetilde{M}_{i, j} = 0$, then $\omega_{i, j} | \mathbf{y}, \boldsymbol{\be
 which is $\operatorname{PG} \left( \widetilde{M}_{i, j}, \eta_{i, j} \equiv \mathbf{x}_i' \boldsymbol{\beta}_j\right)$ by the exponential tilting property of the P&oacute;lya-gamma distribution.
 
 
+
 ```{r, message = FALSE}
-params <- default_params()
+## fit the model to verify parameters
+params <- default_params() 
 params$n_adapt <- 500
-params$n_mcmc <- 500
+params$n_mcmc <- 1000
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pg_splm(Y, X)
-inits  <- default_inits_pg_splm(Y, X, priors, shared_covariance_params = TRUE)
-
-if (file.exists(here::here("results", "pg_splm-mra.RData"))) {
-  load(here::here("results", "pg_splm-mra.RData"))
+priors <- default_priors_pg_lm(Y, Xbs)
+inits <- default_inits_pg_lm(Y, Xbs, priors)
+if (file.exists(here::here("results", "pg_lm.RData"))) {
+    load(here::here("results", "pg_lm.RData"))
 } else {
-  ## need to parallelize the polya-gamma random variables
-  ## can I do this efficiently using openMP?
-  ## Q: faster to parallelize using openMP or foreach?
-  start <- Sys.time()
-  out <- pg_splm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L)
-  stop <- Sys.time()
-  runtime <- stop - start
-  
-  save(out, runtime, file = here::here("results", "pg_splm-mra.RData"))
+    start <- Sys.time()
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 32L, sample_rmvn = FALSE)
+    stop <- Sys.time()
+    runtime <- stop - start
+
+    save(out, runtime, file = here::here("results", "pg_lm.RData"))
 }
 ```
 
 
 ```{r}
-layout(matrix(1:6, 3, 2))
-for (i in 1:5) {
+layout(matrix(1:9, 3, 3))
+for (i in 1:9) {
   matplot(out$beta[, , i], type = 'l', main = paste("species", i))
   abline(h = beta[, i], col = 1:nrow(beta))
 }
-
-plot(apply(out$beta, c(2, 3), mean), beta)
-abline(0, 1, col = "red")
-
-abline(0, 1, col = "red")
-
-dimnames(beta) <- list(
-  parameter = paste0("beta[", 1:dim(betas)[2], "]"),
-  species   = paste0("species[", 1:dim(betas)[3], "]")
-)
-
-
-betas <- out$beta
-dimnames(betas) <- list(
-  iteration = 1:dim(betas)[1],
-  parameter = paste0("beta[", 1:dim(betas)[2], "]"),
-  species   = paste0("species[", 1:dim(betas)[3], "]")
-)
-
-as.data.frame.table(betas, responseName = "value") %>%
-  ggplot(aes(x = parameter, y = value)) +
-  geom_boxplot() +
-  facet_wrap(~ species, nrow = 5) + 
-  geom_point(data = as.data.frame.table(betas, responseName = "value"), color = "red")  
-
 ```
-
-```{r}
-layout(matrix(1:6, 3, 2))
-plot_idx <- sample(1:N, 20)
-for (i in 1:5) {
-  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
-  abline(h = eta[plot_idx, i], col = 1:20)
-}
-## typically, tau2 is not identifiable
-plot(apply(out$tau2, c(2, 3), mean), tau2)
-abline(0, 1, col = "red")
-```
-
-
-```{r}
-
-## plot beta estimates
-dat_plot <- data.frame(
-  beta = c(
-    c(apply(out$beta, c(2, 3), mean)), 
-    c(beta)
-  ),
-  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
-  species = factor(rep(1:(J-1), each = ncol(X))),
-  variable = 1:ncol(X)
-)
-
-p1 <- dat_plot %>%
-  pivot_wider(names_from = type, values_from = beta) %>%
-  ggplot(aes(x = estimate, y = truth)) +
-  # scale_color_viridis_d(begin = 0, end = 0.8) +
-  geom_point(alpha = 0.5) +
-  facet_wrap(~ species, nrow = 8) +
-  geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Estimated vs. simulated beta")
-
-## plot eeta estimates
-dat_plot <- data.frame(
-  eta = c(
-    c(apply(out$eta, c(2, 3), mean)), 
-    c(eta)
-  ),
-  type = rep(c("estimate", "truth"), each = (J-1) * N),
-  species = factor(rep(1:(J-1), each = N)),
-  observations = 1:N
-)
-
-p2 <- dat_plot %>%
-  pivot_wider(names_from = type, values_from = eta) %>%
-  ggplot(aes(x = estimate, y = truth)) +
-  # scale_color_viridis_d(begin = 0, end = 0.8) +
-  geom_point(alpha = 0.5) +
-  facet_wrap(~ species, nrow = 8) +
-  geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Estimated vs. simulated eta")
-p1 + p2
-```
-
-## predictions
-
-```{r, message = FALSE}
-set.seed(111)
-n <- 400
-s <- sample(N, n)
-Y_s      <- Y[s, ]
-Y_oos    <- Y[-s, ]
-X_s      <- X[s, ]
-X_oos    <- X[-s, ]
-eta_s    <- eta[s, ]
-eta_oos  <- eta[-s, ]
-pi_s     <- pi[s, ]
-pi_oos   <- pi[-s, ]
-locs_s   <- locs[s, ]
-locs_oos <- locs[-s, ]
-Y_prop_s   <- Y_prop[s, ]
-Y_prop_oos <- Y_prop[-s, ]
-
-
-## put data into data.frame for plotting
-dat <- data.frame(
-  Y       = c(Y_prop_s),
-  lon     = c(locs_s[, 1]),
-  lat     = c(locs_s[, 2]),
-  species = factor(rep(1:J, each = n)), 
-  pi      = c(pi_s)
-)
-p_observed <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
-  geom_raster() +
-  scale_fill_viridis_c() +
-  facet_wrap(~ species) +
-  ggtitle("Sampled simulated probabilities") +
-  theme(legend.position = "none")
-p_observed
-```
-
-
-```{r, message = FALSE}
-params <- default_params()
-params$n_adapt <- 500
-params$n_mcmc <- 500
-params$n_message <- 50
-params$n_thin <- 1
-priors <- default_priors_pg_splm(Y_s, X_s)
-
-if (file.exists(here::here("results", "pg_splm-mra-sample.RData"))) {
-  load(here::here("results", "pg_splm-mra-sample.RData"))
-} else {
-  ## need to parallelize the polya-gamma random variables
-  ## can I do this efficiently using openMP?
-  ## Q: faster to parallelize using openMP or foreach?
-  start <- Sys.time()
-  out <- pg_splm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L)
-  stop <- Sys.time()
-  runtime <- stop - start
-  
-  save(out, runtime, file = here::here("results", "pg_splm-mra-sample.RData"))
-}
-```
-
-
-```{r}
-layout(matrix(1:6, 3, 2))
-for (i in 1:5) {
-  matplot(out$beta[, , i], type = 'l', main = paste("species", i))
-  abline(h = beta[, i], col = 1:nrow(beta))
-}
-
-plot(apply(out$beta, c(2, 3), mean), beta)
-abline(0, 1, col = "red")
-```
-
-```{r}
-plot(apply(out$sigma2, 2, mean), sigma2)
-abline(0, 1, col = "red")
-```
-
-```{r}
-layout(matrix(1:6, 3, 2))
-plot_idx <- sample(1:N, 20)
-for (i in 1:5) {
-  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
-  abline(h = eta[plot_idx, i], col = 1:20)
-}
-## typically, tau2 is not identifiable
-plot(apply(out$tau2, c(2, 3), mean), tau2)
-abline(0, 1, col = "red")
-```
-
 
 
 ```{r}
 runtime
 
-
 ## plot beta estimates
 dat_plot <- data.frame(
-  beta = c(
-    c(apply(out$beta, c(2, 3), mean)), 
-    c(beta)
-  ),
-  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
-  species = factor(rep(1:(J-1), each = ncol(X))),
-  variable = 1:ncol(X)
+    beta = c(
+        c(apply(out$beta, c(2, 3), mean)), 
+        c(beta)
+    ),
+    type = rep(c("estimate", "truth"), each = (J-1) * ncol(Xbs)),
+    species = factor(rep(1:(J-1), each = ncol(Xbs))),
+    knots = 1:ncol(Xbs)
 )
 
-p1 <- dat_plot %>%
-  pivot_wider(names_from = type, values_from = beta) %>%
-  ggplot(aes(x = estimate, y = truth)) +
-  # scale_color_viridis_d(begin = 0, end = 0.8) +
-  geom_point(alpha = 0.5) +
-  facet_wrap(~ species, nrow = 8) +
-  geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Estimated vs. simulated beta")
-
-## plot eta estimates
-dat_plot <- data.frame(
-  eta = c(
-    c(apply(out$eta, c(2, 3), mean)), 
-    c(eta_s)
-  ),
-  type = rep(c("estimate", "truth"), each = (J-1) * n),
-  species = factor(rep(1:(J-1), each = n)),
-  observations = 1:n
-)
-
-p2 <- dat_plot %>%
-  pivot_wider(names_from = type, values_from = eta) %>%
-  ggplot(aes(x = estimate, y = truth)) +
-  # scale_color_viridis_d(begin = 0, end = 0.8) +
-  geom_point(alpha = 0.5) +
-  facet_wrap(~ species, nrow = 8) +
-  geom_abline(intercept = 0, slope = 1, col = "red") +
-  ggtitle("Estimated vs. simulated eta")
-p1 + p2
+dat_plot %>%
+    pivot_wider(names_from = type, values_from = beta) %>%
+    ggplot(aes(x = estimate, y = truth, color = species)) +
+    scale_color_viridis_d(begin = 0, end = 0.8) +
+    geom_point(alpha = 0.5) +
+    facet_wrap(~ species, nrow = 8) +
+    geom_abline(intercept = 0, slope = 1, col = "red")
 ```
 
 
+
 ```{r, message = FALSE}
-if (file.exists(here::here("results", "pg-splm-mra-sample-preds.RData"))) {
-  load(here::here("results", "pg-splm-mra-sample-preds.RData"))
+## fit the model with a linear response only
+params <- default_params() 
+params$n_adapt <- 500
+params$n_mcmc <- 1000
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pg_lm(Y, as.matrix(X))
+inits <- default_inits_pg_lm(Y, as.matrix(X), priors)
+if (file.exists(here::here("results", "pg_lm-linear.RData"))) {
+    load(here::here("results", "pg_lm-linear.RData"))
 } else {
-  ## now this is super fast
-  preds <- predict_pg_splm_mra(out, X_s, X_oos, locs_s, locs_oos)
-  save(preds, file = here::here("results", "pg-splm-mra-sample-preds.RData"))
+    start <- Sys.time()
+    out_linear <- pg_lm(Y, as.matrix(X), params, priors, n_cores = 32L, sample_rmvn = FALSE)
+    stop <- Sys.time()
+    runtime_linear <- stop - start
+
+    save(out_linear, runtime_linear, file = here::here("results", "pg_lm-linear.RData"))
 }
 ```
 
 ```{r}
-pi_pred_mean <- apply(preds$pi, c(2, 3), mean)
-eta_pred_mean <- apply(preds$eta, c(2, 3), mean)
-layout(matrix(1:2, 1, 2))
-plot(eta_oos, eta_pred_mean)
-abline(0, 1, col = "red")
-plot(pi_oos, pi_pred_mean)
-abline(0, 1, col = "red")
+# model fit using loo
+ll_bs <- calc_ll_pg_lm(Y, Xbs, out)
+# fit model using linear response
+ll_linear <- calc_ll_pg_lm(Y, as.matrix(X), out_linear)
+
+library(loo)
+loo_bs <- loo(t(ll_bs$ll), cores = 32L)
+loo_linear <- loo(t(ll_linear$ll), cores = 32L)
+comp <- loo_compare(loo_bs, loo_linear)
+print(comp)
+plot(loo_bs)
+plot(loo_linear)
 ```
 
-## Plot the simulated data
+## prediction code testing
+
+```{r, message = FALSE}
+set.seed(44)
+## subsample the simulated data
+n <- 2000
+s <- sample(N, n)
+Y_s     <- Y[s, ]
+Y_oos   <- Y[-s, ]
+Xbs_s   <- Xbs[s, ]
+Xbs_oos <- Xbs[-s, ]
+eta_s   <- eta[s, ]
+eta_oos <- eta[-s, ]
+pi_s    <- pi[s, ]
+pi_oos  <- pi[-s, ]
+
+## fit the model to verify parameters
+params <- default_params()
+params$n_adapt <- 500
+params$n_mcmc <- 1000
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pg_lm(Y_s, Xbs_s)
+inits <- default_inits_pg_lm(Y_s, Xbs_s, priors)
+if (file.exists(here::here("results", "pg_lm-sample.RData"))) {
+    load(here::here("results", "pg_lm-sample.RData"))
+} else {
+    ## need to parallelize the polya-gamma random variables
+    ## can I do this efficiently using openMP?
+    ## Q: faster to parallelize using openMP or foreach?
+    start <- Sys.time()
+    out <- pg_lm(Y_s, as.matrix(Xbs_s), params, priors, n_cores = 6L, sample_rmvn = FALSE)
+    stop <- Sys.time()
+    runtime <- stop - start
+
+    save(out, runtime, file = here::here("results", "pg_lm-sample.RData"))
+}
+```
+
 
 ```{r}
-## put data into data.frame for plotting
-dat <- data.frame(
-  Y       = c(rbind(Y_prop_s, Y_prop_oos)),
-  lon     = c(locs_s[, 1], locs_oos[, 1]),
-  lat     = c(locs_s[, 2], locs_oos[, 2]),
-  species = factor(rep(1:J, each = N)), 
-  pi      = c(rbind(pi_s, pi_pred_mean)),
-  type    = c(rep("observed", n), rep("predicted", N-n))
-)
-p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
-  # p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi, alpha = type)) +
-  geom_raster() +
-  scale_fill_viridis_c() +
-  facet_wrap(~ species) +
-  # scale_alpha_discrete(range = c(0.6, 1)) +
-  ggtitle("Predicted latent probability") +
-  theme(legend.position = "none")
-
-p_simulated + p_observed + p_predicted 
+layout(matrix(1:9, 3, 3))
+for (i in 1:9) {
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i))
+  abline(h = beta[, i])
+}
 ```
 
 
+```{r}
+runtime
+
+## plot beta estimates
+dat_plot <- data.frame(
+    beta = c(
+        c(apply(out$beta, c(2, 3), mean)), 
+        c(beta)
+    ),
+    type = rep(c("estimate", "truth"), each = (J-1) * ncol(Xbs)),
+    species = factor(rep(1:(J-1), each = ncol(Xbs))),
+    knots = 1:ncol(Xbs)
+)
+
+dat_plot %>%
+    pivot_wider(names_from = type, values_from = beta) %>%
+    ggplot(aes(x = estimate, y = truth, color = species)) +
+    scale_color_viridis_d(begin = 0, end = 0.8) +
+    geom_point(alpha = 0.5) +
+    facet_wrap(~ species, nrow = 8) +
+    geom_abline(intercept = 0, slope = 1, col = "red")
+```
+
+```{r}
+## predict from the model
+preds <- predict_pg_lm(out, Xbs_oos)
+```
 
 
+```{r}
+pi_pred_mean <- apply(preds$pi, c(2, 3), mean)
+dat_pi_pred <- data.frame(
+  pi   = c(
+    c(pi_oos),
+    c(pi_pred_mean)
+  ),
+  type = rep(c("observed", "predicted"), each = J * (N-n)),
+  species = factor(rep(1:J, each = (N-n))),
+  obs     = 1:(N-n) 
+)
+
+p_pi_pred <- dat_pi_pred %>%
+  pivot_wider(names_from = type, values_from = pi) %>%
+  ggplot(aes(x = observed, y = predicted, color = species)) +
+  scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 5) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Predicted vs simulated latent probability pi")
+  
+
+eta_pred_mean <- apply(preds$eta, c(2, 3), mean)
+dat_eta_pred <- data.frame(
+  eta   = c(
+    c(eta_oos),
+    c(eta_pred_mean)
+  ),
+  type = rep(c("observed", "predicted"), each = (J-1) * (N-n)),
+  species = factor(rep(1:(J-1), each = (N-n))),
+  obs     = 1:(N-n) 
+)
+
+p_eta_pred <- dat_eta_pred %>%
+  pivot_wider(names_from = type, values_from = eta) %>%
+  ggplot(aes(x = observed, y = predicted, color = species)) +
+  scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 5) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Predicted vs simulated latent intensity eta")
+p_pi_pred + p_eta_pred
+```
+
+## verifying openMP timings
+
+
+```{r, message = FALSE}
+params <- default_params()
+params$n_adapt <- 100
+params$n_mcmc <- 100
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pg_lm(Y, Xbs)
+inits <- default_inits_pg_lm(Y, Xbs, priors)
+# check_inits_pg_lm(Y, Xbs, params, inits)
+
+if (file.exists(here::here("results", "timings-pg_lm.RData"))) {
+    load(here::here("results", "timings-pg_lm.RData"))
+} else {
+  ## need to parallelize the polya-gamma random variables
+  ## can I do this efficiently using openMP?
+  ## Q: faster to parallelize using openMP or foreach?
+  
+  time_8 <- system.time(
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 8L, sample_rmvn = FALSE)
+  )
+  time_6 <- system.time(
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 6L, sample_rmvn = FALSE)
+  )
+  time_4 <- system.time(
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 4L, sample_rmvn = FALSE)
+  )
+  time_2 <- system.time(
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 2L, sample_rmvn = FALSE)
+  )
+  time_1 <- system.time(
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 1L, sample_rmvn = FALSE)
+  )
+  save(time_1, time_2, time_4, time_6, time_8, file = here::here("results", "timings-pg_lm.RData"))
+}
+
+## Note: a large amount of computation time is not parallel -- sampling of the beta variable
+## need to figure out why the faster comptuation version is giving issues
+knitr::kable(
+    rbind(
+        time_1,
+        time_2,
+        time_4,
+        time_6,
+        time_8
+    )
+)
+```
+
+
+## code profiling
+
+```{r, eval = FALSE}
+## not run -- diagnostic profiling
+params$n_adapt <- 50
+params$n_mcmc <- 50
+profvis::profvis(pg_lm_cores(Y, as.matrix(Xbs), params, priors, cores = 1L))
+profvis::profvis(pg_lm(Y, as.matrix(Xbs), params, priors, cores = 8L))
+```

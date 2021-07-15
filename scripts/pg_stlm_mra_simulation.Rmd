@@ -40,47 +40,30 @@ locs <- as.matrix(
 
 ## generate the MRA basis
 MRA <- mra_wendland_2d(locs, M = M, n_coarse_grid = 8)
-W_list   <- MRA$W
-tW_list  <- vector(mode = 'list', length = M)
-tWW_list <- vector(mode = 'list', length = M)
-for (m in 1:M) {
-  tW_list[[m]] <- t(W_list[[m]])
-  tWW_list[[m]] <- tW_list[[m]] %*% W_list[[m]]
-}
-n_dims <- rep(NA, length(W_list))
-dims_idx <- c()
-for (i in 1:M) {
-  n_dims[i] <- ncol(W_list[[i]])
-  dims_idx <- c(dims_idx, rep(i, n_dims[i]))
-}
-W <- do.call(cbind, W_list)
+W <- MRA$W
 
 ## generate the MRA spatially-correlated random effects precision matrix
 tau2 <- sapply(1:(J-1), function(j) 100 * 2^(1:M) * rgamma(M, 1, 1))
 
-Q_alpha <-  make_Q_alpha_2d(sqrt(n_dims), rep(0.999, length(n_dims)))
+Q_alpha <-  make_Q_alpha_2d(sqrt(MRA$n_dims), rep(0.999, length(MRA$n_dims)))
 Q_alpha_tau2 <- vector(mode = "list", length = J-1)
 for (j in 1:(J-1)) {
   Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j])
 }
 
 ## define the sum-to-0 constraint for alpha
-A_constraint <- t(
-  sapply(1:M, function(m) {
-    tmp <- rep(0, sum(n_dims))
-    tmp[dims_idx == m] <- 1
-    return(tmp)
-  })
-)
-a_constraint <- rep(0, M)
+constraints <- make_constraint(MRA, constraint = "resolution", joint = TRUE)
+A_constraint <- constraints$A_constraint
+a_constraint <- constraints$a_constraint
+
 
 ## temporal autocorrelation parameter rho
 rho <- runif(J-1, 0.8, 1)
 
 ## simulate the spatial random effects
-alpha <- array(0, dim = c(sum(n_dims), J-1, n_time))
+alpha <- array(0, dim = c(sum(MRA$n_dims), J-1, n_time))
 for (j in 1:(J-1)) {
-  alpha[, j, 1] <- rmvnorm.prec.const(n = 1, mu = rep(0, sum(n_dims)), Q = Q_alpha_tau2[[j]])
+  alpha[, j, 1] <- rmvnorm.prec.const(n = 1, mu = rep(0, sum(MRA$n_dims)), Q = Q_alpha_tau2[[j]], A = A_constraint, a = a_constraint)
 }
 for (tt in 2:n_time) {
   for (j in 1:(J-1)) {
@@ -91,6 +74,9 @@ W_alpha <- array(0, dim = c(N, J-1, n_time))
 for (tt in 1:n_time) {
   W_alpha[, , tt] <- W %*% alpha[, , tt]
 }
+
+# check if first field is mean 0
+apply(W_alpha, c(2, 3), sum)[, 1]
 
 ## setup the fixed effects process
 X <- cbind(1, matrix(runif(N*p), N, p))
@@ -386,11 +372,14 @@ if (file.exists(here::here("results", "pg_stlm-mra.RData"))) {
   load(here::here("results", "pg_stlm-mra.RData"))
 } else {
   start <- Sys.time()
-  out <- pg_stlm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L)
+  out <- pg_stlm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 24L)
   stop <- Sys.time()
   runtime <- stop - start
   
   save(out, runtime, file = here::here("results", "pg_stlm-mra.RData"))
+  # cell phone notification when done
+  pushoverr::pushover(message = "Finished fitting pg_stlm_mra model")
+
 }
 ```
 
@@ -587,11 +576,14 @@ if (file.exists(here::here("results", "pg_stlm-mra-sample.RData"))) {
   load(here::here("results", "pg_stlm-mra-sample.RData"))
 } else {
   start <- Sys.time()
-  out <- pg_stlm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L, verbose = TRUE)
+  out <- pg_stlm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 24L)
   stop <- Sys.time()
   runtime <- stop - start
   
   save(out, runtime, file = here::here("results", "pg_stlm-mra-sample.RData"))
+  
+  # cell phone notification when done
+  pushoverr::pushover(message = "Finished fitting sampled pg_stlm_mra model")
 }
 ```
 

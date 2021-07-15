@@ -223,19 +223,12 @@ pg_splm_mra <- function(
     ## initialize alpha
     ##
     
-    ## define the sum-to-0 constraint for alpha_1
+    ## define the sum-to-0 constraint for alpha 
+    # eventually modify this so the options for constraint and joint are allowed
+    constraints <- make_constraint(MRA, constraint = "resolution", joint = TRUE)
+    A_constraint <- constraints$A_constraint
+    a_constraint <- constraints$a_constraint
     
-    A_constraint <- t(
-        sapply(1:M, function(m) {
-            tmp <- rep(0, sum(n_dims))
-            tmp[dims_idx == m] <- 1
-            return(tmp)
-        })
-    )
-    a_constraint <- rep(0, M)
-    
-
-
     
     alpha <- matrix(0, sum(n_dims), J-1)
     eta <- kappa   ## default initial value based on data Y

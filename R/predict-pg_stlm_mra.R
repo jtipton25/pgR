@@ -20,8 +20,6 @@ predict_pg_stlm_mra <- function(
     X_pred,
     locs,
     locs_pred,
-    corr_fun,
-    shared_covariance_params,
     progress = TRUE, 
     verbose = FALSE,
     force = FALSE
@@ -62,7 +60,7 @@ predict_pg_stlm_mra <- function(
     eta_pred <- array(0, dim = c(n_samples, n_pred, J-1, n_time))
     
     if (progress) {
-        message("Beginning Kriging estimates")
+        message("Generating Predictions")
         progressBar <- utils::txtProgressBar(style = 3)
     }
     percentage_points <- round((1:100 / 100) * n_samples)   

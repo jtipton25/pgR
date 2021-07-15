@@ -298,15 +298,10 @@ pg_stlm_mra <- function(
     ##
     
     ## define the sum-to-0 constraint for alpha_1
-    
-    A_constraint <- t(
-        sapply(1:M, function(m) {
-            tmp <- rep(0, sum(n_dims))
-            tmp[dims_idx == m] <- 1
-            return(tmp)
-        })
-    )
-    a_constraint <- rep(0, M)
+    # eventually modify this so the options for constraint and joint are allowed
+    constraints <- make_constraint(MRA, constraint = "resolution", joint = TRUE)
+    A_constraint <- constraints$A_constraint
+    a_constraint <- constraints$a_constraint
     
     alpha <- array(0, dim = c(sum(n_dims), J-1, n_time))
     eta <- kappa   ## default initial value based on data Y to get started
@@ -532,30 +527,30 @@ pg_stlm_mra <- function(
                         b_alpha <- 1 / sigma2[j] * tW %*% (eta[, j, n_time] - Xbeta[, j]) +
                             Q_alpha_tau2[[j]] %*% as.vector(rho[j] * alpha[, j, n_time - 1])
                         alpha[, j, tt] <- tryCatch(
-                            as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)),
-                            # as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)),
+                            # as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)),
+                            as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time)),
                             error = function(e) {
                                 if (verbose)
-                                    message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
+                                    message("The Cholesky decomposition conditional precision for alpha_n_time was ill-conditioned and mildy regularized.")
                                 num_chol_failures <- num_chol_failures + 1
                                 A_alpha_n_time[[j]] <<- A_alpha_n_time[[j]] + 1e-8 * diag(sum(n_dims))
-                                return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)))
-                                # return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time, Rstruct = Rstruct_n_time)))
+                                # return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)))
+                                return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time)))
                             })
                         
                     } else {
                         b_alpha <- 1 / sigma2[j] * tW %*% (eta[, j, tt] - Xbeta[, j]) +
                             Q_alpha_tau2[[j]] %*% as.vector(rho[j] * (alpha[, j, tt - 1] + alpha[, j, tt + 1]))
                         alpha[, j, tt] <- tryCatch(
-                            as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)),
-                            # as.vector(rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)),
+                            # as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)),
+                            as.vector(rmvnorm.canonical(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct)),
                             error = function(e) {
                                 if (verbose)
-                                    message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
+                                    message("The Cholesky decomposition conditional precision for alpha_t was ill-conditioned and mildy regularized.")
                                 num_chol_failures <- num_chol_failures + 1
                                 A_alpha[[j]] <<- A_alpha[[j]] + 1e-8 * diag(sum(n_dims))
-                                return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)))
-                                # return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha, Rstruct = Rstruct)))
+                                # return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)))
+                                return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct)))
                             })
                     }       
                 }
@@ -563,7 +558,6 @@ pg_stlm_mra <- function(
                 W_alpha[, , tt] <- W %*% alpha[, , tt]
             }
         }
-        
         
         ##
         ## sample spatial process variance tau2

@@ -10,8 +10,6 @@ predict_pg_stlm_mra(
   X_pred,
   locs,
   locs_pred,
-  corr_fun,
-  shared_covariance_params,
   progress = TRUE,
   verbose = FALSE,
   force = FALSE
@@ -28,15 +26,15 @@ predict_pg_stlm_mra(
 
 \item{locs_pred}{is a \eqn{n_pred \times 2}{n_pred x 2} matrix of locations where predictions are to be made.}
 
-\item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
-
-\item{shared_covariance_params}{is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
-
 \item{progress}{is a logicial input that determines whether to print a progress bar.}
 
 \item{verbose}{is a logicial input that determines whether to print more detailed messages.}
 
 \item{force}{is a logicial input that determines whether to allow for predictions at more locations than 10000. The default is FALSE}
+
+\item{corr_fun}{is a character that denotes the correlation function form. Current options include "matern" and "exponential".}
+
+\item{shared_covariance_params}{is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.}
 }
 \description{
 this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation

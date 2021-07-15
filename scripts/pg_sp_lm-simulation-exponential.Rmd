@@ -1,5 +1,5 @@
 ---
-title: "pg_splm_mra Simulation test"
+title: "pg_splm Simulation test - exponential covariance function"
 bibliography: pg.bib
 output:
   bookdown::html_document2: default
@@ -8,7 +8,7 @@ output:
 nocite: '@*'  
 ---
 
-We are testing the spatial Polya-gamma linear model `pgSPLM()`
+We are testing the spatial Polya-gamma linear model `pg_splm()`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 16, fig.height = 9)
@@ -18,8 +18,6 @@ library(mvnfast)
 library(splines)
 library(tidyverse)
 library(patchwork)
-library(BayesMRA)
-library(spam)
 ```
 
 ## simulate some data
@@ -27,50 +25,24 @@ library(spam)
 set.seed(11)
 N <- 30^2
 J <- 6
-M <- 3
 p <- 2
 ## setup the spatial process
-locs <- as.matrix(
-  expand.grid(
-    seq(0, 1, length = sqrt(N)),
-    seq(0, 1, length = sqrt(N))
-  )
+locs <- expand.grid(
+  seq(0, 1, length = sqrt(N)),
+  seq(0, 1, length = sqrt(N))
 )
-
-## generate the MRA basis
-MRA <- mra_wendland_2d(locs, M = M, n_coarse_grid = 8)
-W <- MRA$W
-
-## generate the MRA spatially-correlated random effects precision matrix
-tau2 <- sapply(1:(J-1), function(j) 100 * 2^(1:M) * rgamma(M, 1, 1))
-
-Q_alpha <-  make_Q_alpha_2d(sqrt(MRA$n_dims), rep(0.999, length(MRA$n_dims)))
-Q_alpha_tau2 <- vector(mode = "list", length = J-1)
-for (j in 1:(J-1)) {
-  Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j])
-}
-
-## define the sum-to-0 constraint for alpha
-constraints <- make_constraint(MRA, constraint = "resolution", joint = TRUE)
-A_constraint <- constraints$A_constraint
-a_constraint <- constraints$a_constraint
-
-## simulate the spatial random effects
-alpha <- matrix(0, sum(MRA$n_dims), J-1)
-for (j in 1:(J-1)) {
-  alpha[, j] <- rmvnorm.prec.const(n = 1, mu = rep(0, sum(MRA$n_dims)), Q = Q_alpha_tau2[[j]])
-}
-W_alpha <- W %*% alpha
-
+D <- fields::rdist(locs)
+## use the same parameters for each of the J-1 components
+tau2 <- 0.4
+theta <- log(0.1) 
+Sigma <- tau2 * correlation_function(D, theta, corr_fun = "exponential") 
+psi <- t(rmvn(J-1, rep(0, N), Sigma))
 ## setup the fixed effects process
 X <- cbind(1, matrix(runif(N*p), N, p))
 beta <- matrix(rnorm((J-1) * ncol(X), 0, 0.25), ncol(X), (J-1))
 ## make the intercepts smaller to reduce stochastic ordering effect
 beta[1, ] <- beta[1, ] - seq(from = 2, to = 0, length.out = J-1)
-
-## add in some residual error
-sigma2 <- rgamma(J-1, 1, 5)
-eta <- X %*% beta + W_alpha + sapply(1:(J-1), function(j) rnorm(N, 0, sqrt(sigma2[j])))
+eta <- X %*% beta + psi
 pi <- eta_to_pi(eta)
 
 Y <- matrix(0, N, J)
@@ -337,18 +309,18 @@ params$n_thin <- 1
 priors <- default_priors_pg_splm(Y, X)
 inits  <- default_inits_pg_splm(Y, X, priors, shared_covariance_params = TRUE)
 
-if (file.exists(here::here("results", "pg_splm-mra.RData"))) {
-  load(here::here("results", "pg_splm-mra.RData"))
+if (file.exists(here::here("results", "pg_splm-exponential-shared.RData"))) {
+  load(here::here("results", "pg_splm-exponential-shared.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pg_splm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L)
+  out <- pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 32L, shared_covariance_params = TRUE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pg_splm-mra.RData"))
+  save(out, runtime, file = here::here("results", "pg_splm-exponential-shared.RData"))
 }
 ```
 
@@ -359,31 +331,8 @@ for (i in 1:5) {
   matplot(out$beta[, , i], type = 'l', main = paste("species", i))
   abline(h = beta[, i], col = 1:nrow(beta))
 }
-
-plot(apply(out$beta, c(2, 3), mean), beta)
-abline(0, 1, col = "red")
-
-abline(0, 1, col = "red")
-
-dimnames(beta) <- list(
-  parameter = paste0("beta[", 1:dim(betas)[2], "]"),
-  species   = paste0("species[", 1:dim(betas)[3], "]")
-)
-
-
-betas <- out$beta
-dimnames(betas) <- list(
-  iteration = 1:dim(betas)[1],
-  parameter = paste0("beta[", 1:dim(betas)[2], "]"),
-  species   = paste0("species[", 1:dim(betas)[3], "]")
-)
-
-as.data.frame.table(betas, responseName = "value") %>%
-  ggplot(aes(x = parameter, y = value)) +
-  geom_boxplot() +
-  facet_wrap(~ species, nrow = 5) + 
-  geom_point(data = as.data.frame.table(betas, responseName = "value"), color = "red")  
-
+matplot(out$theta, type = 'l', main = "theta")
+abline(h = theta, col = 1:2)
 ```
 
 ```{r}
@@ -393,13 +342,14 @@ for (i in 1:5) {
   matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
   abline(h = eta[plot_idx, i], col = 1:20)
 }
-## typically, tau2 is not identifiable
-plot(apply(out$tau2, c(2, 3), mean), tau2)
-abline(0, 1, col = "red")
+plot(out$tau2, type = 'l', main = "tau2")
+abline(h = tau2, col = "red")
 ```
 
 
 ```{r}
+runtime
+
 
 ## plot beta estimates
 dat_plot <- data.frame(
@@ -488,19 +438,20 @@ params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
 priors <- default_priors_pg_splm(Y_s, X_s)
+inits <- default_inits_pg_splm(Y_s, X_s, priors, shared_covariance_params = TRUE)
 
-if (file.exists(here::here("results", "pg_splm-mra-sample.RData"))) {
-  load(here::here("results", "pg_splm-mra-sample.RData"))
+if (file.exists(here::here("results", "pg_splm-exponential-sample-shared.RData"))) {
+  load(here::here("results", "pg_splm-exponential-sample-shared.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pg_splm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L)
+  out <- pg_splm(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "exponential", n_cores = 32L, shared_covariance_params = TRUE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pg_splm-mra-sample.RData"))
+  save(out, runtime, file = here::here("results", "pg_splm-exponential-sample-shared.RData"))
 }
 ```
 
@@ -511,28 +462,20 @@ for (i in 1:5) {
   matplot(out$beta[, , i], type = 'l', main = paste("species", i))
   abline(h = beta[, i], col = 1:nrow(beta))
 }
-
-plot(apply(out$beta, c(2, 3), mean), beta)
-abline(0, 1, col = "red")
-```
-
-```{r}
-plot(apply(out$sigma2, 2, mean), sigma2)
-abline(0, 1, col = "red")
+matplot(out$theta, type = 'l', main = "theta")
+abline(h = theta, col = 1:2)
 ```
 
 ```{r}
 layout(matrix(1:6, 3, 2))
-plot_idx <- sample(1:N, 20)
+plot_idx <- sample(1:n, 20)
 for (i in 1:5) {
   matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
-  abline(h = eta[plot_idx, i], col = 1:20)
+  abline(h = eta_s[plot_idx, i], col = 1:20)
 }
-## typically, tau2 is not identifiable
-plot(apply(out$tau2, c(2, 3), mean), tau2)
-abline(0, 1, col = "red")
+plot(out$tau2, type = 'l', main = "tau2")
+abline(h = tau2, col = "red")
 ```
-
 
 
 ```{r}
@@ -559,7 +502,7 @@ p1 <- dat_plot %>%
   geom_abline(intercept = 0, slope = 1, col = "red") +
   ggtitle("Estimated vs. simulated beta")
 
-## plot eta estimates
+## plot eeta estimates
 dat_plot <- data.frame(
   eta = c(
     c(apply(out$eta, c(2, 3), mean)), 
@@ -583,12 +526,12 @@ p1 + p2
 
 
 ```{r, message = FALSE}
-if (file.exists(here::here("results", "pg-splm-mra-sample-preds.RData"))) {
-  load(here::here("results", "pg-splm-mra-sample-preds.RData"))
+if (file.exists(here::here("results", "pg_splm-exponential-sample-preds-shared.RData"))) {
+  load(here::here("results", "pg_splm-exponential-sample-preds-shared.RData"))
 } else {
-  ## now this is super fast
-  preds <- predict_pg_splm_mra(out, X_s, X_oos, locs_s, locs_oos)
-  save(preds, file = here::here("results", "pg-splm-mra-sample-preds.RData"))
+  ## currently this is somewhat slow but is embarassingly parallel
+  preds <- predict_pg_splm(out, X_s, X_oos, as.matrix(locs_s), as.matrix(locs_oos), corr_fun = "exponential", shared_covariance_params = TRUE)
+  save(preds, file = here::here("results", "pg_splm-exponential-sample-preds-shared.RData"))
 }
 ```
 
@@ -626,6 +569,394 @@ p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
 p_simulated + p_observed + p_predicted 
 ```
 
+# Each component gets its own covariance parameters
 
+```{r}
+set.seed(11)
+N <- 30^2
+J <- 6
+p <- 2
+## setup the spatial process
+locs <- expand.grid(
+  seq(0, 1, length = sqrt(N)),
+  seq(0, 1, length = sqrt(N))
+)
+D <- fields::rdist(locs)
+
+## use the same parameters for each of the J-1 components
+tau2 <- runif(J-1, 0.25, 1.5)
+theta <- rnorm(J-1, log(0.1), 0.1)
+Sigma <- array(0, dim = c(J-1, N, N))
+psi   <- matrix(0, N, J-1)
+for (j in 1:(J-1)) {
+  Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = "exponential") 
+  psi[, j]     <- c(mvnfast::rmvn(1, rep(0, N), Sigma[j, , ]))
+}
+## setup the fixed effects process
+X <- cbind(1, matrix(runif(N*p), N, p))
+beta <- matrix(rnorm((J-1) * ncol(X), 0, 0.25), ncol(X), (J-1))
+## make the intercepts smaller to reduce stochastic ordering effect
+beta[1, ] <- beta[1, ] - seq(from = 2, to = 0, length.out = J-1)
+eta <- X %*% beta + psi
+pi <- eta_to_pi(eta)
+
+Y <- matrix(0, N, J)
+
+for (i in 1:N) {
+  Y[i, ] <- rmultinom(1, 500, pi[i, ])
+}
+Y_prop     <- counts_to_proportions(Y)
+```
+
+## Plot the simulated data
+
+```{r}
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(Y_prop),
+  lon     = locs[, 1],
+  lat     = locs[, 2],
+  species = factor(rep(1:J, each = N)), 
+  pi      = c(pi)
+)
+p_simulated <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  ggtitle("Simulated data")
+p_simulated
+```
+
+
+## fit the model
+
+```{r, message = FALSE}
+params <- default_params()
+params$n_adapt <- 500
+params$n_mcmc <- 500
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pg_splm(Y, X)
+inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
+
+if (file.exists(here::here("results", "pg_splm-exponential.RData"))) {
+  load(here::here("results", "pg_splm-exponential.RData"))
+} else {
+  ## parallelize the Cholesky decomposition
+  ## add in tryCatch checks for all Cholesky decompositions
+  ## add in option to count the number of Cholesky decomposition failures and add a single warning message at the end of the MCMC and add in a stopping rule if the number of warnings (as a % of MCMC iterations) gets too large
+  
+  ## need to parallelize the polya-gamma random variables
+  ## can I do this efficiently using openMP?
+  ## Q: faster to parallelize using openMP or foreach?
+  start <- Sys.time()
+  out <- pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 32L, shared_covariance_params = FALSE, verbose = FALSE)
+  stop <- Sys.time()
+  runtime <- stop - start
+  
+  save(out, runtime, file = here::here("results", "pg_splm-exponential.RData"))
+}
+```
+
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i), col = 1:nrow(beta))
+  abline(h = beta[, i], col = 1:nrow(beta))
+}
+```
+
+```{r}
+
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$theta[, i], type = 'l', main = "theta")
+  abline(h = theta[i], col = 1:2)
+}
+matplot(out$tau2, type = 'l')
+abline(h = tau2, col = 1:length(tau2))
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+plot_idx <- sample(1:N, 20)
+for (i in 1:5) {
+  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
+  abline(h = eta[plot_idx, i], col = 1:20)
+}
+```
+
+
+```{r}
+runtime
+
+## plot beta estimates
+dat_plot <- data.frame(
+  beta = c(
+    c(apply(out$beta, c(2, 3), mean)), 
+    c(beta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
+  variable = 1:ncol(X)
+)
+
+p1 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = beta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated beta")
+
+## plot eeta estimates
+dat_plot <- data.frame(
+  eta = c(
+    c(apply(out$eta, c(2, 3), mean)), 
+    c(eta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * N),
+  species = factor(rep(1:(J-1), each = N)),
+  observations = 1:N
+)
+
+p2 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = eta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated eta")
+p1 + p2
+```
+
+## predictions
+
+```{r, message = FALSE}
+set.seed(111)
+n <- 400
+s <- sample(N, n)
+Y_s      <- Y[s, ]
+Y_oos    <- Y[-s, ]
+X_s      <- X[s, ]
+X_oos    <- X[-s, ]
+eta_s    <- eta[s, ]
+eta_oos  <- eta[-s, ]
+pi_s     <- pi[s, ]
+pi_oos   <- pi[-s, ]
+locs_s   <- locs[s, ]
+locs_oos <- locs[-s, ]
+Y_prop_s   <- Y_prop[s, ]
+Y_prop_oos <- Y_prop[-s, ]
+
+
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(Y_prop_s),
+  lon     = c(locs_s[, 1]),
+  lat     = c(locs_s[, 2]),
+  species = factor(rep(1:J, each = n)), 
+  pi      = c(pi_s)
+)
+p_observed <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  ggtitle("Sampled simulated probabilities")
+p_observed
+```
+
+
+```{r, message = FALSE}
+params <- default_params()
+params$n_adapt <- 500
+params$n_mcmc <- 500
+params$n_message <- 50
+params$n_thin <- 1
+priors <- default_priors_pg_splm(Y_s, X_s)
+inits <- default_inits_pg_splm(Y_s, X_s, priors, corr_fun = "exponential", shared_covariance_params = FALSE)
+
+if (file.exists(here::here("results", "pg_splm-exponential-sample.RData"))) {
+  load(here::here("results", "pg_splm-exponential-sample.RData"))
+} else {
+  ## need to parallelize the polya-gamma random variables
+  ## can I do this efficiently using openMP?
+  ## Q: faster to parallelize using openMP or foreach?
+  start <- Sys.time()
+  out <- pg_splm(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "exponential", n_cores = 32L, shared_covariance_params = FALSE)
+  stop <- Sys.time()
+  runtime <- stop - start
+  
+  save(out, runtime, file = here::here("results", "pg_splm-exponential-sample.RData"))
+}
+```
+
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$beta[, , i], type = 'l', main = paste("species", i), col = 1:nrow(beta))
+  abline(h = beta[, i], col = 1:nrow(beta))
+}
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+for (i in 1:5) {
+  matplot(out$theta[, i], type = 'l', main = "theta")
+  abline(h = theta[i], col = 1:2)
+}
+matplot(out$tau2, type = 'l')
+abline(h = tau2, col = 1:length(tau2))
+```
+
+```{r}
+layout(matrix(1:6, 3, 2))
+plot_idx <- sample(1:n, 20)
+for (i in 1:5) {
+  matplot(out$eta[, plot_idx, i], type = 'l', main = paste("species", i))
+  abline(h = eta[plot_idx, i], col = 1:20)
+}
+```
+
+
+```{r}
+runtime
+
+
+## plot beta estimates
+dat_plot <- data.frame(
+  beta = c(
+    c(apply(out$beta, c(2, 3), mean)), 
+    c(beta)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * ncol(X)),
+  species = factor(rep(1:(J-1), each = ncol(X))),
+  variable = 1:ncol(X)
+)
+
+p1 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = beta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated beta")
+
+## plot eeta estimates
+dat_plot <- data.frame(
+  eta = c(
+    c(apply(out$eta, c(2, 3), mean)), 
+    c(eta_s)
+  ),
+  type = rep(c("estimate", "truth"), each = (J-1) * n),
+  species = factor(rep(1:(J-1), each = n)),
+  observations = 1:n
+)
+
+p2 <- dat_plot %>%
+  pivot_wider(names_from = type, values_from = eta) %>%
+  ggplot(aes(x = estimate, y = truth)) +
+  # scale_color_viridis_d(begin = 0, end = 0.8) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ species, nrow = 8) +
+  geom_abline(intercept = 0, slope = 1, col = "red") +
+  ggtitle("Estimated vs. simulated eta")
+p1 + p2
+```
+
+
+```{r, message = FALSE}
+if (file.exists(here::here("results", "pg_splm-exponential-sample-preds.RData"))) {
+  load(here::here("results", "pg_splm-exponential-sample-preds.RData"))
+} else {
+  ## currently this is somewhat slow but is embarassingly parallel
+  preds <- predict_pg_splm(out, X_s, X_oos, as.matrix(locs_s), as.matrix(locs_oos), corr_fun = "exponential", shared_covariance_params = FALSE)
+  save(preds, file = here::here("results", "pg_splm-exponential-sample-preds.RData"))
+}
+```
+
+```{r}
+pi_pred_mean <- apply(preds$pi, c(2, 3), mean)
+eta_pred_mean <- apply(preds$eta, c(2, 3), mean)
+layout(matrix(1:2, 1, 2))
+plot(eta_oos, eta_pred_mean)
+abline(0, 1, col = "red")
+plot(pi_oos, pi_pred_mean)
+abline(0, 1, col = "red")
+```
+
+## Plot the simulated data
+
+```{r, fig.width = 2*16, fig.height = 2*9, out.width = "100%"}
+## put data into data.frame for plotting
+dat <- data.frame(
+  Y       = c(rbind(Y_prop_s, Y_prop_oos)),
+  lon     = c(locs_s[, 1], locs_oos[, 1]),
+  lat     = c(locs_s[, 2], locs_oos[, 2]),
+  species = factor(rep(1:J, each = N)), 
+  pi      = c(rbind(pi_s, pi_pred_mean)),
+  type    = c(rep("observed", n), rep("predicted", N-n))
+)
+p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi)) +
+  # p_predicted <- ggplot(data = dat, aes(x = lon, y = lat, fill = pi, alpha = type)) +
+  geom_raster() +
+  scale_fill_viridis_c() +
+  facet_wrap(~ species) +
+  # scale_alpha_discrete(range = c(0.6, 1)) +
+  ggtitle("Predicted latent probability")
+
+p_simulated + p_observed + p_predicted
+```
+
+
+# Loo model selection example shared vs separate covariance parameters
+
+```{r}
+load(here::here("results", "pg_splm-exponential-sample-shared.RData"))
+ll_shared <- calc_ll_pg_splm(Y_s, X_s, out)
+load(here::here("results", "pg_splm-exponential-sample.RData"))
+ll_not_shared <- calc_ll_pg_splm(Y_s, X_s, out)
+
+## loo library
+library(loo)
+loo_shared <- loo(t(ll_shared$ll), cores = 32L)
+loo_not_shared <- loo(t(ll_not_shared$ll), cores = 32L)
+comp <- loo_compare(loo_shared, loo_not_shared)
+# prefers the not shared covariance parameter model
+print(comp)
+plot(loo_shared)
+plot(loo_not_shared)
+```
+
+
+## code profiling
+
+```{r, eval = FALSE}
+## not run -- diagnostic profiling-exponential
+## profile the shared covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pg_splm(Y, X)
+inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "exponential", shared_covariance_params = TRUE)
+
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 1L, shared_covariance_params = TRUE))
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = TRUE))
+
+## profile the component-specific covariance parameter models
+params <- default_params()
+params$n_adapt <- 50
+params$n_mcmc <- 50
+priors <- default_priors_pg_splm(Y, X)
+inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "exponential" shared_covariance_params = FALSE)
+
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 1L, shared_covariance_params = FALSE))
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "exponential", n_cores = 6L, shared_covariance_params = FALSE))
+```
 
 

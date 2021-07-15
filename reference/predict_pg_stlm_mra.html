@@ -138,8 +138,6 @@
   <span class='va'>X_pred</span>,
   <span class='va'>locs</span>,
   <span class='va'>locs_pred</span>,
-  <span class='va'>corr_fun</span>,
-  <span class='va'>shared_covariance_params</span>,
   progress <span class='op'>=</span> <span class='cn'>TRUE</span>,
   verbose <span class='op'>=</span> <span class='cn'>FALSE</span>,
   force <span class='op'>=</span> <span class='cn'>FALSE</span>
@@ -169,14 +167,6 @@
       <td><p>is a \(n_pred \times 2\) matrix of locations where predictions are to be made.</p></td>
     </tr>
     <tr>
-      <th>corr_fun</th>
-      <td><p>is a character that denotes the correlation function form. Current options include "matern" and "exponential".</p></td>
-    </tr>
-    <tr>
-      <th>shared_covariance_params</th>
-      <td><p>is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
-    </tr>
-    <tr>
       <th>progress</th>
       <td><p>is a logicial input that determines whether to print a progress bar.</p></td>
     </tr>
@@ -187,6 +177,14 @@
     <tr>
       <th>force</th>
       <td><p>is a logicial input that determines whether to allow for predictions at more locations than 10000. The default is FALSE</p></td>
+    </tr>
+    <tr>
+      <th>corr_fun</th>
+      <td><p>is a character that denotes the correlation function form. Current options include "matern" and "exponential".</p></td>
+    </tr>
+    <tr>
+      <th>shared_covariance_params</th>
+      <td><p>is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
     </tr>
     </table>
 

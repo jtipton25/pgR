@@ -9,6 +9,8 @@
 \item{c}{An \eqn{N}{N} \code{vector} of Polya-gamma parameters}
 
 \item{cores}{An integer that gives the number of cores for openMP parallelization}
+
+\item{threshold}{An integer that gives the number b at which a normal approximation (central limit theorm) is used. Default is 170.}
 }
 \description{
 A function for evaluating drawing random Polya-gamma random variables in parallel

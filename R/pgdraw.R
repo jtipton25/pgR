@@ -7,6 +7,7 @@
 #' then it must be of the same length as the \code{c} parameter.
 #' @param c A vector of real numbers corresponding to the 'c' parameter for the PG(b,c) distribution.
 #' @param cores A positive integer corresponding to the number of openMP cores to use.
+#' @param threshold An integer that gives the number b at which a normal approximation (central limit theorm) is used. Default is 170.
 #' @section Details:
 #' This code generates random variates from the Polya-Gamma distribution with desired 'b' and 'c' parameters.
 #' The underlying code is written in C and is an implementation of the algorithm described in J. Windle's PhD thesis.
@@ -100,7 +101,7 @@
 #'
 #' @seealso \code{\link{pgdraw.moments}}
 #' @export
-pgdraw <- function(b, c, cores = 1L) {
+pgdraw <- function(b, c, cores = 1L, threshold = 170L) {
   # Check inputs
   if (length(b) > 1 && length(b) != length(c))
     stop("b parameter must either be of length one, or the same length as the c parameter")
@@ -108,8 +109,10 @@ pgdraw <- function(b, c, cores = 1L) {
     stop("b parameter must contain only positive integers")
   if (!is.integer(cores) || length(cores) != 1 || cores <= 0)
     stop("cores must be a positive integer")
+  if (!is.integer(threshold) || length(threshold) != 1 || threshold <= 0)
+    stop("threshold must be a positive integer")
   
-  rcpp_pgdraw(b = b, c = c, cores = cores)
+  rcpp_pgdraw(b = b, c = c, cores = cores, threshold = threshold)
 }
 
 

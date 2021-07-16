@@ -56,6 +56,7 @@ double aterm(int, double, double);
 //' @param b An \eqn{N}{N} \code{vector} of Polya-gamma parameters
 //' @param c An \eqn{N}{N} \code{vector} of Polya-gamma parameters
 //' @param cores An integer that gives the number of cores for openMP parallelization
+//' @param threshold An integer that gives the number b at which a normal approximation (central limit theorm) is used. Default is 170.
 //'   
 //' @export
 //' @name rcpp_pgdraw
@@ -63,32 +64,43 @@ double aterm(int, double, double);
 //' @keywords internal
 
 //[[Rcpp::export]]
-NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1)
+NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1, int threshold = 170)
 {
-	int const m = b.size();
-	int const n = c.size();
-	NumericVector y(n);
-
-	if (m > 1 && n > m) {
-		stop("Inadmissible input: when b is a vector, it must be as long as c.");
-	}
-
+    int const m = b.size();
+    int const n = c.size();
+    NumericVector y(n);
+    
+    if (m > 1 && n > m) {
+        stop("Inadmissible input: when b is a vector, it must be as long as c.");
+    }
+    
 #ifdef _OPENMP
-	omp_set_num_threads(cores);
+    omp_set_num_threads(cores);
 #pragma omp parallel for schedule(dynamic)
 #endif
-	for (int i = 0; i < n; i++)
-	{
-		int bi = (int) ((m > 1) ? b[i] : b[0]);
-
-		y[i] = 0;
-		for (int j = 0; j < bi; j++)
-		{
-			y[i] += samplepg(c[i]);
-		}
-	}
-
-	return y;
+    for (int i = 0; i < n; i++)
+    {
+        int bi = (int) ((m > 1) ? b[i] : b[0]);
+        
+        y[i] = 0;
+        if (bi < threshold) {
+            for (int j = 0; j < bi; j++)
+            {
+                y[i] += samplepg(c[i]);
+            }
+        } else {
+            double z = abs(0.5 * c[i]);
+            double E_y = 1.0 / 4.0;
+            double sigma2_y = 1.0 / 24.0;
+            if (z > 1e-12) {
+                E_y = 0.25 * (bi * tanh(z) / z);
+                sigma2_y = 0.0625 * ((bi + 1.0) * bi * pow(tanh(z) / z, 2.0) + bi * ((tanh(z) - z) / pow(z, 3))) - pow(E_y, 2.0);
+            }
+            y[i] = R::rnorm(E_y, sqrt(sigma2_y));
+        }
+    }
+    
+    return y;
 }
 
 
@@ -97,77 +109,77 @@ NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1)
 // URL: https://repositories.lib.utexas.edu/bitstream/handle/2152/21842/WINDLE-DISSERTATION-2013.pdf?sequence=1
 double samplepg(double z)
 {
-  //  PG(b, z) = 0.25 * J*(b, z/2)
-  z = (double)std::fabs((double)z) * 0.5;
-  
-  // Point on the intersection IL = [0, 4/ log 3] and IR = [(log 3)/pi^2, \infty)
-  double t = MATH_2_PI;
-  
-  // Compute p, q and the ratio q / (q + p)
-  // (derived from scratch; derivation is not in the original paper)
-  double K = z*z/2.0 + MATH_PI2/8.0;
-  double logA = (double)std::log(4.0) - MATH_LOG_PI - z;
-  double logK = (double)std::log(K);
-  double Kt = K * t;
-  double w = (double)std::sqrt(MATH_PI_2);
-
-  double logf1 = logA + R::pnorm(w*(t*z - 1),0.0,1.0,1,1) + logK + Kt;
-  double logf2 = logA + 2*z + R::pnorm(-w*(t*z+1),0.0,1.0,1,1) + logK + Kt;
-  double p_over_q = (double)std::exp(logf1) + (double)std::exp(logf2);
-  double ratio = 1.0 / (1.0 + p_over_q); 
-
-  double u, X;
-
-  // Main sampling loop; page 130 of the Windle PhD thesis
-  while(1) 
-  {
-    // Step 1: Sample X ? g(x|z)
-    u = R::runif(0.0,1.0);
-    if(u < ratio) {
-      // truncated exponential
-      X = t + exprnd(1.0)/K;
-    }
-    else {
-      // truncated Inverse Gaussian
-      X = tinvgauss(z, t);
-    }
-
-    if (!std::isfinite(X)) continue;
-
-    // Step 2: Iteratively calculate Sn(X|z), starting at S1(X|z), until U ? Sn(X|z) for an odd n or U > Sn(X|z) for an even n
-    int i = 1;
-    double Sn = aterm(0, X, t);
-    double U = R::runif(0.0,1.0) * Sn;
-    int asgn = -1;
-    bool even = false;
-
+    //  PG(b, z) = 0.25 * J*(b, z/2)
+    z = (double)std::fabs((double)z) * 0.5;
+    
+    // Point on the intersection IL = [0, 4/ log 3] and IR = [(log 3)/pi^2, \infty)
+    double t = MATH_2_PI;
+    
+    // Compute p, q and the ratio q / (q + p)
+    // (derived from scratch; derivation is not in the original paper)
+    double K = z*z/2.0 + MATH_PI2/8.0;
+    double logA = (double)std::log(4.0) - MATH_LOG_PI - z;
+    double logK = (double)std::log(K);
+    double Kt = K * t;
+    double w = (double)std::sqrt(MATH_PI_2);
+    
+    double logf1 = logA + R::pnorm(w*(t*z - 1),0.0,1.0,1,1) + logK + Kt;
+    double logf2 = logA + 2*z + R::pnorm(-w*(t*z+1),0.0,1.0,1,1) + logK + Kt;
+    double p_over_q = (double)std::exp(logf1) + (double)std::exp(logf2);
+    double ratio = 1.0 / (1.0 + p_over_q); 
+    
+    double u, X;
+    
+    // Main sampling loop; page 130 of the Windle PhD thesis
     while(1) 
     {
-      Sn = Sn + asgn * aterm(i, X, t);
-      
-      // Accept if n is odd
-      if(!even && (U <= Sn)) {
-        X = X * 0.25;
-        return X;
-      }
-      
-      // Return to step 1 if n is even
-      if(even && (U > Sn)) {
-        break;
-      }
-      
-      even = !even;
-      asgn = -asgn;
-      i++;
+        // Step 1: Sample X ? g(x|z)
+        u = R::runif(0.0,1.0);
+        if(u < ratio) {
+            // truncated exponential
+            X = t + exprnd(1.0)/K;
+        }
+        else {
+            // truncated Inverse Gaussian
+            X = tinvgauss(z, t);
+        }
+        
+        if (!std::isfinite(X)) continue;
+        
+        // Step 2: Iteratively calculate Sn(X|z), starting at S1(X|z), until U ? Sn(X|z) for an odd n or U > Sn(X|z) for an even n
+        int i = 1;
+        double Sn = aterm(0, X, t);
+        double U = R::runif(0.0,1.0) * Sn;
+        int asgn = -1;
+        bool even = false;
+        
+        while(1) 
+        {
+            Sn = Sn + asgn * aterm(i, X, t);
+            
+            // Accept if n is odd
+            if(!even && (U <= Sn)) {
+                X = X * 0.25;
+                return X;
+            }
+            
+            // Return to step 1 if n is even
+            if(even && (U > Sn)) {
+                break;
+            }
+            
+            even = !even;
+            asgn = -asgn;
+            i++;
+        }
     }
-  }
-  return X;
+    return X;
 }
 
 // Generate exponential distribution random variates
 double exprnd(double mu)
 {
-	return -mu * (double)std::log(1.0 - (double)R::runif(0.0,1.0));
+    return -mu * (double)std::log(1.0 - (double)R::runif(0.0,1.0));
 }
 
 // Function a_n(x) defined in equations (12) and (13) of
@@ -179,28 +191,28 @@ double exprnd(double mu)
 // (2.14) and (2.15), page 24
 double aterm(int n, double x, double t)
 {
-  double f = 0;
-  if(x <= t) {
-    f = MATH_LOG_PI + (double)std::log(n + 0.5) + 1.5*(MATH_LOG_2_PI- (double)std::log(x)) - 2*(n + 0.5)*(n + 0.5)/x;
-  }
-  else {
-    f = MATH_LOG_PI + (double)std::log(n + 0.5) - x * MATH_PI2_2 * (n + 0.5)*(n + 0.5);
-  }    
-  return (double)exp(f);
+    double f = 0;
+    if(x <= t) {
+        f = MATH_LOG_PI + (double)std::log(n + 0.5) + 1.5*(MATH_LOG_2_PI- (double)std::log(x)) - 2*(n + 0.5)*(n + 0.5)/x;
+    }
+    else {
+        f = MATH_LOG_PI + (double)std::log(n + 0.5) - x * MATH_PI2_2 * (n + 0.5)*(n + 0.5);
+    }    
+    return (double)exp(f);
 }
 
 // Generate inverse gaussian random variates
 double randinvg(double mu)
 {
-  // sampling
-  double u = R::rnorm(0.0,1.0);
-  double V = u*u;
-  double out = mu + 0.5*mu * ( mu*V - (double)std::sqrt(4.0*mu*V + mu*mu * V*V) );
-  
-  if(R::runif(0.0,1.0) > mu /(mu+out)) {    
-    out = mu*mu / out; 
-  }    
-  return out;
+    // sampling
+    double u = R::rnorm(0.0,1.0);
+    double V = u*u;
+    double out = mu + 0.5*mu * ( mu*V - (double)std::sqrt(4.0*mu*V + mu*mu * V*V) );
+    
+    if(R::runif(0.0,1.0) > mu /(mu+out)) {    
+        out = mu*mu / out; 
+    }    
+    return out;
 }
 
 // Sample truncated gamma random variates
@@ -208,51 +220,51 @@ double randinvg(double mu)
 // Korean Journal of Computational & Applied Mathematics, 1998, 5, 601-610
 double truncgamma()
 {
-  double c = MATH_PI_2;
-  double X, gX;
-  
-  bool done = false;
-  while(!done)
-  {
-    X = exprnd(1.0) * 2.0 + c;
-    gX = MATH_SQRT_PI_2 / (double)std::sqrt(X);
+    double c = MATH_PI_2;
+    double X, gX;
     
-    if(R::runif(0.0,1.0) <= gX) {
-      done = true;
+    bool done = false;
+    while(!done)
+    {
+        X = exprnd(1.0) * 2.0 + c;
+        gX = MATH_SQRT_PI_2 / (double)std::sqrt(X);
+        
+        if(R::runif(0.0,1.0) <= gX) {
+            done = true;
+        }
     }
-  }
-  
-  return X;  
+    
+    return X;  
 }
 
 // Sample truncated inverse Gaussian random variates
 // Algorithm 4 in the Windle (2013) PhD thesis, page 129
 double tinvgauss(double z, double t)
 {
-  double X, u;
-  double mu = 1.0/z;
-  
-  // Pick sampler
-  if(mu > t) {
-    // Sampler based on truncated gamma 
-    // Algorithm 3 in the Windle (2013) PhD thesis, page 128
-    while(1) {
-	  u = R::runif(0.0, 1.0);
-      X = 1.0 / truncgamma();
-      
-	  if ((double)std::log(u) < (-z*z*0.5*X)) {
-        break;
-      }
-    }
-  }  
-  else {
-    // Rejection sampler
-    X = t + 1.0;
-    while(X >= t) {
-      X = randinvg(mu);
-    }
-  }    
-  return X;
+    double X, u;
+    double mu = 1.0/z;
+    
+    // Pick sampler
+    if(mu > t) {
+        // Sampler based on truncated gamma 
+        // Algorithm 3 in the Windle (2013) PhD thesis, page 128
+        while(1) {
+            u = R::runif(0.0, 1.0);
+            X = 1.0 / truncgamma();
+            
+            if ((double)std::log(u) < (-z*z*0.5*X)) {
+                break;
+            }
+        }
+    }  
+    else {
+        // Rejection sampler
+        X = t + 1.0;
+        while(X >= t) {
+            X = randinvg(mu);
+        }
+    }    
+    return X;
 }
 
 
@@ -270,7 +282,7 @@ double tinvgauss(double z, double t)
 //' @keywords internal
 
 //[[Rcpp::export]]
-NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1, int threshold = 30)
+NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1, int threshold = 170)
 {
     int const m = b.size();
     int const n = c.size();
@@ -296,13 +308,14 @@ NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1
                 y[i] += samplepg(c[i]);
             }
         } else {
+            double z = abs(0.5 * c[i]);
             double E_y = 1.0 / 4.0;
             double sigma2_y = 1.0 / 24.0;
-            if (c[i] != 0) {
-                E_y = 1.0 / (2.0 * c[i]) * tanh(c[i] / 2.0);
-                sigma2_y = 1.0 / (4.0 * pow(c[i], 3.0)) * (sinh(c[i]) - c[i]) * 1.0 / pow(cosh(c[i] / 2.0), 2.0);
+            if (z > 1e-12) {
+                E_y = 0.25 * (bi * tanh(z) / z);
+                sigma2_y = 0.0625 * ((bi + 1.0) * bi * pow(tanh(z) / z, 2.0) + bi * ((tanh(z) - z) / pow(z, 3))) - pow(E_y, 2.0);
             }
-            y[i] = R::rnorm(b[i] * E_y, sqrt(b[i] * sigma2_y));
+            y[i] = R::rnorm(E_y, sqrt(sigma2_y));
         }
     }
     

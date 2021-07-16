@@ -19,6 +19,7 @@ dmvnrm_arma_mc <- function(x, mean, sigma, logd = FALSE, cores = 1L) {
 #' @param b An \eqn{N}{N} \code{vector} of Polya-gamma parameters
 #' @param c An \eqn{N}{N} \code{vector} of Polya-gamma parameters
 #' @param cores An integer that gives the number of cores for openMP parallelization
+#' @param threshold An integer that gives the number b at which a normal approximation (central limit theorm) is used. Default is 170.
 #'   
 #' @export
 #' @name rcpp_pgdraw
@@ -38,11 +39,11 @@ NULL
 #' @keywords internal
 NULL
 
-rcpp_pgdraw <- function(b, c, cores = 1L) {
-    .Call('_pgR_rcpp_pgdraw', PACKAGE = 'pgR', b, c, cores)
+rcpp_pgdraw <- function(b, c, cores = 1L, threshold = 170L) {
+    .Call('_pgR_rcpp_pgdraw', PACKAGE = 'pgR', b, c, cores, threshold)
 }
 
-rcpp_pgdraw_approx <- function(b, c, cores = 1L, threshold = 30L) {
+rcpp_pgdraw_approx <- function(b, c, cores = 1L, threshold = 170L) {
     .Call('_pgR_rcpp_pgdraw_approx', PACKAGE = 'pgR', b, c, cores, threshold)
 }
 

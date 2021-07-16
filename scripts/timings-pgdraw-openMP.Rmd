@@ -25,7 +25,7 @@ pi <- eta_to_pi(eta)
 
 Y <- matrix(0, N, d)
 for (i in 1:N) {
-    Y[i, ] <- rmultinom(1, 50, pi[i, ])
+    Y[i, ] <- rmultinom(1, 200, pi[i, ])
 }
 
 ## Calculate Mi
@@ -44,45 +44,45 @@ for (i in 1: N) {
 ```
 
 ```{r}
-fun_sequential <- function() {
+fun_sequential <- function(threshold = 1e6L) {
     ## can parallelize this, see example
     tmp <- matrix(0, N, d-1)
     for (i in 1:N) {
         for (j in 1:(d-1)) {
             if (Mi[i, j] != 0) {
-                tmp[i, j] <- pgdraw(Mi[i, j], eta[i, j])
+                tmp[i, j] <- pgdraw(Mi[i, j], eta[i, j], threshold = threshold)
             }
         }
     }
     tmp
 }
 
-fun_idx <- function(cores = 1L) {
+fun_idx <- function(cores = 1L, threshold = 1e6L) {
     tmp <- matrix(0, N, d-1)
-    tmp[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = cores)
+    tmp[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = cores, threshold = threshold)
     tmp
 }
 
 
 
 
-update_omega <- function(Mi, eta) {
-    if (Mi != 0) {
-        return(pgdraw(Mi, eta))
-    } else {
-        return(0)
-    }
-}
-## vectorized version of the function
-update_omega_vec <- function(Mi, eta) {
-    # if (dim(Mi) != dim(eta)) {
-    #   stop ("update_omega: The dimension of Mi must be equal to the dimension of eta")
-    # }
-    idx <- Mi != 0
-    out <- rep(0, length(eta))
-    out[idx] <- pgdraw(Mi[idx], eta[idx])
-    return(out)
-}
+# update_omega <- function(Mi, eta) {
+#     if (Mi != 0) {
+#         return(pgdraw(Mi, eta))
+#     } else {
+#         return(0)
+#     }
+# }
+# ## vectorized version of the function
+# update_omega_vec <- function(Mi, eta) {
+#     # if (dim(Mi) != dim(eta)) {
+#     #   stop ("update_omega: The dimension of Mi must be equal to the dimension of eta")
+#     # }
+#     idx <- Mi != 0
+#     out <- rep(0, length(eta))
+#     out[idx] <- pgdraw(Mi[idx], eta[idx])
+#     return(out)
+# }
 
 
 
@@ -91,12 +91,19 @@ if (file.exists(here::here("results", "timings-pgdraw.RData"))) {
     load(here::here("results", "timings-pgdraw.RData"))
 } else {
     bm <- microbenchmark::microbenchmark(
-        fun_sequential(),
-        fun_idx(cores = 1L),
-        fun_idx(cores = 2L),
-        fun_idx(cores = 4L),
-        fun_idx(cores = 6L),
-        fun_idx(cores = 8L)
+        fun_sequential(threshold = 1e6L),
+        fun_idx(cores = 1L, threshold = 1e6L),
+        fun_idx(cores = 2L, threshold = 1e6L),
+        fun_idx(cores = 4L, threshold = 1e6L),
+        fun_idx(cores = 6L, threshold = 1e6L),
+        fun_idx(cores = 8L, threshold = 1e6L),
+        # speed comparison to the approximate sampler using CLT
+        fun_sequential(threshold = 170L),
+        fun_idx(cores = 1L, threshold = 170L),
+        fun_idx(cores = 2L, threshold = 170L),
+        fun_idx(cores = 4L, threshold = 170L),
+        fun_idx(cores = 6L, threshold = 170L),
+        fun_idx(cores = 8L, threshold = 170L)
 )
     save(bm, file = here::here("results", "timings-pgdraw.RData"))
 }
@@ -108,3 +115,30 @@ print(bm)
 ```{r, message = FALSE}
 autoplot(bm) 
 ```
+
+# The approximation method is much faster
+
+```{r}
+
+if (file.exists(here::here("results", "timings-pgdraw-approx.RData"))) {
+    load(here::here("results", "timings-pgdraw-approx.RData"))
+} else {
+    bm_approx <- microbenchmark::microbenchmark(
+        # speed comparison to the approximate sampler using CLT
+        fun_idx(cores = 1L, threshold = 170L),
+        fun_idx(cores = 2L, threshold = 170L),
+        fun_idx(cores = 4L, threshold = 170L),
+        fun_idx(cores = 6L, threshold = 170L),
+        fun_idx(cores = 8L, threshold = 170L)
+)
+    save(bm_approx, file = here::here("results", "timings-pgdraw-approx.RData"))
+}
+
+# knitr::kable(print(bm))
+print(bm_approx)
+```
+
+```{r, message = FALSE}
+autoplot(bm_approx) 
+```
+

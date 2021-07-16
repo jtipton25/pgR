@@ -4,7 +4,7 @@
 \alias{pgdraw}
 \title{Generate random samples from the Polya-Gamma distribution, PG(b,c)}
 \usage{
-pgdraw(b, c, cores = 1L)
+pgdraw(b, c, cores = 1L, threshold = 170L)
 }
 \arguments{
 \item{b}{Either a single integer scalar, or a vector of integers, corresponding to the
@@ -15,6 +15,8 @@ then it must be of the same length as the \code{c} parameter.}
 \item{c}{A vector of real numbers corresponding to the 'c' parameter for the PG(b,c) distribution.}
 
 \item{cores}{A positive integer corresponding to the number of openMP cores to use.}
+
+\item{threshold}{An integer that gives the number b at which a normal approximation (central limit theorm) is used. Default is 170.}
 }
 \value{
 A vector of samples from the Polya-Gamma distribution, one for each entry of \code{c}

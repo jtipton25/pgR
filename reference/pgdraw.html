@@ -132,7 +132,7 @@
     <p>Generate random samples from the Polya-Gamma distribution</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pgdraw</span><span class='op'>(</span><span class='va'>b</span>, <span class='va'>c</span>, cores <span class='op'>=</span> <span class='fl'>1L</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>pgdraw</span><span class='op'>(</span><span class='va'>b</span>, <span class='va'>c</span>, cores <span class='op'>=</span> <span class='fl'>1L</span>, threshold <span class='op'>=</span> <span class='fl'>170L</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -151,6 +151,10 @@ then it must be of the same length as the <code>c</code> parameter.</p></td>
     <tr>
       <th>cores</th>
       <td><p>A positive integer corresponding to the number of openMP cores to use.</p></td>
+    </tr>
+    <tr>
+      <th>threshold</th>
+      <td><p>An integer that gives the number b at which a normal approximation (central limit theorm) is used. Default is 170.</p></td>
     </tr>
     </table>
 

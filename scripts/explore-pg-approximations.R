@@ -2,12 +2,13 @@ library(pgR)
 library(tidyverse)
 library(patchwork)
 library(emdist)
+library(BayesLogit)
 ## define a metric for similarity in distributions
 
 layout(matrix(1:6, 3, 2, byrow = TRUE))
 
 
-plot_samples <- function(b = 10, c = 0, n_rep = 10000, threshold = 1, n_curve = 500) {
+plot_samples <- function(b = 10, c = 0, n_rep = 10000, n_curve = 500) {
     
     if (!pgR:::is_integer(b, 1))
         stop("b must be an integer")
@@ -16,29 +17,41 @@ plot_samples <- function(b = 10, c = 0, n_rep = 10000, threshold = 1, n_curve = 
     moments <- pgR::pgdraw.moments(b, c)
     curve_lower <- moments$mu - 5 * sqrt(moments$var)
     curve_upper <- moments$mu + 5 * sqrt(moments$var)
-    time_approx <- system.time(samples_approx <- replicate(n_rep, pgR:::rcpp_pgdraw_approx(b, c, threshold = threshold)))[3]
-    time_exact <- system.time(samples_exact <- replicate(n_rep, pgR:::rcpp_pgdraw(b, c)))[3]
-
+    time_approx <- system.time(samples_approx <- replicate(n_rep, pgR::pgdraw(b, c, threshold = 170L)))[3]
+    time_exact  <- system.time(samples_exact <- replicate(n_rep, pgR:::rcpp_pgdraw(b, c, threshold = 1e8L)))[3]
+    time_BL     <- system.time(samples_BL <- replicate(n_rep, rpg(1, as.numeric(b), c)))[3]
+    
     hist(samples_approx, freq = FALSE, main = paste("Approximation", format(time_approx, digits = 2, nsmall = 2)), breaks = 100)
     curve(dnorm(x, moments$mu, sqrt(moments$var)), from = curve_lower, to = curve_upper, add = TRUE, col = "red", n = n_curve)
     hist(samples_exact, freq = FALSE, main = paste("Exact", format(time_exact, digits = 2, nsmall = 2)), breaks = 100)
     curve(dnorm(x, moments$mu, sqrt(moments$var)), from = curve_lower, to = curve_upper, add = TRUE, col = "red", n = n_curve)
+    hist(samples_BL, freq = FALSE, main = paste("BL", format(time_BL, digits = 2, nsmall = 2)), breaks = 100)
+    curve(dnorm(x, moments$mu, sqrt(moments$var)), from = curve_lower, to = curve_upper, add = TRUE, col = "red", n = n_curve)
 }
 
-layout(matrix(1:6, 3, 2, byrow = TRUE))
+layout(matrix(1:9, 3, 3, byrow = TRUE))
 plot_samples(5, - 80, n_curve = 1000)
 plot_samples(5, - 0.8, n_curve = 1000)
 plot_samples(5, - 0.08, n_curve = 1000)
 
-layout(matrix(1:6, 3, 2, byrow = TRUE))
-plot_samples(5, - 8, n_curve = 1000)
-plot_samples(5, - 0.8, n_curve = 1000)
-plot_samples(5, - 0.008, n_curve = 1000)
 
-layout(matrix(1:6, 3, 2, byrow = TRUE))
+layout(matrix(1:9, 3, 3, byrow = TRUE))
 plot_samples(50, - 8, n_curve = 1000)
 plot_samples(50, - 0.8, n_curve = 1000)
 plot_samples(50, - 0.008, n_curve = 1000)
+
+layout(matrix(1:12, 4, 3, byrow = TRUE))
+plot_samples(500, - 800, n_curve = 1000)
+plot_samples(500, - 0.8, n_curve = 1000)
+plot_samples(500, - 0.008, n_curve = 1000)
+plot_samples(500, 800, n_curve = 1000)
+
+
+layout(matrix(1:12, 4, 3, byrow = TRUE))
+plot_samples(50, 1e-14, n_curve = 1000)
+plot_samples(50, 1e-14, n_curve = 1000)
+plot_samples(500, 1e-14, n_curve = 1000)
+plot_samples(500, 1e-14, n_curve = 1000)
 
 b <- 100
 c <- 7

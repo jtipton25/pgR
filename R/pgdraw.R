@@ -165,12 +165,20 @@ pgdraw.moments <- function(b, c)
     stop("c must be a numeric value.")
   
   rv     = list()
-  if (c == 0) {
-    rv$mu = 1.0 / 4.0
-    rv$var = 1.0 / 24.0
+  z <- abs(c / 2)
+  if (z < 1e-12) {
+    # rv$mu = 1.0 / 4.0
+    # rv$var = 1.0 / 24.0
+    
+    rv$mu = 0.25 * (b * (1.0 - 1.0/3.0) * z^2 + 2.0 / 15.0 * z^4 - 17.0 / 315.0 * z^6);
+    rv$var = 0.0625 * ((b + 1.0) * b * (1.0 - 1.0 / 3.0 * z^2 + 2.0 / 15.0 * z^4 - 17.0 / 315.0 * z^6)^2 + 
+                           b * ((-1.0 / 3.0) + 2.0 / 15.0 * z^2 - 17.0 / 315.0 * z^4)) - rv$mu^2
   } else {
-    rv$mu  = b/2/c*tanh(c/2)
-    rv$var = b/(4*c^3)*(sinh(c)-c)*(1/cosh(c/2)^2)
+    z <- abs(c / 2)
+    # rv$mu  = b/2/c*tanh(c/2)
+    # rv$var = b/(4*c^3)*(sinh(c)-c)*(1/cosh(c/2)^2)
+    rv$mu = 0.25 * (b * tanh(z) / z);
+    rv$var = 0.0625 * ((b + 1.0) * b * (tanh(z) / z)^2 + b * ((tanh(z) - z) / (z)^3)) - rv$mu^2
   }
   return(rv)
 }

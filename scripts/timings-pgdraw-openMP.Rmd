@@ -16,7 +16,7 @@ library(microbenchmark)
 ```{r}
 ## simulate some data
 set.seed(11)
-N <- 5000
+N <- 50000
 d <- 10
 X <- cbind(1, runif(N))
 beta <- matrix(rnorm(2 *(d-1)), 2, d-1)
@@ -58,9 +58,7 @@ fun_sequential <- function(threshold = 1e6L) {
 }
 
 fun_idx <- function(cores = 1L, threshold = 1e6L) {
-    tmp <- matrix(0, N, d-1)
-    tmp[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = cores, threshold = threshold)
-    tmp
+    pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = cores, threshold = threshold)
 }
 
 
@@ -91,19 +89,18 @@ if (file.exists(here::here("results", "timings-pgdraw.RData"))) {
     load(here::here("results", "timings-pgdraw.RData"))
 } else {
     bm <- microbenchmark::microbenchmark(
-        fun_sequential(threshold = 1e6L),
+        # fun_sequential(threshold = 1e6L), # these are really slow
         fun_idx(cores = 1L, threshold = 1e6L),
-        fun_idx(cores = 2L, threshold = 1e6L),
-        fun_idx(cores = 4L, threshold = 1e6L),
-        fun_idx(cores = 6L, threshold = 1e6L),
-        fun_idx(cores = 8L, threshold = 1e6L),
+        fun_idx(cores = 10L, threshold = 1e6L),
+        fun_idx(cores = 20L, threshold = 1e6L),
+        fun_idx(cores = 40L, threshold = 1e6L),
         # speed comparison to the approximate sampler using CLT
-        fun_sequential(threshold = 170L),
+        # fun_sequential(threshold = 170L), # these are really slow
         fun_idx(cores = 1L, threshold = 170L),
-        fun_idx(cores = 2L, threshold = 170L),
-        fun_idx(cores = 4L, threshold = 170L),
-        fun_idx(cores = 6L, threshold = 170L),
-        fun_idx(cores = 8L, threshold = 170L)
+        fun_idx(cores = 10L, threshold = 170L),
+        fun_idx(cores = 20L, threshold = 170L),
+        fun_idx(cores = 40L, threshold = 170L),
+        times = 10L
 )
     save(bm, file = here::here("results", "timings-pgdraw.RData"))
 }
@@ -126,10 +123,10 @@ if (file.exists(here::here("results", "timings-pgdraw-approx.RData"))) {
     bm_approx <- microbenchmark::microbenchmark(
         # speed comparison to the approximate sampler using CLT
         fun_idx(cores = 1L, threshold = 170L),
-        fun_idx(cores = 2L, threshold = 170L),
-        fun_idx(cores = 4L, threshold = 170L),
-        fun_idx(cores = 6L, threshold = 170L),
-        fun_idx(cores = 8L, threshold = 170L)
+        fun_idx(cores = 10L, threshold = 170L),
+        fun_idx(cores = 20L, threshold = 170L),
+        fun_idx(cores = 40L, threshold = 170L),
+        times = 10L
 )
     save(bm_approx, file = here::here("results", "timings-pgdraw-approx.RData"))
 }

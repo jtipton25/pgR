@@ -66,6 +66,7 @@ double aterm(int, double, double);
 //[[Rcpp::export]]
 NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1, int threshold = 170)
 {
+    int i;    // the loop index
     int const m = b.size();
     int const n = c.size();
     NumericVector y(n);
@@ -76,26 +77,37 @@ NumericVector rcpp_pgdraw(NumericVector b, NumericVector c, int cores = 1, int t
     
 #ifdef _OPENMP
     omp_set_num_threads(cores);
-#pragma omp parallel for schedule(dynamic)
+    
+    // int n_per_thread = n / cores;
+    
+#pragma omp parallel for shared(b, c, y) private(i) schedule(dynamic)
 #endif
-    for (int i = 0; i < n; i++)
+    // for (int i = 0; i < n; i++)
+    for (i = 0; i < n; i++)
     {
-        int bi = (int) ((m > 1) ? b[i] : b[0]);
         
-        y[i] = 0;
+        double bi = (double) ((m > 1) ? b[i] : b[0]);
+        double ci = (double) ((m > 1) ? c[i] : c[0]);
+        
+        double pg_sample = 0.0;
+        
         if (bi < threshold) {
             for (int j = 0; j < bi; j++)
             {
-                y[i] += samplepg(c[i]);
+                pg_sample += samplepg(ci);
             }
+            y[i] = pg_sample;
         } else {
-            double z = abs(0.5 * c[i]);
-            double E_y = 1.0 / 4.0;
-            double sigma2_y = 1.0 / 24.0;
+            double z = fabs(0.5 * ci);
+            double E_y;
+            double sigma2_y;
             if (z > 1e-12) {
                 E_y = 0.25 * (bi * tanh(z) / z);
-                sigma2_y = 0.0625 * ((bi + 1.0) * bi * pow(tanh(z) / z, 2.0) + bi * ((tanh(z) - z) / pow(z, 3))) - pow(E_y, 2.0);
-            }
+                sigma2_y = 0.0625 * ((bi + 1.0) * bi * pow(tanh(z) / z, 2) + bi * ((tanh(z) - z) / pow(z, 3))) - pow(E_y, 2);
+            } else {
+                E_y = 0.25 * (bi * (1.0 - 1.0/3.0) * pow(z, 2) + 2.0 / 15.0 * pow(z, 4) - 17.0 / 315.0 * pow(z, 6));
+                sigma2_y = 0.0625 * ((bi + 1.0) * bi * pow(1.0 - 1.0 / 3.0 * pow(z, 2) + 2.0 / 15.0 * pow(z, 4) - 17.0 / 315.0 * pow(z, 6), 2) + 
+                    bi * ((-1.0 / 3.0) + 2.0 / 15.0 * pow(z, 2) - 17.0 / 315.0 * pow(z, 4))) - pow(E_y, 2);                }
             y[i] = R::rnorm(E_y, sqrt(sigma2_y));
         }
     }
@@ -300,15 +312,16 @@ NumericVector rcpp_pgdraw_approx(NumericVector b, NumericVector c, int cores = 1
     {
         int bi = (int) ((m > 1) ? b[i] : b[0]);
         
-        y[i] = 0;
+        double pg_sample = 0.0;
         
         if (bi < threshold) {
             for (int j = 0; j < bi; j++)
             {
-                y[i] += samplepg(c[i]);
+                pg_sample += samplepg(c[i]);
             }
+            y[i] = pg_sample;
         } else {
-            double z = abs(0.5 * c[i]);
+            double z = fabs(0.5 * c[i]);
             double E_y = 1.0 / 4.0;
             double sigma2_y = 1.0 / 24.0;
             if (z > 1e-12) {

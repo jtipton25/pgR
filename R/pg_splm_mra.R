@@ -74,20 +74,25 @@ pg_splm_mra <- function(
     tX <- t(X)
     tXX <- tX %*% X
     
-    ## Calculate Mi
-    Mi <- matrix(0, N, J-1)
-    for (i in 1:N){
-        Mi[i,] <- sum(Y[i, ]) - c(0, cumsum(Y[i, ][1:(J - 2)]))
+    ## We assume a partially missing observation is the same as 
+    ## fully missing. The index allows for fast accessing of missing
+    ## observations
+    missing_idx <- rep(FALSE, N)
+    for (i in 1:N) {
+        missing_idx[i] <- any(is.na(Y[i, ]))
     }
+    
+    message("There are ", ifelse(any(missing_idx), sum(missing_idx), "no"), " observations with missing count vectors")
+    
+    ## Calculate Mi
+    Mi <- calc_Mi(Y)
     
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
+    n_nonzero   <- sum(nonzero_idx)
     
-    ## initialize kappa
-    kappa <- matrix(0, N, J-1)
-    for (i in 1:N) {
-        kappa[i, ] <- Y[i, 1:(J - 1)] - Mi[i, ] / 2
-    }
+    # Calculate kappa
+    kappa <- calc_kappa(Y, Mi)
     
     ##
     ## initial values
@@ -229,7 +234,6 @@ pg_splm_mra <- function(
     A_constraint <- constraints$A_constraint
     a_constraint <- constraints$a_constraint
     
-    
     alpha <- matrix(0, sum(n_dims), J-1)
     eta <- kappa   ## default initial value based on data Y
     
@@ -349,17 +353,24 @@ pg_splm_mra <- function(
         }
     }
     
-    
     ##
     ## initialize omega
     ##
     
     omega <- matrix(0, N, J-1)
-    omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
     
     Omega <- vector(mode = "list", length = J-1)
     for (j in 1:(J - 1)) {
         Omega[[j]] <- diag(omega[, j])
+    }
+    
+    save_omega <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['save_omega']])) {
+            save_omega <- config[['save_omega']]
+        }
     }
     
     ##
@@ -372,6 +383,11 @@ pg_splm_mra <- function(
     alpha_save  <- array(0, dim = c(n_save, sum(n_dims), J-1))
     eta_save    <- array(0, dim = c(n_save, N, J-1))
     sigma2_save <- matrix(0, n_save, J-1)
+    omega_save <- NULL
+    if (save_omega) {
+        omega_save   <- array(0, dim = c(n_save, N, J-1, n_time))
+    }
+    
     
     ## 
     ## initialize tuning 
@@ -405,34 +421,21 @@ pg_splm_mra <- function(
         ##
         ## sample Omega
         ##
+        
         if (verbose)
             message("sample omega")
         
-        omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
-        
-        # for (i in 1:N) {
-        #     for (j in 1:(J-1)) {
-        #         if (Mi[i, j] != 0){
-        #             omega[i, j] <- pgdraw(Mi[i, j], eta[i, j])
-        #         }
-        #         else {
-        #             omega[i, j] <- 0
-        #         }
-        #     }
-        # }
+        # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+        omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
         
         for (j in 1:(J-1)) {
             Omega[[j]] <- diag(omega[, j])
         }
         
         ##
-        ## sample beta -- double check these values
+        ## sample beta 
         ##
         
-        ## modify this for the spatial process eta
-        
-        ## parallelize this update -- each group of parameters is 
-        ## conditionally independent given omega and kappa(y)
         if (sample_beta) {
             if (verbose)
                 message("sample beta")
@@ -528,6 +531,7 @@ pg_splm_mra <- function(
         ##
         ## save variables
         ##
+        
         if (k >= params$n_adapt) {
             if (k %% params$n_thin == 0) {
                 save_idx                 <- (k - params$n_adapt) / params$n_thin
@@ -536,8 +540,10 @@ pg_splm_mra <- function(
                 alpha_save[save_idx, , ] <- alpha
                 eta_save[save_idx, , ]   <- eta
                 sigma2_save[save_idx, ]  <- sigma2
+                if (save_omega) {
+                    omega_save[save_idx, , ] <- omega
+                }
             }
-            
         }
         
         ##
@@ -559,14 +565,26 @@ pg_splm_mra <- function(
     ## return the MCMC output -- think about a better way to make this a class
     ## 
     
-    out <- list(
-        beta   = beta_save,
-        tau2   = tau2_save,
-        alpha  = alpha_save,
-        eta    = eta_save,
-        sigma2 = sigma2_save,
-        MRA    = MRA
-    )
+    out <- NULL
+    if (save_omega) {
+        out <- list(
+            beta   = beta_save,
+            tau2   = tau2_save,
+            alpha  = alpha_save,
+            eta    = eta_save,
+            sigma2 = sigma2_save,
+            MRA    = MRA,
+            omega = omega_save)        
+    } else {
+        out <- list(
+            beta   = beta_save,
+            tau2   = tau2_save,
+            alpha  = alpha_save,
+            eta    = eta_save,
+            sigma2 = sigma2_save,
+            MRA    = MRA)
+    }
+
     class(out) <- "pg_splm_mra"
     
     return(out)

@@ -1,5 +1,5 @@
 ---
-title: "pgSPLM Simulation test - matern covariance function"
+title: "pg_splm Simulation test - matern covariance function"
 bibliography: pg.bib
 output:
   bookdown::html_document2: default
@@ -8,7 +8,7 @@ output:
 nocite: '@*'  
 ---
 
-We are testing the spatial Polya-gamma linear model `pgSPLM()`
+We are testing the spatial Polya-gamma linear model `pg_splm()`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 16, fig.height = 9)
@@ -306,21 +306,21 @@ params$n_adapt <- 500
 params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
-inits  <- default_inits_pgSPLM(Y, X, priors, shared_covariance_params = TRUE, corr_fun = "matern")
+priors <- default_priors_pg_splm(Y, X, corr_fun = "matern")
+inits  <- default_inits_pg_splm(Y, X, priors, shared_covariance_params = TRUE, corr_fun = "matern")
 
-if (file.exists(here::here("results", "pgSPLM-matern-shared.RData"))) {
-  load(here::here("results", "pgSPLM-matern-shared.RData"))
+if (file.exists(here::here("results", "pg_splm-matern-shared.RData"))) {
+  load(here::here("results", "pg_splm-matern-shared.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE)
+  out <- pg_splm(Y, as.matrix(X), as.matrix(locs), params = params, priors = priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = TRUE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-matern-shared.RData"))
+  save(out, runtime, file = here::here("results", "pg_splm-matern-shared.RData"))
 }
 ```
 
@@ -437,21 +437,21 @@ params$n_adapt <- 500
 params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgSPLM(Y_s, X_s, corr_fun = "matern")
-inits <- default_inits_pgSPLM(Y_s, X_s, priors, shared_covariance_params = TRUE, corr_fun = "matern")
+priors <- default_priors_pg_splm(Y_s, X_s, corr_fun = "matern")
+inits <- default_inits_pg_splm(Y_s, X_s, priors, shared_covariance_params = TRUE, corr_fun = "matern")
 
-if (file.exists(here::here("results", "pgSPLM-matern-sample-shared.RData"))) {
-  load(here::here("results", "pgSPLM-matern-sample-shared.RData"))
+if (file.exists(here::here("results", "pg_splm-matern-sample-shared.RData"))) {
+  load(here::here("results", "pg_splm-matern-sample-shared.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE)
+  out <- pg_splm(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-matern-sample-shared.RData"))
+  save(out, runtime, file = here::here("results", "pg_splm-matern-sample-shared.RData"))
 }
 ```
 
@@ -525,12 +525,12 @@ p1 + p2
 
 
 ```{r, message = FALSE}
-if (file.exists(here::here("results", "pgSPLM-matern-sample-preds-shared.RData"))) {
-  load(here::here("results", "pgSPLM-matern-sample-preds-shared.RData"))
+if (file.exists(here::here("results", "pg_splm-matern-sample-preds-shared.RData"))) {
+  load(here::here("results", "pg_splm-matern-sample-preds-shared.RData"))
 } else {
   ## currently this is somewhat slow but is embarassingly parallel
-  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, corr_fun = "matern", shared_covariance_params = TRUE)
-  save(preds, file = here::here("results", "pgSPLM-matern-sample-preds-shared.RData"))
+  preds <- predict_pg_splm(out, X_s, X_oos, as.matrix(locs_s), as.matrix(locs_oos), corr_fun = "matern", shared_covariance_params = TRUE)
+  save(preds, file = here::here("results", "pg_splm-matern-sample-preds-shared.RData"))
 }
 ```
 
@@ -635,11 +635,11 @@ params$n_adapt <- 500
 params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
-inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
+priors <- default_priors_pg_splm(Y, X, corr_fun = "matern")
+inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "matern", shared_covariance_params = FALSE)
 
-if (file.exists(here::here("results", "pgSPLM-matern.RData"))) {
-  load(here::here("results", "pgSPLM-matern.RData"))
+if (file.exists(here::here("results", "pg_splm-matern.RData"))) {
+  load(here::here("results", "pg_splm-matern.RData"))
 } else {
   ## parallelize the Cholesky decomposition
   ## add in tryCatch checks for all Cholesky decompositions
@@ -649,11 +649,11 @@ if (file.exists(here::here("results", "pgSPLM-matern.RData"))) {
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE, verbose = FALSE)
+  out <- pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE, verbose = FALSE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-matern.RData"))
+  save(out, runtime, file = here::here("results", "pg_splm-matern.RData"))
 }
 ```
 
@@ -775,21 +775,21 @@ params$n_adapt <- 500
 params$n_mcmc <- 500
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pgSPLM(Y_s, X_s, corr_fun = "matern")
-inits <- default_inits_pgSPLM(Y_s, X_s, priors, corr_fun = "matern", shared_covariance_params = FALSE)
+priors <- default_priors_pg_splm(Y_s, X_s, corr_fun = "matern")
+inits <- default_inits_pg_splm(Y_s, X_s, priors, corr_fun = "matern", shared_covariance_params = FALSE)
 
-if (file.exists(here::here("results", "pgSPLM-matern-sample.RData"))) {
-  load(here::here("results", "pgSPLM-matern-sample.RData"))
+if (file.exists(here::here("results", "pg_splm-matern-sample.RData"))) {
+  load(here::here("results", "pg_splm-matern-sample.RData"))
 } else {
   ## need to parallelize the polya-gamma random variables
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pgSPLM(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE)
+  out <- pg_splm(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = FALSE)
   stop <- Sys.time()
   runtime <- stop - start
   
-  save(out, runtime, file = here::here("results", "pgSPLM-matern-sample.RData"))
+  save(out, runtime, file = here::here("results", "pg_splm-matern-sample.RData"))
 }
 ```
 
@@ -870,12 +870,12 @@ p1 + p2
 
 
 ```{r, message = FALSE}
-if (file.exists(here::here("results", "pgSPLM-matern-sample-preds.RData"))) {
-  load(here::here("results", "pgSPLM-matern-sample-preds.RData"))
+if (file.exists(here::here("results", "pg_splm-matern-sample-preds.RData"))) {
+  load(here::here("results", "pg_splm-matern-sample-preds.RData"))
 } else {
   ## currently this is somewhat slow but is embarassingly parallel
-  preds <- predict_pgSPLM(out, X_s, X_oos, locs_s, locs_oos, corr_fun = "matern", shared_covariance_params = FALSE)
-  save(preds, file = here::here("results", "pgSPLM-matern-sample-preds.RData"))
+  preds <- predict_pg_splm(out, X_s, X_oos, as.matrix(locs_s), as.matrix(locs_oos), corr_fun = "matern", shared_covariance_params = FALSE)
+  save(preds, file = here::here("results", "pg_splm-matern-sample-preds.RData"))
 }
 ```
 
@@ -921,21 +921,21 @@ p_simulated + p_observed + p_predicted
 params <- default_params()
 params$n_adapt <- 50
 params$n_mcmc <- 50
-priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
-inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "matern" shared_covariance_params = TRUE)
+priors <- default_priors_pg_splm(Y, X, corr_fun = "matern")
+inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "matern" shared_covariance_params = TRUE)
 
-profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = TRUE))
-profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE))
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = TRUE))
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = TRUE))
 
 ## profile the component-specific covariance parameter models
 params <- default_params()
 params$n_adapt <- 50
 params$n_mcmc <- 50
-priors <- default_priors_pgSPLM(Y, X, corr_fun = "matern")
-inits  <- default_inits_pgSPLM(Y, X, priors, corr_fun = "matern" shared_covariance_params = FALSE)
+priors <- default_priors_pg_splm(Y, X, corr_fun = "matern")
+inits  <- default_inits_pg_splm(Y, X, priors, corr_fun = "matern" shared_covariance_params = FALSE)
 
-profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = FALSE))
-profvis::profvis(pgSPLM(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE))
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 1L, shared_covariance_params = FALSE))
+profvis::profvis(pg_splm(Y, as.matrix(X), as.matrix(locs), params, priors, corr_fun = "matern", n_cores = 6L, shared_covariance_params = FALSE))
 ```
 
 

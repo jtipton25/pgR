@@ -26,6 +26,7 @@
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @importFrom fields rdist
 #' @importFrom mvnfast rmvn dmvn
+#' @importFrom BayesLogit rpg
 #' 
 #' @export
 
@@ -75,20 +76,25 @@ pg_splm <- function(
     p <- ncol(X)
     D <- rdist(locs)
     
-    ## Calculate Mi
-    Mi <- matrix(0, N, J-1)
-    for (i in 1:N){
-        Mi[i,] <- sum(Y[i, ]) - c(0, cumsum(Y[i, ][1:(J - 2)]))
+    ## We assume a partially missing observation is the same as 
+    ## fully missing. The index allows for fast accessing of missing
+    ## observations
+    missing_idx <- rep(FALSE, N)
+    for (i in 1:N) {
+        missing_idx[i] <- any(is.na(Y[i, ]))
     }
+    
+    message("There are ", ifelse(any(missing_idx), sum(missing_idx), "no"), " observations with missing count vectors")
+    
+    ## Calculate Mi
+    Mi <- calc_Mi(Y)
     
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
+    n_nonzero   <- sum(nonzero_idx)
     
-    ## initialize kappa
-    kappa <- matrix(0, N, J-1)
-    for (i in 1:N) {
-        kappa[i, ] <- Y[i, 1:(J - 1)] - Mi[i, ] / 2
-    }
+    # Calculate kappa
+    kappa <- calc_kappa(Y, Mi)
     
     ##
     ## initial values
@@ -280,23 +286,35 @@ pg_splm <- function(
     ##
     ## sampler config options -- to be added later
     ## 
-    #
-    # bool sample_beta = true;
-    # if (params.containsElementNamed("sample_beta")) {
-    #     sample_beta = as<bool>(params["sample_beta"]);
-    # }
-    # 
     
+    
+    ## do we sample the functional relationship parameters? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_beta <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_beta']])) {
+            sample_beta <- config[['sample_beta']]
+        }
+    }
+
     ##
     ## initialize omega
     ##
     
     omega <- matrix(0, N, J-1)
-    omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
     
     Omega <- vector(mode = "list", length = J-1)
     for (j in 1:(J - 1)) {
         Omega[[j]] <- diag(omega[, j])
+    }
+    
+    save_omega <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['save_omega']])) {
+            save_omega <- config[['save_omega']]
+        }
     }
     
     ##
@@ -326,6 +344,10 @@ pg_splm <- function(
         }
     }
     eta_save   <- array(0, dim = c(n_save, N, J-1))
+    omega_save <- NULL
+    if (save_omega) {
+        omega_save   <- array(0, dim = c(n_save, N, J-1))
+    }
     
     ## 
     ## initialize tuning 
@@ -421,26 +443,15 @@ pg_splm <- function(
         if (verbose)
             message("sample omega")
         
-        omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
-        
-        # for (i in 1:N) {
-        #     for (j in 1:(J-1)) {
-        #         if (Mi[i, j] != 0){
-        #             omega[i, j] <- pgdraw(Mi[i, j], eta[i, j])
-        #         }
-        #         else {
-        #             omega[i, j] <- 0
-        #         }
-        #     }
-        # }
-        
+        # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+        omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
+
         for (j in 1:(J-1)) {
             Omega[[j]] <- diag(omega[, j])
         }
         
         ##
-        ## sample beta -- double check these values
-        ##
+        ## sample beta 
         
         ## modify this for the spatial process eta
         
@@ -451,10 +462,6 @@ pg_splm <- function(
         
         if (shared_covariance_params) {
             for (j in 1:(J-1)) {
-                ## can make this much more efficient
-                # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
-                # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-                # beta[, j]   <- rmvn(1, mu_tilde, Sigma_tilde)
                 tXSigma_inv <- t(X) %*% Sigma_inv
                 A <- tXSigma_inv %*% X + Sigma_beta_inv
                 ## guarantee a symmetric matrix
@@ -464,10 +471,6 @@ pg_splm <- function(
             }
         } else {
             for (j in 1:(J-1)) {
-                ## can make this much more efficient
-                # Sigma_tilde <- chol2inv(chol(Sigma_beta_inv + t(X) %*% (Omega[[j]] %*% X))) 
-                # mu_tilde    <- c(Sigma_tilde %*% (Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j]))
-                # beta[, j]   <- rmvn(1, mu_tilde, Sigma_tilde)
                 tXSigma_inv <- t(X) %*% Sigma_inv[j, , ]
                 A <- tXSigma_inv %*% X + Sigma_beta_inv
                 ## guarantee a symmetric matrix
@@ -813,6 +816,9 @@ pg_splm <- function(
                     tau2_save[save_idx, ]     <- tau2
                 }
                 eta_save[save_idx, , ]  <- eta
+                if (save_omega) {
+                    omega_save[save_idx, , ] <- omega
+                }
             }
             
         }
@@ -845,12 +851,23 @@ pg_splm <- function(
     ## return the MCMC output -- think about a better way to make this a class
     ## 
     
-    out <- list(
-        beta  = beta_save,
-        theta = theta_save,
-        tau2  = tau2_save,
-        eta   = eta_save
-    )
+    out <- NULL
+    if (save_omega) {
+        out <- list(
+            beta  = beta_save,
+            theta = theta_save,
+            tau2  = tau2_save,
+            eta   = eta_save,
+            omega = omega_save)        
+    } else {
+        out <- list(
+            beta  = beta_save,
+            theta = theta_save,
+            tau2  = tau2_save,
+            eta   = eta_save
+        )
+    }
+
     class(out) <- "pg_splm"
     
     return(out)

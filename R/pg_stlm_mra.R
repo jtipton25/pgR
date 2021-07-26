@@ -147,20 +147,15 @@ pg_stlm_mra <- function(
     ## Calculate Mi and kappa
     Mi    <- array(0, dim = c(N, J - 1, n_time))
     kappa <- array(0, dim = c(N, J - 1, n_time))
-    for (i in 1:N){
-        for (tt in 1:n_time) {
-            if (missing_idx[i, tt]) {
-                Mi[i, , tt]    <- 0
-                kappa[i, , tt] <- 0
-            } else {
-                Mi[i, , tt] <- sum(Y[i, , tt]) - c(0, cumsum(Y[i, , tt][1:(J - 2)]))
-                kappa[i, , tt] <- Y[i, 1:(J - 1), tt] - Mi[i, , tt] / 2
-            }
-        }
+    
+    for (tt in 1:n_time) {
+        Mi[, , tt]    <- calc_Mi(Y[, , tt])
+        kappa[, , tt] <- calc_kappa(Y[, , tt], Mi[, , tt])
     }
     
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
+    n_nonzero   <- sum(nonzero_idx)
     
     ##
     ## initial values
@@ -304,7 +299,9 @@ pg_stlm_mra <- function(
     a_constraint <- constraints$a_constraint
     
     alpha <- array(0, dim = c(sum(n_dims), J-1, n_time))
-    eta <- kappa   ## default initial value based on data Y to get started
+    # eta <- kappa   ## default initial value based on data Y to get started
+    
+    eta <- array(0, dim = dim(kappa))
     if (use_spam) {
         for (j in 1:(J-1)) {
             A_alpha_1  <- 1 / sigma2[j] * tWW + (1 + rho[j]^2) * Q_alpha_tau2[[j]]
@@ -386,7 +383,15 @@ pg_stlm_mra <- function(
     ##
     
     omega <- array(0, dim = c(N, J-1, n_time))
-    omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
+    
+    save_omega <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['save_omega']])) {
+            save_omega <- config[['save_omega']]
+        }
+    }
     
     ##
     ## setup save variables
@@ -426,8 +431,11 @@ pg_stlm_mra <- function(
     pi_save     <- array(0, dim = c(n_save, N, J, n_time))
     sigma2_save <- matrix(0, n_save, J-1)
     rho_save    <- matrix(0, n_save, J-1)
+    omega_save <- NULL
+    if (save_omega) {
+        omega_save   <- array(0, dim = c(n_save, N, J-1, n_time))
+    }
 
-    
     ##
     ## initialize tuning variables for adaptive MCMC
     ##
@@ -438,7 +446,7 @@ pg_stlm_mra <- function(
     rho_tune         <- rep(0.025, J-1)
     
     ##
-    ## Starting MCMC chain
+    ## Starting MCMC chain ----
     ##
     
     message("Starting MCMC for chain ", n_chain, ", running for ", params$n_adapt, " adaptive iterations and ", params$n_mcmc, " fitting iterations \n")
@@ -461,16 +469,17 @@ pg_stlm_mra <- function(
         }
         
         ##
-        ## sample Omega
+        ## sample Omega ----
         ##
         
         if (verbose)
             message("sample omega")
         
-        omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+        # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+        omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
         
         ##
-        ## sample beta
+        ## sample beta ----
         ##
         
         ## can parallelize this update -- each group of parameters is 
@@ -490,7 +499,7 @@ pg_stlm_mra <- function(
         }
         
         ##
-        ## sample spatial random effects alpha
+        ## sample spatial random effects alpha ----
         ##
 
         if (sample_alpha) {
@@ -560,7 +569,7 @@ pg_stlm_mra <- function(
         }
         
         ##
-        ## sample spatial process variance tau2
+        ## sample spatial process variance tau2 ----
         ##
         
         ## double check this full conditional
@@ -580,12 +589,10 @@ pg_stlm_mra <- function(
                 ## moved this inside the loop to update this parameter
                 Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
             }
-            ##  this was outside the loop for tau2
-            # Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
         }        
 
         ##
-        ## sample eta
+        ## sample eta ----
         ##
         
         if (sample_eta) {
@@ -609,86 +616,22 @@ pg_stlm_mra <- function(
         }
         
         ##
-        ## sample rho
+        ## sample rho ----
         ##
         
         if (sample_rho) {
             if (verbose)
                 message("sample rho")
             
-            # rho_star <- rnorm(1, rho, rho_tune)
-            # if (rho_star < 1 & rho_star > -1) {
-            #     mh1 <- NULL
-            #     mh2 <- NULL
-            #     if (shared_covariance_params){
-            #         mh1 <- sum(
-            #             sapply(2:n_time, function(tt) {
-            #                 sapply(1:(J-1), function(j) {
-            #                     mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho_star * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
-            #                 })
-            #             }) 
-            #             
-            #         ) 
-            #         ## parallelize this        
-            #         mh2 <- sum(
-            #             sapply(2:n_time, function(tt) {
-            #                 sapply(1:(J-1), function(j) {
-            #                     mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
-            #                 })
-            #             }) 
-            #         ) 
-            #     } else {
-            #         mh1 <- sum(
-            #             sapply(2:n_time, function(tt) {
-            #                 sapply(1:(J-1), function(j) {
-            #                     mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho_star * eta[, j, tt - 1], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores) 
-            #                 })
-            #             }) 
-            #             
-            #         ) 
-            #         ## parallelize this        
-            #         mh2 <- sum(
-            #             sapply(2:n_time, function(tt) {
-            #                 sapply(1:(J-1), function(j) {
-            #                     mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores) 
-            #                 })
-            #             }) 
-            #         )
-            #     }
-            #     
-            #     mh <- exp(mh1 - mh2)
-            #     if (length(mh) > 1)
-            #         stop("error in mh for rho")
-            #     if (mh > runif(1, 0.0, 1.0)) {
-            #         rho   <- rho_star
-            #         if (k <= params$n_adapt) {
-            #             rho_accept_batch <- rho_accept_batch + 1.0 / 50.0
-            #         } else {
-            #             rho_accept <- rho_accept + 1.0 / params$n_mcmc
-            #         }
-            #     }
-            #     
-            #     ## update tuning
-            #     if (k <= params$n_adapt) {
-            #         if (k %% 50 == 0){
-            #             out_tuning <- update_tuning(
-            #                 k,
-            #                 rho_accept_batch, 
-            #                 rho_tune
-            #             )
-            #             rho_tune         <- out_tuning$tune
-            #             rho_accept_batch <- out_tuning$accept
-            #         }
-            #     }
-            # }
-            
             for (j in 1:(J-1)) {
                 rho_vals <- rowSums(
                     sapply(2:n_time, function(tt) {
                         t_alpha_Q <- t(alpha[, j, tt-1]) %*% Q_alpha_tau2[[j]]
-                        c(
-                            t_alpha_Q %*% alpha[, j, tt-1],
-                            t_alpha_Q %*% alpha[, j, tt]
+                        return(
+                            c(
+                                t_alpha_Q %*% alpha[, j, tt-1],
+                                t_alpha_Q %*% alpha[, j, tt]
+                            )
                         )
                     })
                 )
@@ -700,7 +643,7 @@ pg_stlm_mra <- function(
         }
         
         ## 
-        ## sample sigma2
+        ## sample sigma2 ----
         ## 
         
         if (verbose)
@@ -712,7 +655,7 @@ pg_stlm_mra <- function(
         }
         
         ##
-        ## save variables
+        ## save variables ----
         ##
         
         if (k >= params$n_adapt) {
@@ -731,12 +674,15 @@ pg_stlm_mra <- function(
                     pi_save[save_idx, , , tt]  <- eta_to_pi(eta[, , tt])
                 }
                 rho_save[save_idx, ]       <- rho
+                if (save_omega) {
+                    omega_save[save_idx, , , ] <- omega
+                }
             }
             
         }
         
         ##
-        ## End of MCMC loop
+        ## End of MCMC loop ----
         ##
         
         if (k %in% percentage_points && progress) {
@@ -766,17 +712,31 @@ pg_stlm_mra <- function(
     
     message("MCMC took ", hms::as_hms(runtime))
     
-    
-    out <- list(
-        beta   = beta_save,
-        alpha  = alpha_save,
-        tau2   = tau2_save,
-        eta    = eta_save,
-        pi     = pi_save,
-        sigma2 = sigma2_save,
-        rho    = rho_save,
-        MRA    = MRA
-    )
+    out <- NULL
+    if (save_omega) {
+        out <- list(
+            beta   = beta_save,
+            alpha  = alpha_save,
+            tau2   = tau2_save,
+            eta    = eta_save,
+            pi     = pi_save,
+            sigma2 = sigma2_save,
+            rho    = rho_save,
+            MRA    = MRA,
+            omega = omega_save)        
+    } else {
+        out <- list(
+            beta   = beta_save,
+            alpha  = alpha_save,
+            tau2   = tau2_save,
+            eta    = eta_save,
+            pi     = pi_save,
+            sigma2 = sigma2_save,
+            rho    = rho_save,
+            MRA    = MRA)
+    }
+
+
     class(out) <- "pg_stlm_mra"
     
     return(out)

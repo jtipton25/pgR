@@ -372,7 +372,7 @@ if (file.exists(here::here("results", "pg_stlm-mra.RData"))) {
   load(here::here("results", "pg_stlm-mra.RData"))
 } else {
   start <- Sys.time()
-  out <- pg_stlm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 24L)
+  out <- pg_stlm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 1L)
   stop <- Sys.time()
   runtime <- stop - start
   
@@ -576,7 +576,7 @@ if (file.exists(here::here("results", "pg_stlm-mra-sample.RData"))) {
   load(here::here("results", "pg_stlm-mra-sample.RData"))
 } else {
   start <- Sys.time()
-  out <- pg_stlm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 24L)
+  out <- pg_stlm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 1L)
   stop <- Sys.time()
   runtime <- stop - start
   

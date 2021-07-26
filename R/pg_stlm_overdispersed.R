@@ -28,7 +28,7 @@
 #' @export
 
 ## polya-gamma spatial linear regression model
-pg_stlm <- function(
+pg_stlm_overdispersed <- function(
     Y, 
     X,
     locs, 
@@ -84,7 +84,7 @@ pg_stlm <- function(
         }
     }
     
-    ## do we sample the climate variance parameter? This is primarily 
+    ## do we sample the spatial variance parameter? This is primarily 
     ## used to troubleshoot model fitting using simulated data
     sample_tau2 <- TRUE
     if (!is.null(config)) {
@@ -92,6 +92,20 @@ pg_stlm <- function(
             sample_tau2 <- config[['sample_tau2']]
         }
     }
+    
+    
+    ## do we sample the ovdiserpsion variance parameter? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_sigma2 <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_sigma2']])) {
+            sample_sigma2 <- config[['sample_sigma2']]
+        }
+    }
+    
+    # fix these later
+    priors$alpha_sigma <- 0.1
+    priors$beta_sigma <- 0.1
     
     ## do we sample the climate spatial covariance parameters? This is
     ## primarily used to troubleshoot model fitting using simulated data
@@ -120,6 +134,7 @@ pg_stlm <- function(
     n_time <- dim(Y)[3]
     p      <- ncol(X)
     D      <- fields::rdist(locs)
+    I      <- diag(N)
     
     ## Add in a counter for the number of regularized Cholesky factors.
     ## This is useful in correcting for numerical errors resulting in 
@@ -196,6 +211,15 @@ pg_stlm <- function(
         }
     }
     Xbeta <- X %*% beta
+    
+    ##
+    ## initialize sigma2
+    ##
+    
+    alpha_sigma2 <- 1
+    beta_sigma2  <- 1
+    
+    sigma2 <- pmin(rgamma(J-1, alpha_sigma2, beta_sigma2), 5)
     
     ##
     ## initialize spatial Gaussian process -- share parameters across the different components
@@ -277,14 +301,14 @@ pg_stlm <- function(
     
     Sigma <- NULL
     if (shared_covariance_params) {
-        Sigma <- tau2 * correlation_function(D, theta, corr_fun = corr_fun)
+        Sigma <- tau2 * correlation_function(D, theta, corr_fun = corr_fun) + sigma2 * I
     } else {
         Sigma <- array(0, dim = c(J - 1, N, N))
         for (j in 1:(J-1)) {
             if (corr_fun == "matern") {
-                Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = corr_fun)
+                Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = corr_fun) + sigma2[j] * I
             } else if (corr_fun == "exponential") {
-                Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun)
+                Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun) + sigma2[j] * I
             }
         }
     }
@@ -393,6 +417,12 @@ pg_stlm <- function(
     } else {
         tau2_save <- matrix(0, n_save, J-1)
     }
+    sigma2_save  <- NULL
+    if (shared_covariance_params) {
+        sigma2_save <- rep(0, n_save)
+    } else {
+        sigma2_save <- matrix(0, n_save, J-1)
+    }
     theta_save <- NULL
     if (shared_covariance_params) {
         if (corr_fun == "matern") {
@@ -479,6 +509,37 @@ pg_stlm <- function(
             theta_tune <- rep(mean(D) / 2, J-1)
         }
     }
+    
+    # tuning for tau2
+    tau2_accept          <- NULL
+    tau2_accept_batch    <- NULL
+    tau2_tune            <- NULL
+    
+    if (shared_covariance_params) {
+        tau2_accept       <- 0
+        tau2_accept_batch <- 0
+        tau2_tune         <- 0.5
+    } else {
+        tau2_accept       <- rep(0, J-1)
+        tau2_accept_batch <- rep(0, J-1)
+        tau2_tune         <- rep(0.5, J-1)
+    }
+
+    # tuning for sigma2   
+    sigma2_accept          <- NULL
+    sigma2_accept_batch    <- NULL
+    sigma2_tune            <- NULL
+    
+    if (shared_covariance_params) {
+        sigma2_accept       <- 0
+        sigma2_accept_batch <- 0
+        sigma2_tune         <- 0.5
+    } else {
+        sigma2_accept       <- rep(0, J-1)
+        sigma2_accept_batch <- rep(0, J-1)
+        sigma2_tune         <- rep(0.5, J-1)
+    }
+    
     
     ## tuning for rho
     rho_accept       <- 0
@@ -574,7 +635,7 @@ pg_stlm <- function(
                 } else if (corr_fun == "exponential") {
                     theta_star <- rnorm(1, theta, theta_tune)
                 }
-                Sigma_star       <- tau2 * correlation_function(D, theta_star, corr_fun = corr_fun)
+                Sigma_star       <- tau2 * correlation_function(D, theta_star, corr_fun = corr_fun) + sigma2 * I
                 ## add in faster parallel cholesky as needed
                 Sigma_chol_star <- tryCatch(
                     chol(Sigma_star),
@@ -680,7 +741,7 @@ pg_stlm <- function(
                         theta_star <- rnorm(1, theta[j], theta_tune)
                     }
                     
-                    Sigma_star      <- tau2[j] * correlation_function(D, theta_star, corr_fun = corr_fun)
+                    Sigma_star      <- tau2[j] * correlation_function(D, theta_star, corr_fun = corr_fun) + sigma2[j] * I
                     ## add in faster parallel cholesky as needed
                     Sigma_chol_star <- tryCatch(
                         chol(Sigma_star),
@@ -769,70 +830,306 @@ pg_stlm <- function(
         }        
         
         ##
-        ## sample spatial process variance tau2
+        ## sample spatial process variance tau2 -- Need to modify
         ##
         
         if (sample_tau2) {
             if (verbose)
                 message("sample tau2")
             
-            ## can we make this more efficient?
-            devs <- array(0, dim = c(N, J-1, n_time))
-            devs[, , 1] <- eta[, , 1] - Xbeta
-            for (tt in 2:n_time) {
-                devs[, , tt] <- eta[, , tt] -  rho * eta[, , tt - 1] - (1 - rho) * Xbeta
-            }
             
             if (shared_covariance_params) {
-                
-                ## double check this math later -- seems right for now
-                SS <- sum(
-                    sapply(1:n_time, function(tt) {
-                        devs[, , tt] * (tau2 * Sigma_inv %*% devs[, , tt])
-                    })
-                )
-                tau2       <- 1 / rgamma(1, N * (J-1) * n_time / 2 + priors$alpha_tau, SS / 2 + priors$beta_tau) 
-                Sigma      <- tau2 * correlation_function(D, theta, corr_fun = corr_fun) 
+                ## update a common tau2 for all processes
+                tau2_star        <- exp(rnorm(1, log(tau2), tau2_tune))
+                Sigma_star       <- tau2_star * correlation_function(D, theta, corr_fun = corr_fun) + sigma2 * I
                 ## add in faster parallel cholesky as needed
-                ## see https://github.com/RfastOfficial/Rfast/blob/master/src/cholesky.cpp
-                Sigma_chol <- tryCatch(
-                    chol(Sigma),
+                Sigma_chol_star <- tryCatch(
+                    chol(Sigma_star),
                     error = function(e) {
                         if (verbose)
                             message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
                         num_chol_failures <- num_chol_failures + 1
-                        chol(Sigma + 1e-8 * diag(N))                    
+                        chol(Sigma_star + 1e-8 * diag(N))                    
                     }
                 )
-                Sigma_inv  <- chol2inv(Sigma_chol) 
-            } else {
-                for (j in 1:(J-1)) {
-                    SS <- sum(
-                        sapply(1:n_time, function(tt) {
-                            devs[, j, tt] * (tau2[j] * Sigma_inv[j, , ] %*% devs[, j, tt])
+                Sigma_inv_star  <- chol2inv(Sigma_chol_star)
+                ## parallelize this
+                mh1 <- sum(
+                    sapply(1:(J-1), function(j) {
+                        mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                    })
+                ) +
+                    sum(
+                        sapply(2:n_time, function(tt) {
+                            sapply(1:(J-1), function(j) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                            })
+                        }) 
+                        
+                    ) +
+                    ## prior
+                    dgamma(1 / tau2_star, priors$alpha_tau, priors$beta_tau, log = TRUE) + 
+                    # log-proposal Jacobian adjustment
+                    log(tau2_star)
+                ## parallelize this        
+                mh2 <- sum(
+                    sapply(1:(J-1), function(j) {
+                        mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                    })
+                ) +
+                    sum(
+                        sapply(2:n_time, function(tt) {
+                            sapply(1:(J-1), function(j) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
+                            })
                         })
-                    )
-                    tau2[j]    <- 1 / rgamma(1, N / 2 * n_time + priors$alpha_tau, SS / 2 + priors$beta_tau) 
-                    if (corr_fun == "matern") {
-                        Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = corr_fun) 
+                    ) +
+                    ## prior
+                    dgamma(1 / tau2, priors$alpha_tau, priors$beta_tau, log = TRUE) + 
+                    # log-proposal Jacobian adjustment
+                    log(tau2)
+                
+                mh <- exp(mh1 - mh2)
+                if (mh > runif(1, 0, 1)) {
+                    tau2        <- tau2_star
+                    Sigma      <- Sigma_star
+                    Sigma_chol <- Sigma_chol_star
+                    Sigma_inv  <- Sigma_inv_star 
+                    if (k <= params$n_adapt) {
+                        tau2_accept_batch <- tau2_accept_batch + 1 / 50
                     } else {
-                        Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun) 
+                        tau2_accept <- tau2_accept + 1 / params$n_mcmc
                     }
+                }
+                ## adapt the tuning
+                if (k <= params$n_adapt) {
+                    if (k %% 50 == 0) {
+                        out_tuning         <- update_tuning(k, tau2_accept_batch, tau2_tune)
+                        tau2_tune         <- out_tuning$tune
+                        tau2_accept_batch <- out_tuning$accept
+                    }
+                }
+            } else {
+                ## 
+                ## tau2 varies for each component
+                ##
+                for (j in 1:(J-1)) {
+                    tau2_star  <- exp(rnorm(1, log(tau2[j]), tau2_tune[j]))
+                    Sigma_star <- NULL
+                    if (corr_fun == "matern") {
+                        Sigma_star <- tau2_star * correlation_function(D, theta[j, ], corr_fun = corr_fun) + sigma2[j] * I
+                    } else if (corr_fun == "exponential") {
+                        Sigma_star <- tau2_star * correlation_function(D, theta[j], corr_fun = corr_fun) + sigma2[j] * I
+                    }
+
                     ## add in faster parallel cholesky as needed
-                    ## see https://github.com/RfastOfficial/Rfast/blob/master/src/cholesky.cpp
-                    Sigma_chol[j, , ] <- tryCatch(
-                        chol(Sigma[j, , ]),
+                    Sigma_chol_star <- tryCatch(
+                        chol(Sigma_star),
                         error = function(e) {
                             if (verbose)
                                 message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
                             num_chol_failures <- num_chol_failures + 1
-                            chol(Sigma[j, , ] + 1e-8 * diag(N))                    
+                            chol(Sigma_star + 1e-8 * diag(N))                    
                         }
                     )
-                    Sigma_inv[j, , ]  <- chol2inv(Sigma_chol[j, , ])
+                    Sigma_inv_star  <- chol2inv(Sigma_chol_star)
+                    
+                    ## parallelize this
+                    mh1 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) +
+                        sum(
+                            sapply(2:n_time, function(tt) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                            })) +
+                        ## prior
+                        dgamma(1 / tau2_star, priors$alpha_tau, priors$beta_tau, log = TRUE) + 
+                        # log-proposal Jacobian adjustment
+                        log(tau2_star)
+                    
+                    ## parallelize this        
+                    mh2 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
+                        sum(sapply(2:n_time, function(tt) {
+                            mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
+                        })) +
+                        ## prior
+                        dgamma(1 / tau2[j], priors$alpha_tau, priors$beta_tau, log = TRUE) + 
+                        # log-proposal Jacobian adjustment
+                        log(tau2[j])
+                    # mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
+                    
+                    mh <- exp(mh1 - mh2)
+                    if (mh > runif(1, 0, 1)) {
+                        tau2[j] <- tau2_star
+                        Sigma[j, , ]      <- Sigma_star
+                        Sigma_chol[j, , ] <- Sigma_chol_star
+                        Sigma_inv[j, , ]  <- Sigma_inv_star 
+                        if (k <= params$n_adapt) {
+                            tau2_accept_batch[j] <- tau2_accept_batch[j] + 1 / 50
+                        } else {
+                            tau2_accept[j] <- tau2_accept[j] + 1 / params$n_mcmc
+                        }
+                    }
+                }
+                ## adapt the tuning
+                if (k <= params$n_adapt) {
+                    if (k %% 50 == 0) {
+                        out_tuning        <- update_tuning_vec(k, tau2_accept_batch, tau2_tune)
+                        tau2_tune         <- out_tuning$tune
+                        tau2_accept_batch <- out_tuning$accept
+                    }        
                 }
             }
-        }
+        }        
+        
+        ##
+        ## sample overdispersed variance sigma2
+        ##
+        
+        if (sample_sigma2) {
+            if (verbose)
+                message("sample sigma2")
+            
+            
+            if (shared_covariance_params) {
+                ## update a common sigma2 for all processes
+                sigma2_star      <- exp(rnorm(1, log(sigma2), sigma2_tune))
+                Sigma_star       <- tau2 * correlation_function(D, theta, corr_fun = corr_fun) + sigma2_star * I
+                ## add in faster parallel cholesky as needed
+                Sigma_chol_star <- tryCatch(
+                    chol(Sigma_star),
+                    error = function(e) {
+                        if (verbose)
+                            message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
+                        num_chol_failures <- num_chol_failures + 1
+                        chol(Sigma_star + 1e-8 * diag(N))                    
+                    }
+                )
+                Sigma_inv_star  <- chol2inv(Sigma_chol_star)
+                ## parallelize this
+                mh1 <- sum(
+                    sapply(1:(J-1), function(j) {
+                        mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                    })
+                ) +
+                    sum(
+                        sapply(2:n_time, function(tt) {
+                            sapply(1:(J-1), function(j) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                            })
+                        }) 
+                        
+                    ) +
+                    ## prior
+                    dgamma(1 / sigma2_star, priors$alpha_sigma, priors$beta_sigma, log = TRUE) + 
+                    # log-proposal Jacobian adjustment
+                    log(sigma2_star)
+                ## parallelize this        
+                mh2 <- sum(
+                    sapply(1:(J-1), function(j) {
+                        mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                    })
+                ) +
+                    sum(
+                        sapply(2:n_time, function(tt) {
+                            sapply(1:(J-1), function(j) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
+                            })
+                        })
+                    ) +
+                    ## prior
+                    dgamma(1 / sigma2, priors$alpha_sigma, priors$beta_sigma, log = TRUE) + 
+                    # log-proposal Jacobian adjustment
+                    log(sigma2)
+                
+                mh <- exp(mh1 - mh2)
+                if (mh > runif(1, 0, 1)) {
+                    sigma2     <- sigma2_star
+                    Sigma      <- Sigma_star
+                    Sigma_chol <- Sigma_chol_star
+                    Sigma_inv  <- Sigma_inv_star 
+                    if (k <= params$n_adapt) {
+                        sigma2_accept_batch <- sigma2_accept_batch + 1 / 50
+                    } else {
+                        sigma2_accept <- sigma2_accept + 1 / params$n_mcmc
+                    }
+                }
+                ## adapt the tuning
+                if (k <= params$n_adapt) {
+                    if (k %% 50 == 0) {
+                        out_tuning          <- update_tuning(k, sigma2_accept_batch, sigma2_tune)
+                        sigma2_tune         <- out_tuning$tune
+                        sigma2_accept_batch <- out_tuning$accept
+                    }
+                }
+            } else {
+                ## 
+                ## sigma2 varies for each component
+                ##
+                for (j in 1:(J-1)) {
+                    sigma2_star  <- exp(rnorm(1, log(sigma2[j]), sigma2_tune[j]))
+                    Sigma_star <- NULL
+                    if (corr_fun == "matern") {
+                        Sigma_star <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = corr_fun) + sigma2_star * I
+                    } else if (corr_fun == "exponential") {
+                        Sigma_star <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun) + sigma2_star * I
+                    }
+                    
+                    ## add in faster parallel cholesky as needed
+                    Sigma_chol_star <- tryCatch(
+                        chol(Sigma_star),
+                        error = function(e) {
+                            if (verbose)
+                                message("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized. If this warning is rare, this should be safe to ignore.")
+                            num_chol_failures <- num_chol_failures + 1
+                            chol(Sigma_star + 1e-8 * diag(N))                    
+                        }
+                    )
+                    Sigma_inv_star  <- chol2inv(Sigma_chol_star)
+                    
+                    ## parallelize this
+                    mh1 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) +
+                        sum(
+                            sapply(2:n_time, function(tt) {
+                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                            })) +
+                        ## prior
+                        dgamma(1 / sigma2_star, priors$alpha_sigma, priors$beta_sigma, log = TRUE) + 
+                        # log-proposal Jacobian adjustment
+                        log(sigma2_star)
+                    
+                    ## parallelize this        
+                    mh2 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
+                        sum(sapply(2:n_time, function(tt) {
+                            mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
+                        })) +
+                        ## prior
+                        dgamma(1 / sigma2[j], priors$alpha_sigma, priors$beta_sigma, log = TRUE) + 
+                        # log-proposal Jacobian adjustment
+                        log(sigma2[j])
+                    # mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
+                    
+                    mh <- exp(mh1 - mh2)
+                    if (mh > runif(1, 0, 1)) {
+                        sigma2[j]         <- sigma2_star
+                        Sigma[j, , ]      <- Sigma_star
+                        Sigma_chol[j, , ] <- Sigma_chol_star
+                        Sigma_inv[j, , ]  <- Sigma_inv_star 
+                        if (k <= params$n_adapt) {
+                            sigma2_accept_batch[j] <- sigma2_accept_batch[j] + 1 / 50
+                        } else {
+                            sigma2_accept[j] <- sigma2_accept[j] + 1 / params$n_mcmc
+                        }
+                    }
+                }
+                ## adapt the tuning
+                if (k <= params$n_adapt) {
+                    if (k %% 50 == 0) {
+                        out_tuning        <- update_tuning_vec(k, sigma2_accept_batch, sigma2_tune)
+                        sigma2_tune         <- out_tuning$tune
+                        sigma2_accept_batch <- out_tuning$accept
+                    }        
+                }
+            }
+        }        
         
         ##
         ## sample eta
@@ -858,7 +1155,7 @@ pg_stlm <- function(
                     } else if (tt == n_time) {
                         if (shared_covariance_params) {
                             A <- Sigma_inv + diag(omega[, j, tt])
-                            b     <- Sigma_inv %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
+                            b <- Sigma_inv %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
                         } else {
                             A <- Sigma_inv[j, , ] + diag(omega[, j, tt])
                             b <- Sigma_inv[j,,] %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
@@ -970,6 +1267,7 @@ pg_stlm <- function(
                         theta_save[save_idx]  <- theta
                     }
                     tau2_save[save_idx]     <- tau2
+                    sigma2_save[save_idx]   <- sigma2
                 } else {
                     if (corr_fun == "matern") {
                         theta_save[save_idx, , ]  <- theta
@@ -977,6 +1275,7 @@ pg_stlm <- function(
                         theta_save[save_idx, ]  <- theta
                     }
                     tau2_save[save_idx, ]     <- tau2
+                    sigma2_save[save_idx, ]   <- sigma2
                 }
                 eta_save[save_idx, , , ] <- eta
                 for (tt in 1:n_time) {
@@ -1007,7 +1306,8 @@ pg_stlm <- function(
     ## eventually create a model class and include this as a variable in the class
     message("Acceptance rate for theta is ", mean(theta_accept))
     message("Acceptance rate for rho is ", mean(rho_accept))
-    
+    message("Acceptance rate for tau2 is ", mean(tau2_accept))
+    message("Acceptance rate for sigma2 is ", mean(sigma2_accept))
     
     ##
     ## return the MCMC output -- think about a better way to make this a class
@@ -1026,24 +1326,26 @@ pg_stlm <- function(
     out <- NULL
     if (save_omega) {
         out <- list(
-            beta  = beta_save,
-            theta = theta_save,
-            tau2  = tau2_save,
-            eta   = eta_save,
-            pi    = pi_save,
-            rho   = rho_save,
-            omega = omega_save)        
+            beta   = beta_save,
+            theta  = theta_save,
+            tau2   = tau2_save,
+            sigma2 = sigma2_save,
+            eta    = eta_save,
+            pi     = pi_save,
+            rho    = rho_save,
+            omega  = omega_save)        
     } else {
         out <- list(
-            beta  = beta_save,
-            theta = theta_save,
-            tau2  = tau2_save,
-            eta   = eta_save,
-            pi    = pi_save,
-            rho   = rho_save)
+            beta   = beta_save,
+            theta  = theta_save,
+            tau2   = tau2_save,
+            sigma2 = sigma2_save,
+            eta    = eta_save,
+            pi     = pi_save,
+            rho    = rho_save)
     }
 
-    class(out) <- "pg_stlm"
+    class(out) <- "pg_stlm_overdispersed"
     
     return(out)
 }

@@ -28,7 +28,7 @@
 #' @export
 
 ## polya-gamma spatial linear regression model
-pg_stlm <- function(
+pg_stlm_latent_overdispersed <- function(
     Y, 
     X,
     locs, 
@@ -84,7 +84,7 @@ pg_stlm <- function(
         }
     }
     
-    ## do we sample the climate variance parameter? This is primarily 
+    ## do we sample the spatial variance parameter? This is primarily 
     ## used to troubleshoot model fitting using simulated data
     sample_tau2 <- TRUE
     if (!is.null(config)) {
@@ -92,6 +92,27 @@ pg_stlm <- function(
             sample_tau2 <- config[['sample_tau2']]
         }
     }
+    
+    
+    ## do we sample the ovdiserpsion variance parameter? This is primarily 
+    ## used to troubleshoot model fitting using simulated data
+    sample_sigma2 <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_sigma2']])) {
+            sample_sigma2 <- config[['sample_sigma2']]
+        }
+    }
+    
+    sample_psi <- TRUE
+    if (!is.null(config)) {
+        if (!is.null(config[['sample_psi']])) {
+            sample_psi <- config[['sample_psi']]
+        }
+    }
+    
+    # fix these later
+    priors$alpha_sigma <- 0.1
+    priors$beta_sigma <- 0.1
     
     ## do we sample the climate spatial covariance parameters? This is
     ## primarily used to troubleshoot model fitting using simulated data
@@ -120,6 +141,7 @@ pg_stlm <- function(
     n_time <- dim(Y)[3]
     p      <- ncol(X)
     D      <- fields::rdist(locs)
+    I      <- diag(N)
     
     ## Add in a counter for the number of regularized Cholesky factors.
     ## This is useful in correcting for numerical errors resulting in 
@@ -196,6 +218,19 @@ pg_stlm <- function(
         }
     }
     Xbeta <- X %*% beta
+    
+    ##
+    ## initialize sigma2
+    ##
+    
+    alpha_sigma2 <- 1
+    beta_sigma2  <- 1
+    
+    if (shared_covariance_params) {
+        sigma2 <- pmin(rgamma(1, alpha_sigma2, beta_sigma2), 5) 
+    } else {
+        sigma2 <- pmin(rgamma(J-1, alpha_sigma2, beta_sigma2), 5) 
+    }
     
     ##
     ## initialize spatial Gaussian process -- share parameters across the different components
@@ -335,26 +370,44 @@ pg_stlm <- function(
         }
     }
     
-    eta  <- array(0, dim = c(N, J-1, n_time))
+    psi  <- array(0, dim = c(N, J-1, n_time))
     for (tt in 1:n_time) {
         if (tt == 1) {
             for (j in 1:(J-1)) {
                 if (shared_covariance_params) {
-                    eta[, j, 1] <- Xbeta[, j] + t(mvnfast::rmvn(1, rep(0, N), Sigma_chol, isChol = TRUE))
+                    psi[, j, 1] <- t(mvnfast::rmvn(1, rep(0, N), Sigma_chol, isChol = TRUE))
                 } else{
-                    eta[, j, 1] <- Xbeta[, j] + t(mvnfast::rmvn(1, rep(0, N), Sigma_chol[j, , ], isChol = TRUE))
+                    psi[, j, 1] <- t(mvnfast::rmvn(1, rep(0, N), Sigma_chol[j, , ], isChol = TRUE))
                 }
             }
         } else {
             for (j in 1:(J-1)) {
                 if (shared_covariance_params) {
-                    eta[, j, tt] <- Xbeta[, j] + mvnfast::rmvn(1, rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE)
+                    psi[, j, tt] <- mvnfast::rmvn(1, rho * psi[, j, tt - 1], Sigma_chol, isChol = TRUE)
                 } else {
-                    eta[, j, tt] <- Xbeta[, j] + t(mvnfast::rmvn(1, rho * eta[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE))
+                    psi[, j, tt] <- t(mvnfast::rmvn(1, rho * psi[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE))
                 }
             }
         }
     }    
+    
+    if (!is.null(inits[['psi']])) {
+        if (all(!is.na(inits[['psi']]))) {
+            psi <- inits[['psi']]
+        }
+    }
+    
+    eta  <- array(0, dim = c(N, J-1, n_time))
+    for (tt in 1:n_time) {
+        for (j in 1:(J-1)) {
+            if (shared_covariance_params) {
+                eta[, j, tt] <- rnorm(N, Xbeta[, j] + psi[, j, tt], sqrt(sigma2))
+            } else {
+                eta[, j, tt] <- rnorm(N, Xbeta[, j] + psi[, j, tt], sqrt(sigma2[j]))
+            }
+        }
+    }
+
     if (!is.null(inits[['eta']])) {
         if (all(!is.na(inits[['eta']]))) {
             eta <- inits[['eta']]
@@ -393,6 +446,12 @@ pg_stlm <- function(
     } else {
         tau2_save <- matrix(0, n_save, J-1)
     }
+    sigma2_save  <- NULL
+    if (shared_covariance_params) {
+        sigma2_save <- rep(0, n_save)
+    } else {
+        sigma2_save <- matrix(0, n_save, J-1)
+    }
     theta_save <- NULL
     if (shared_covariance_params) {
         if (corr_fun == "matern") {
@@ -408,6 +467,7 @@ pg_stlm <- function(
         }
     }
     eta_save   <- array(0, dim = c(n_save, N, J-1, n_time))
+    psi_save   <- array(0, dim = c(n_save, N, J-1, n_time))
     pi_save    <- array(0, dim = c(n_save, N, J, n_time))
     rho_save   <- rep(0, n_save)
     omega_save <- NULL
@@ -480,13 +540,44 @@ pg_stlm <- function(
         }
     }
     
+    # tuning for tau2
+    tau2_accept          <- NULL
+    tau2_accept_batch    <- NULL
+    tau2_tune            <- NULL
+    
+    if (shared_covariance_params) {
+        tau2_accept       <- 0
+        tau2_accept_batch <- 0
+        tau2_tune         <- 0.5
+    } else {
+        tau2_accept       <- rep(0, J-1)
+        tau2_accept_batch <- rep(0, J-1)
+        tau2_tune         <- rep(0.5, J-1)
+    }
+
+    # tuning for sigma2   
+    sigma2_accept          <- NULL
+    sigma2_accept_batch    <- NULL
+    sigma2_tune            <- NULL
+    
+    if (shared_covariance_params) {
+        sigma2_accept       <- 0
+        sigma2_accept_batch <- 0
+        sigma2_tune         <- 0.5
+    } else {
+        sigma2_accept       <- rep(0, J-1)
+        sigma2_accept_batch <- rep(0, J-1)
+        sigma2_tune         <- rep(0.5, J-1)
+    }
+    
+    
     ## tuning for rho
     rho_accept       <- 0
     rho_accept_batch <- 0
     rho_tune         <- 0.025
     
     ##
-    ## Starting MCMC chain
+    ## Starting MCMC chain ----
     ##
     
     message("Starting MCMC for chain ", n_chain, ", running for ", params$n_adapt, " adaptive iterations and ", params$n_mcmc, " fitting iterations \n")
@@ -509,7 +600,7 @@ pg_stlm <- function(
         }
         
         ##
-        ## sample Omega
+        ## sample Omega ----
         ##
         
         if (verbose)
@@ -519,7 +610,7 @@ pg_stlm <- function(
         omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
         
         ##
-        ## sample beta
+        ## sample beta ----
         ##
         
         ## can parallelize this update -- each group of parameters is 
@@ -531,20 +622,18 @@ pg_stlm <- function(
             
             if (shared_covariance_params) {
                 for (j in 1:(J-1)) {
-                    tXSigma_inv <- t(X) %*% Sigma_inv
-                    A <- n_time * tXSigma_inv %*% X + Sigma_beta_inv
+                    A <- n_time * t(X) %*% X / sigma2 + Sigma_beta_inv
                     ## guarantee a symmetric matrix
                     A <- (A + t(A)) / 2
-                    b <- rowSums(tXSigma_inv %*% eta[, j, ]) + Sigma_beta_inv %*% mu_beta
+                    b <- rowSums(t(X) %*% (eta[, j, ] - psi[, j, ])) / sigma2 + Sigma_beta_inv %*% mu_beta
                     beta[, j]   <- rmvn_arma(A, b)
                 }
             } else {
                 for (j in 1:(J-1)) {
-                    tXSigma_inv <- t(X) %*% Sigma_inv[j, , ]
-                    A <- n_time * tXSigma_inv %*% X + Sigma_beta_inv
+                    A <- n_time * t(X) %*% X / sigma2[j] + Sigma_beta_inv
                     ## guarantee a symmetric matrix
                     A <- (A + t(A)) / 2
-                    b <- rowSums(rho * tXSigma_inv %*% eta[, j, ]) + Sigma_beta_inv %*% mu_beta
+                    b <- rowSums(t(X) %*% (eta[, j, ] - psi[, j, ])) / sigma2[j] + Sigma_beta_inv %*% mu_beta
                     beta[, j]   <- rmvn_arma(A, b)
                 }
             }        
@@ -552,7 +641,7 @@ pg_stlm <- function(
         }
         
         ##
-        ## sample spatial correlation parameters theta
+        ## sample spatial correlation parameters theta ----
         ##
         
         if(sample_theta) {      
@@ -589,13 +678,13 @@ pg_stlm <- function(
                 ## parallelize this
                 mh1 <- sum(
                     sapply(1:(J-1), function(j) {
-                        mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                        mvnfast::dmvn(psi[, j, 1], rep(0, N), Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
                     })
                 ) +
                     sum(
                         sapply(2:n_time, function(tt) {
                             sapply(1:(J-1), function(j) {
-                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                                mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
                             })
                         }) 
                         
@@ -605,13 +694,13 @@ pg_stlm <- function(
                 ## parallelize this        
                 mh2 <- sum(
                     sapply(1:(J-1), function(j) {
-                        mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                        mvnfast::dmvn(psi[, j, 1], rep(0, N), Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
                     })
                 ) +
                     sum(
                         sapply(2:n_time, function(tt) {
                             sapply(1:(J-1), function(j) {
-                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
+                                mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
                             })
                         })
                     ) +
@@ -694,10 +783,10 @@ pg_stlm <- function(
                     Sigma_inv_star  <- chol2inv(Sigma_chol_star)
                     
                     ## parallelize this
-                    mh1 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) +
+                    mh1 <- mvnfast::dmvn(psi[, j, 1], rep(0, N), Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) +
                       sum(
                         sapply(2:n_time, function(tt) {
-                            mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                            mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol_star, isChol = TRUE, log = TRUE, ncores = n_cores) 
                         })) +
                       ## prior
                       mvnfast::dmvn(theta_star, theta_mean, theta_var, log = TRUE)
@@ -709,10 +798,10 @@ pg_stlm <- function(
                     } else if (corr_fun == "exponential") {
                         theta_mh <- theta[j]                        
                     }
-                    mh2 <- mvnfast::dmvn(eta[, j, 1], Xbeta[, j], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
+                    mh2 <- mvnfast::dmvn(psi[, j, 1], rep(0, N), Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
                         sum(sapply(2:n_time, function(tt) {
-                                    mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
-                            })) +
+                            mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
+                        })) +
                         ## prior
                         mvnfast::dmvn(theta_mh, theta_mean, theta_var, log = TRUE)
                     # mvnfast::dmvn(theta[j, , drop = FALSE], theta_mean, theta_var, log = TRUE)
@@ -769,32 +858,23 @@ pg_stlm <- function(
         }        
         
         ##
-        ## sample spatial process variance tau2
+        ## sample spatial process variance tau2 ----
         ##
         
         if (sample_tau2) {
             if (verbose)
                 message("sample tau2")
-            
-            ## can we make this more efficient?
-            devs <- array(0, dim = c(N, J-1, n_time))
-            devs[, , 1] <- eta[, , 1] - Xbeta
-            for (tt in 2:n_time) {
-                devs[, , tt] <- eta[, , tt] -  rho * eta[, , tt - 1] - (1 - rho) * Xbeta
-            }
-            
             if (shared_covariance_params) {
-                
-                ## double check this math later -- seems right for now
-                SS <- sum(
-                    sapply(1:n_time, function(tt) {
-                        devs[, , tt] * (tau2 * Sigma_inv %*% devs[, , tt])
-                    })
-                )
-                tau2       <- 1 / rgamma(1, N * (J-1) * n_time / 2 + priors$alpha_tau, SS / 2 + priors$beta_tau) 
-                Sigma      <- tau2 * correlation_function(D, theta, corr_fun = corr_fun) 
-                ## add in faster parallel cholesky as needed
-                ## see https://github.com/RfastOfficial/Rfast/blob/master/src/cholesky.cpp
+                # ## update a common tau2 for all processes
+                SS <- rep(0, J-1)
+                for (j in 1:(J-1)) {
+                    devs <- cbind(psi[, j, 1],
+                                  psi[, j, -1] - rho * psi[, j, -n_time])
+                    SS[j] <- sum(sapply(1:n_time, function(tt) devs[, tt] %*% (tau2 * Sigma_inv %*% devs[, tt])))
+                }
+                tau2 <- 1 / rgamma(1, priors$alpha_tau + 0.5 * N * n_time * (J-1), priors$beta_tau + 0.5 * sum(SS))
+                # update Sigma
+                Sigma <- tau2 * correlation_function(D, theta, corr_fun = corr_fun)
                 Sigma_chol <- tryCatch(
                     chol(Sigma),
                     error = function(e) {
@@ -804,22 +884,19 @@ pg_stlm <- function(
                         chol(Sigma + 1e-8 * diag(N))                    
                     }
                 )
-                Sigma_inv  <- chol2inv(Sigma_chol) 
+                Sigma_inv  <- chol2inv(Sigma_chol)
             } else {
                 for (j in 1:(J-1)) {
-                    SS <- sum(
-                        sapply(1:n_time, function(tt) {
-                            devs[, j, tt] * (tau2[j] * Sigma_inv[j, , ] %*% devs[, j, tt])
-                        })
-                    )
-                    tau2[j]    <- 1 / rgamma(1, N / 2 * n_time + priors$alpha_tau, SS / 2 + priors$beta_tau) 
+                    devs <- cbind(psi[, j, 1],
+                                  psi[, j, -1] - rho * psi[, j, -n_time])
+                    SS <- sum(sapply(1:n_time, function(tt) devs[, tt] %*% (tau2[j] * Sigma_inv[j, , ] %*% devs[, tt])))
+                    tau2[j] <- 1 / rgamma(1, priors$alpha_tau + 0.5 * N * n_time, priors$beta_tau + 0.5 * SS)
+                    # update Sigma
                     if (corr_fun == "matern") {
-                        Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = corr_fun) 
-                    } else {
-                        Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun) 
+                        Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = corr_fun)
+                    } else if (corr_fun == "exponential") {
+                        Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j], corr_fun = corr_fun)
                     }
-                    ## add in faster parallel cholesky as needed
-                    ## see https://github.com/RfastOfficial/Rfast/blob/master/src/cholesky.cpp
                     Sigma_chol[j, , ] <- tryCatch(
                         chol(Sigma[j, , ]),
                         error = function(e) {
@@ -835,7 +912,26 @@ pg_stlm <- function(
         }
         
         ##
-        ## sample eta
+        ## sample overdispersion variance sigma2 ----
+        ##
+        
+        if (sample_sigma2) {
+            if (verbose)
+                message("sample sigma2")
+            
+            if (shared_covariance_params) {
+                SS <- sum(sapply(1:n_time, function(tt) (eta[, , tt] - Xbeta - psi[, , tt])^2))
+                sigma2 <- 1 / rgamma(1, alpha_sigma2 + N * n_time * (J-1) / 2, beta_sigma2 + SS / 2)
+            } else {
+                for (j in 1:(J-1)) {
+                    SS <- sum(sapply(1:n_time, function(tt) (eta[, j, tt] - Xbeta[, j] - psi[, j, tt])^2))
+                    sigma2[j] <- 1 / rgamma(1, alpha_sigma2 + N * n_time / 2, beta_sigma2 + SS / 2)
+                }
+            }
+        }
+        
+        ##
+        ## sample eta ----
         ##
         
         if (sample_eta) {
@@ -844,34 +940,72 @@ pg_stlm <- function(
             
             ## need to add in the autocorrelation process (how does this affect the kappas?)
             for (tt in 1:n_time) {
+                ## double check this full conditional
+                if (shared_covariance_params) {
+                    eta[, , tt] <- sapply(1:(J-1), function(j) {
+                        sigma2_tilde <- 1 / (1 / sigma2 + omega[, j, tt])
+                        mu_tilde     <- 1 / sigma2 * (Xbeta[, j] + psi[, j, tt]) + kappa[, j, tt]
+                        return(
+                            rnorm(
+                                N, 
+                                sigma2_tilde * mu_tilde,
+                                sqrt(sigma2_tilde)
+                            )
+                        )
+                    })
+                } else {
+                    eta[, , tt] <- sapply(1:(J-1), function(j) {
+                        sigma2_tilde <- 1 / (1 / sigma2[j] + omega[, j, tt])
+                        mu_tilde     <- 1 / sigma2[j] * (Xbeta[, j] + psi[, j, tt]) + kappa[, j, tt]
+                        return(
+                            rnorm(
+                                N, 
+                                sigma2_tilde * mu_tilde,
+                                sqrt(sigma2_tilde)
+                            )
+                        )
+                    })
+                }
+            }
+        }
+        
+        ##
+        ## sample psi ---- 
+        ##
+        
+        if (sample_psi) {
+            if (verbose)
+                message("sample psi")
+            
+            ## need to add in the autocorrelation process (how does this affect the kappas?)
+            for (tt in 1:n_time) {
                 for (j in 1:(J-1)) {
                     A <- NULL
                     b <- NULL
                     if (tt == 1) {
                         if (shared_covariance_params) {
-                            A <- (1 + rho^2) * Sigma_inv + diag(omega[, j, tt])
-                            b <- Sigma_inv %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
+                            A <- (1 + rho^2) * Sigma_inv + 1 / sigma2 * I
+                            b <- Sigma_inv %*% (rho * psi[, j, tt + 1]) + 1 / sigma2 * (eta[, j, tt] - Xbeta[, j])
                         } else {
-                            A <- (1 + rho^2) * Sigma_inv[j, , ] + diag(omega[, j, tt])
-                            b <- Sigma_inv[j,,] %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
+                            A <- (1 + rho^2) * Sigma_inv[j, , ] + 1 / sigma2[j] * I
+                            b <- Sigma_inv[j, , ] %*% (rho * psi[, j, tt + 1]) + 1 / sigma2[j] * (eta[, j, tt] - Xbeta[, j])
                         }
                     } else if (tt == n_time) {
                         if (shared_covariance_params) {
-                            A <- Sigma_inv + diag(omega[, j, tt])
-                            b     <- Sigma_inv %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
+                            A <- Sigma_inv + 1 / sigma2 * I
+                            b <- Sigma_inv %*% (rho * psi[, j, tt - 1]) + 1 / sigma2 * (eta[, j, tt] - Xbeta[, j])
                         } else {
-                            A <- Sigma_inv[j, , ] + diag(omega[, j, tt])
-                            b <- Sigma_inv[j,,] %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
+                            A <- Sigma_inv[j, , ] + 1 / sigma2[j] * I
+                            b <- Sigma_inv[j, , ] %*% (rho * psi[, j, tt - 1]) + 1 / sigma2[j] * (eta[, j, tt] - Xbeta[, j])
                         }
                     } else {
                         if (shared_covariance_params) {
-                            A <- (1 + rho^2) * Sigma_inv + diag(omega[, j, tt])
-                            b <- Sigma_inv %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
+                            A <- (1 + rho^2) * Sigma_inv + 1 / sigma2 * I
+                            b <- Sigma_inv %*% (rho * (psi[, j, tt - 1] + psi[, j, tt + 1])) + 1 / sigma2 * (eta[, j, tt] - Xbeta[, j])
                         } else {
-                            A <- (1 + rho^2) * Sigma_inv[j, , ] + diag(omega[, j, tt])
-                            b <- Sigma_inv[j,,] %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
+                            A <- (1 + rho^2) * Sigma_inv[j, , ] + 1 / sigma2[j] * I
+                            b <- Sigma_inv[j, , ] %*% (rho * (psi[, j, tt - 1] +  psi[, j, tt + 1])) + 1 / sigma2[j] * (eta[, j, tt] - Xbeta[, j])
                         }
-                        ## is this (1 - rho) * Xbeta[, j] or (1 + rho) * Xbeta[, j]???
                     }
                     ## guarantee that A is symmetric
                     A            <- (A + t(A)) / 2
@@ -896,38 +1030,38 @@ pg_stlm <- function(
                     mh1 <- sum(
                         sapply(2:n_time, function(tt) {
                             sapply(1:(J-1), function(j) {
-                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho_star * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                                mvnfast::dmvn(psi[, j, tt], rho_star * psi[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
                             })
-                        }) 
-                        
-                    ) 
-                    ## parallelize this        
+                        })
+
+                    )
+                    ## parallelize this
                     mh2 <- sum(
                         sapply(2:n_time, function(tt) {
                             sapply(1:(J-1), function(j) {
-                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores) 
+                                mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol, isChol = TRUE, log = TRUE, ncores = n_cores)
                             })
-                        }) 
-                    ) 
+                        })
+                    )
                 } else {
                     mh1 <- sum(
                         sapply(2:n_time, function(tt) {
                             sapply(1:(J-1), function(j) {
-                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho_star * eta[, j, tt - 1], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores) 
+                                mvnfast::dmvn(psi[, j, tt], rho_star * psi[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
                             })
-                        }) 
-                        
-                    ) 
-                    ## parallelize this        
+                        })
+
+                    )
+                    ## parallelize this
                     mh2 <- sum(
                         sapply(2:n_time, function(tt) {
                             sapply(1:(J-1), function(j) {
-                                mvnfast::dmvn(eta[, j, tt], Xbeta[, j] + rho * eta[, j, tt - 1], Sigma_chol[j,,], isChol = TRUE, log = TRUE, ncores = n_cores) 
+                                mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
                             })
-                        }) 
+                        })
                     )
                 }
-                
+
                 mh <- exp(mh1 - mh2)
                 if (length(mh) > 1)
                     stop("error in mh for rho")
@@ -939,13 +1073,13 @@ pg_stlm <- function(
                         rho_accept <- rho_accept + 1.0 / params$n_mcmc
                     }
                 }
-                
+
                 ## update tuning
                 if (k <= params$n_adapt) {
                     if (k %% 50 == 0){
                         out_tuning <- update_tuning(
                             k,
-                            rho_accept_batch, 
+                            rho_accept_batch,
                             rho_tune
                         )
                         rho_tune         <- out_tuning$tune
@@ -956,7 +1090,7 @@ pg_stlm <- function(
         }
         
         ##
-        ## save variables
+        ## save variables ----
         ##
         
         if (k >= params$n_adapt) {
@@ -970,6 +1104,7 @@ pg_stlm <- function(
                         theta_save[save_idx]  <- theta
                     }
                     tau2_save[save_idx]     <- tau2
+                    sigma2_save[save_idx]   <- sigma2
                 } else {
                     if (corr_fun == "matern") {
                         theta_save[save_idx, , ]  <- theta
@@ -977,8 +1112,10 @@ pg_stlm <- function(
                         theta_save[save_idx, ]  <- theta
                     }
                     tau2_save[save_idx, ]     <- tau2
+                    sigma2_save[save_idx, ]   <- sigma2
                 }
                 eta_save[save_idx, , , ] <- eta
+                psi_save[save_idx, , , ] <- psi
                 for (tt in 1:n_time) {
                     pi_save[save_idx, , , tt]  <- eta_to_pi(eta[, , tt])
                 }
@@ -1007,7 +1144,8 @@ pg_stlm <- function(
     ## eventually create a model class and include this as a variable in the class
     message("Acceptance rate for theta is ", mean(theta_accept))
     message("Acceptance rate for rho is ", mean(rho_accept))
-    
+    message("Acceptance rate for tau2 is ", mean(tau2_accept))
+    message("Acceptance rate for sigma2 is ", mean(sigma2_accept))
     
     ##
     ## return the MCMC output -- think about a better way to make this a class
@@ -1026,24 +1164,28 @@ pg_stlm <- function(
     out <- NULL
     if (save_omega) {
         out <- list(
-            beta  = beta_save,
-            theta = theta_save,
-            tau2  = tau2_save,
-            eta   = eta_save,
-            pi    = pi_save,
-            rho   = rho_save,
-            omega = omega_save)        
+            beta   = beta_save,
+            theta  = theta_save,
+            tau2   = tau2_save,
+            sigma2 = sigma2_save,
+            eta    = eta_save,
+            psi    = psi_save,
+            pi     = pi_save,
+            rho    = rho_save,
+            omega  = omega_save)        
     } else {
         out <- list(
-            beta  = beta_save,
-            theta = theta_save,
-            tau2  = tau2_save,
-            eta   = eta_save,
-            pi    = pi_save,
-            rho   = rho_save)
+            beta   = beta_save,
+            theta  = theta_save,
+            tau2   = tau2_save,
+            sigma2 = sigma2_save,
+            eta    = eta_save,
+            psi    = psi_save,
+            pi     = pi_save,
+            rho    = rho_save)
     }
 
-    class(out) <- "pg_stlm"
+    class(out) <- "pg_stlm_latent_overdispersed"
     
     return(out)
 }

@@ -8,7 +8,7 @@ output:
 nocite: '@*'  
 ---
 
-We are testing the spatial Polya-gamma linear model `pgSPLM()`
+We are testing the spatial Polya-gamma linear model `pg_splm()`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 16, fig.height = 9)
@@ -344,7 +344,7 @@ if (file.exists(here::here("results", "pg_splm-mra.RData"))) {
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pg_splm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L)
+  out <- pg_splm_mra(Y, as.matrix(X), as.matrix(locs), params, priors, M = 3, n_coarse_grid = 6, n_cores = 1L)
   stop <- Sys.time()
   runtime <- stop - start
   
@@ -496,7 +496,7 @@ if (file.exists(here::here("results", "pg_splm-mra-sample.RData"))) {
   ## can I do this efficiently using openMP?
   ## Q: faster to parallelize using openMP or foreach?
   start <- Sys.time()
-  out <- pg_splm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 6L)
+  out <- pg_splm_mra(Y_s, as.matrix(X_s), as.matrix(locs_s), params, priors, M = 3, n_coarse_grid = 6, n_cores = 1L)
   stop <- Sys.time()
   runtime <- stop - start
   

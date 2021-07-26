@@ -122,8 +122,8 @@ calc_ll_pg_stlm <- function(Y, X, out) {
     ##
     ## check the inputs 
     ##
-    if (!(inherits(out, "pg_stlm") || inherits(out, "pg_stlm_mra")))
-        stop("The MCMC object out must be of class pg_stlm or pg_stlm_mra which are the output of the pg_stlm() or pg_stlm_mra() functions, respectively.")
+    if (!(inherits(out, "pg_stlm") || inherits(out, "pg_stlm_overdispersed") || inherits(out, "pg_stlm_mra")))
+        stop("The MCMC object out must be of class pg_stlm, pg_stlm_overdispersed, or pg_stlm_mra which are the output of the pg_stlm(), pg_stlm_overdispersed(), or pg_stlm_mra() functions, respectively.")
     
     if (!is.array(Y)) 
         stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")

@@ -305,7 +305,7 @@ if (file.exists(here::here("results", "pg_lm.RData"))) {
     load(here::here("results", "pg_lm.RData"))
 } else {
     start <- Sys.time()
-    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 32L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 1L, sample_rmvn = FALSE)
     stop <- Sys.time()
     runtime <- stop - start
 
@@ -361,7 +361,7 @@ if (file.exists(here::here("results", "pg_lm-linear.RData"))) {
     load(here::here("results", "pg_lm-linear.RData"))
 } else {
     start <- Sys.time()
-    out_linear <- pg_lm(Y, as.matrix(X), params, priors, n_cores = 32L, sample_rmvn = FALSE)
+    out_linear <- pg_lm(Y, as.matrix(X), params, priors, n_cores = 1L, sample_rmvn = FALSE)
     stop <- Sys.time()
     runtime_linear <- stop - start
 
@@ -415,7 +415,7 @@ if (file.exists(here::here("results", "pg_lm-sample.RData"))) {
     ## can I do this efficiently using openMP?
     ## Q: faster to parallelize using openMP or foreach?
     start <- Sys.time()
-    out <- pg_lm(Y_s, as.matrix(Xbs_s), params, priors, n_cores = 6L, sample_rmvn = FALSE)
+    out <- pg_lm(Y_s, as.matrix(Xbs_s), params, priors, n_cores = 1L, sample_rmvn = FALSE)
     stop <- Sys.time()
     runtime <- stop - start
 

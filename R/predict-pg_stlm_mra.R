@@ -69,7 +69,7 @@ predict_pg_stlm_mra <- function(
     for (k in 1:n_samples) {
         for (tt in 1:n_time) {
             for (j in 1:(J - 1)) {
-                eta_pred[k, , j, tt] <- X_pred %*% beta[k, , j] + W_pred %*% alpha[k, , j, tt] + rnorm(n_pred, 0, sqrt(sigma2[j]))
+                eta_pred[k, , j, tt] <- X_pred %*% beta[k, , j] + W_pred %*% alpha[k, , j, tt] + rnorm(n_pred, 0, sqrt(sigma2[k, j]))
             } 
         }
         if (k %in% percentage_points && progress) {
@@ -81,7 +81,6 @@ predict_pg_stlm_mra <- function(
         close(progressBar)
     }
     
-    ## convert from eta to pi
     ## convert from eta to pi
     pi_pred <- array(0, dim = c(n_samples, n_pred, J, n_time))
     for (k in 1:n_samples) {

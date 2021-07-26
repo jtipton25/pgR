@@ -565,7 +565,8 @@ pg_mvgp_univariate_mra <- function(
     ##
     
     omega <- array(0, dim = c(N, J-1, n_time))
-    omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+    omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
     
     
     ##
@@ -722,7 +723,8 @@ pg_mvgp_univariate_mra <- function(
         if (verbose)
             message("sample omega")
         
-        omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)
+        # omega[nonzero_idx] <- pgdraw(Mi[nonzero_idx], eta[nonzero_idx], cores = n_cores)\
+        omega[nonzero_idx] <- rpg(n_nonzero, Mi[nonzero_idx], eta[nonzero_idx])
         
         ##
         ## sample eta

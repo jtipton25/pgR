@@ -24,13 +24,13 @@ predict_pg_stlm_latent_overdispersed <- function(
     shared_covariance_params,
     progress            = TRUE, 
     verbose             = FALSE) {
-
+    
     ## check the inputs
     check_corr_fun(corr_fun)
     
-    if (class(out) != "pg_stlm_overdispersed")
-        stop("The MCMC object out must be of class pg_stlm_overdispersed which is the output of the pg_stlm_overdispersed() function.")
-
+    if (class(out) != "pg_stlm_latent_overdispersed")
+        stop("The MCMC object out must be of class pg_stlm_latent_overdispersed which is the output of the pg_stlm_latent_overdispersed() function.")
+    
     ## 
     ## extract the parameters 
     ##
@@ -49,8 +49,8 @@ predict_pg_stlm_latent_overdispersed <- function(
     J         <- dim(beta)[3] + 1
     I         <- diag(N)
     
-    if (n_pred > 10000 & posterior_mean_only == FALSE) {
-        stop("Number of prediction points must be less than 10000 if posterior_mean_only = FALSE")
+    if (n_pred > 10000) {
+        stop("Number of prediction points must be less than 10000")
     }
     
     ## add in a counter for the number of regularized Cholesky
@@ -208,7 +208,7 @@ predict_pg_stlm_latent_overdispersed <- function(
                 #     kronecker(Sigma_time %*% Q_time, Sigma_unobs_obs %*% Sigma_inv), 
                 #     times = 5)
                 
-
+                
                 # eta_pred[k, , j, ] <- matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time)
                 
                 psi_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
@@ -218,7 +218,9 @@ predict_pg_stlm_latent_overdispersed <- function(
                 #     times = 10
                 # )
             } 
-            eta_pred[k, , j, ] <- psi_pred[k, , j, ] + rnorm(n_pred * n_time, 0, sqrt(sigma2[k]))
+            for (tt in 1:n_time) {
+                eta_pred[k, , j, tt] <- X_pred %*% beta[k, , j] + psi_pred[k, , j, tt] + rnorm(n_pred, 0, sqrt(sigma2[k, j]))
+            }
         } else {
             
             pred_var_chol_time <- NULL
@@ -292,7 +294,9 @@ predict_pg_stlm_latent_overdispersed <- function(
                 # )
                 # eta_pred[k, , j, ] <- matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time)
                 psi_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
-                eta_pred[k, , j, ] <- X_pred %*% beta[k, , j] + psi_pred[k, , j, ] + rnorm(n_pred * n_time, 0, sqrt(sigma2[k, j]))
+                for (tt in 1:n_time) {
+                    eta_pred[k, , j, tt] <- X_pred %*% beta[k, , j] + psi_pred[k, , j, tt] + rnorm(n_pred, 0, sqrt(sigma2[k, j]))
+                }
             } 
         }
         
@@ -312,7 +316,7 @@ predict_pg_stlm_latent_overdispersed <- function(
             pi_pred[k, , , tt] <- eta_to_pi(eta_pred[k, , , tt])
         }
     }
-
+    
     if (num_chol_failures > 0)
         warning("The Cholesky decomposition of the Matern correlation function was ill-conditioned and mildy regularized ", num_chol_failures, " times. If this warning is rare, this should be safe to ignore. To better aid in diagnosing the problem, run with vebose = TRUE")
     

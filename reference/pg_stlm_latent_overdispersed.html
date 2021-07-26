@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Bayesian Polya-gamma regression — pg_lm • pgR</title>
+<title>Bayesian Polya-gamma regression — pg_stlm_latent_overdispersed • pgR</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,7 @@
 
 
 
-<meta property="og:title" content="Bayesian Polya-gamma regression — pg_lm" />
+<meta property="og:title" content="Bayesian Polya-gamma regression — pg_stlm_latent_overdispersed" />
 <meta property="og:description" content="this function runs the Bayesian multinomial regression using Polya-gamma data augmentation" />
 
 
@@ -124,23 +124,28 @@
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Bayesian Polya-gamma regression</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pg_lm.R'><code>R/pg_lm.R</code></a></small>
-    <div class="hidden name"><code>pg_lm.Rd</code></div>
+    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pg_stlm_latent_overdispersed.R'><code>R/pg_stlm_latent_overdispersed.R</code></a></small>
+    <div class="hidden name"><code>pg_stlm_latent_overdispersed.Rd</code></div>
     </div>
 
     <div class="ref-description">
     <p>this function runs the Bayesian multinomial regression using Polya-gamma data augmentation</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pg_lm</span><span class='op'>(</span>
+    <pre class="usage"><span class='fu'>pg_stlm_latent_overdispersed</span><span class='op'>(</span>
   <span class='va'>Y</span>,
   <span class='va'>X</span>,
+  <span class='va'>locs</span>,
   <span class='va'>params</span>,
   <span class='va'>priors</span>,
+  corr_fun <span class='op'>=</span> <span class='st'>"exponential"</span>,
   n_cores <span class='op'>=</span> <span class='fl'>1L</span>,
+  shared_covariance_params <span class='op'>=</span> <span class='cn'>TRUE</span>,
   inits <span class='op'>=</span> <span class='cn'>NULL</span>,
   config <span class='op'>=</span> <span class='cn'>NULL</span>,
-  n_chain <span class='op'>=</span> <span class='fl'>1</span>
+  n_chain <span class='op'>=</span> <span class='fl'>1</span>,
+  progress <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  verbose <span class='op'>=</span> <span class='cn'>FALSE</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -148,11 +153,15 @@
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>Y</th>
-      <td><p>is a \(n \times J\) matrix of compositional count data.</p></td>
+      <td><p>is a \(N \times J \times T\) array of compositional count data.</p></td>
     </tr>
     <tr>
       <th>X</th>
-      <td><p>is a \(n \times p\) matrix of climate variables.</p></td>
+      <td><p>is a \(N \times p\) matrix of climate variables.</p></td>
+    </tr>
+    <tr>
+      <th>locs</th>
+      <td><p>is a \(n_sites \times 2\) matrix of observation locations.</p></td>
     </tr>
     <tr>
       <th>params</th>
@@ -170,11 +179,19 @@ outputs progress messages every 50 iterations.</p></li>
     </tr>
     <tr>
       <th>priors</th>
-      <td><p>is the list of prior settings.</p></td>
+      <td><p>is a list of prior settings.</p></td>
+    </tr>
+    <tr>
+      <th>corr_fun</th>
+      <td><p>is a character that denotes the correlation function form. Current options include "matern" and "exponential".</p></td>
     </tr>
     <tr>
       <th>n_cores</th>
       <td><p>is the number of cores for parallel computation using openMP.</p></td>
+    </tr>
+    <tr>
+      <th>shared_covariance_params</th>
+      <td><p>is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
     </tr>
     <tr>
       <th>inits</th>
@@ -189,8 +206,12 @@ outputs progress messages every 50 iterations.</p></li>
       <td><p>is the MCMC chain id. The default is 1.</p></td>
     </tr>
     <tr>
-      <th>sample_rmvn</th>
-      <td><p>is an indicator whether the faster multivariate normal sampler is used.</p></td>
+      <th>progress</th>
+      <td><p>is a logicial input that determines whether to print a progress bar.</p></td>
+    </tr>
+    <tr>
+      <th>verbose</th>
+      <td><p>is a logicial input that determines whether to print more detailed messages.</p></td>
     </tr>
     </table>
 

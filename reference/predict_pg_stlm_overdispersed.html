@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Bayesian Polya-gamma regression — pg_lm • pgR</title>
+<title>Bayesian Polya-gamma regression prediction — predict_pg_stlm_overdispersed • pgR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Bayesian Polya-gamma regression — pg_lm" />
-<meta property="og:description" content="this function runs the Bayesian multinomial regression using Polya-gamma data augmentation" />
+<meta property="og:title" content="Bayesian Polya-gamma regression prediction — predict_pg_stlm_overdispersed" />
+<meta property="og:description" content="this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation" />
 
 
 
@@ -123,74 +123,70 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Bayesian Polya-gamma regression</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pg_lm.R'><code>R/pg_lm.R</code></a></small>
-    <div class="hidden name"><code>pg_lm.Rd</code></div>
+    <h1>Bayesian Polya-gamma regression prediction</h1>
+    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/predict-pg_stlm_overdispersed.R'><code>R/predict-pg_stlm_overdispersed.R</code></a></small>
+    <div class="hidden name"><code>predict_pg_stlm_overdispersed.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>this function runs the Bayesian multinomial regression using Polya-gamma data augmentation</p>
+    <p>this function generates predictions from the Bayesian multinomial regression using Polya-gamma data augmentation</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pg_lm</span><span class='op'>(</span>
-  <span class='va'>Y</span>,
+    <pre class="usage"><span class='fu'>predict_pg_stlm_overdispersed</span><span class='op'>(</span>
+  <span class='va'>out</span>,
   <span class='va'>X</span>,
-  <span class='va'>params</span>,
-  <span class='va'>priors</span>,
-  n_cores <span class='op'>=</span> <span class='fl'>1L</span>,
-  inits <span class='op'>=</span> <span class='cn'>NULL</span>,
-  config <span class='op'>=</span> <span class='cn'>NULL</span>,
-  n_chain <span class='op'>=</span> <span class='fl'>1</span>
+  <span class='va'>X_pred</span>,
+  <span class='va'>locs</span>,
+  <span class='va'>locs_pred</span>,
+  <span class='va'>corr_fun</span>,
+  <span class='va'>shared_covariance_params</span>,
+  progress <span class='op'>=</span> <span class='cn'>TRUE</span>,
+  verbose <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  posterior_mean_only <span class='op'>=</span> <span class='cn'>TRUE</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>Y</th>
-      <td><p>is a \(n \times J\) matrix of compositional count data.</p></td>
+      <th>out</th>
+      <td><p>is a list of MCMC outputs from pg_stlm_overdispersed()</p></td>
     </tr>
     <tr>
       <th>X</th>
-      <td><p>is a \(n \times p\) matrix of climate variables.</p></td>
+      <td><p>is a \(n \times p\) matrix of covariates at the observed locations.</p></td>
     </tr>
     <tr>
-      <th>params</th>
-      <td><p>is a list of parameter settings. The list
-<code>params</code> must contain the following values:</p><ul>
-<li><p><code>n_adapt</code>: A positive integer number of adaptive MCMC iterations.</p></li>
-<li><p><code>n_mcmc</code>: A positive integer number of total MCMC iterations
-post adaptation.</p></li>
-<li><p><code>n_thin</code>: A positive integer number of MCMC iterations per saved
-sample.</p></li>
-<li><p><code>n_message</code>: A positive integer number of frequency of iterations
-to output a progress message. For example, <code>n_message = 50</code>
-outputs progress messages every 50 iterations.</p></li>
-</ul></td>
+      <th>X_pred</th>
+      <td><p>is a \(n_{pred} \times p\) matrix of covariates at the locations where predictions are to be made.</p></td>
     </tr>
     <tr>
-      <th>priors</th>
-      <td><p>is the list of prior settings.</p></td>
+      <th>locs</th>
+      <td><p>is a \(n \times 2\) matrix of locations where observations were taken.</p></td>
     </tr>
     <tr>
-      <th>n_cores</th>
-      <td><p>is the number of cores for parallel computation using openMP.</p></td>
+      <th>locs_pred</th>
+      <td><p>is a \(n_pred \times 2\) matrix of locations where predictions are to be made.</p></td>
     </tr>
     <tr>
-      <th>inits</th>
-      <td><p>is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.</p></td>
+      <th>corr_fun</th>
+      <td><p>is a character that denotes the correlation function form. Current options include "matern" and "exponential".</p></td>
     </tr>
     <tr>
-      <th>config</th>
-      <td><p>is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.</p></td>
+      <th>shared_covariance_params</th>
+      <td><p>is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2.</p></td>
     </tr>
     <tr>
-      <th>n_chain</th>
-      <td><p>is the MCMC chain id. The default is 1.</p></td>
+      <th>progress</th>
+      <td><p>is a logicial input that determines whether to print a progress bar.</p></td>
     </tr>
     <tr>
-      <th>sample_rmvn</th>
-      <td><p>is an indicator whether the faster multivariate normal sampler is used.</p></td>
+      <th>verbose</th>
+      <td><p>is a logicial input that determines whether to print more detailed messages.</p></td>
+    </tr>
+    <tr>
+      <th>posterior_mean_only</th>
+      <td><p>is a logical input that flags whether to generate the full posterior predictive distribution (<code>posterior_mean_only = FALSE</code>) or just the posterior predictive distribution of the mean response (<code>posterior_mean_only = TRUE</code>). For large dataset, the full posterior predictive distribution can be expensive to compute and the posterior distribution of the mean response is much faster to calculte.</p></td>
     </tr>
     </table>
 

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Bayesian Polya-gamma regression — pg_lm • pgR</title>
+<title>Calculate the intermediate Polya-gamma value kappa — calc_kappa • pgR</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Bayesian Polya-gamma regression — pg_lm" />
-<meta property="og:description" content="this function runs the Bayesian multinomial regression using Polya-gamma data augmentation" />
+<meta property="og:title" content="Calculate the intermediate Polya-gamma value kappa — calc_kappa" />
+<meta property="og:description" content="Calculate the intermediate Polya-gamma value kappa" />
 
 
 
@@ -123,25 +123,16 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Bayesian Polya-gamma regression</h1>
-    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/pg_lm.R'><code>R/pg_lm.R</code></a></small>
-    <div class="hidden name"><code>pg_lm.Rd</code></div>
+    <h1>Calculate the intermediate Polya-gamma value kappa</h1>
+    <small class="dont-index">Source: <a href='https://github.com/jtipton25/pgR/blob/master/R/utils.R'><code>R/utils.R</code></a></small>
+    <div class="hidden name"><code>calc_kappa.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>this function runs the Bayesian multinomial regression using Polya-gamma data augmentation</p>
+    <p>Calculate the intermediate Polya-gamma value kappa</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pg_lm</span><span class='op'>(</span>
-  <span class='va'>Y</span>,
-  <span class='va'>X</span>,
-  <span class='va'>params</span>,
-  <span class='va'>priors</span>,
-  n_cores <span class='op'>=</span> <span class='fl'>1L</span>,
-  inits <span class='op'>=</span> <span class='cn'>NULL</span>,
-  config <span class='op'>=</span> <span class='cn'>NULL</span>,
-  n_chain <span class='op'>=</span> <span class='fl'>1</span>
-<span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>calc_kappa</span><span class='op'>(</span><span class='va'>Y</span>, <span class='va'>Mi</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -151,46 +142,8 @@
       <td><p>is a \(n \times J\) matrix of compositional count data.</p></td>
     </tr>
     <tr>
-      <th>X</th>
-      <td><p>is a \(n \times p\) matrix of climate variables.</p></td>
-    </tr>
-    <tr>
-      <th>params</th>
-      <td><p>is a list of parameter settings. The list
-<code>params</code> must contain the following values:</p><ul>
-<li><p><code>n_adapt</code>: A positive integer number of adaptive MCMC iterations.</p></li>
-<li><p><code>n_mcmc</code>: A positive integer number of total MCMC iterations
-post adaptation.</p></li>
-<li><p><code>n_thin</code>: A positive integer number of MCMC iterations per saved
-sample.</p></li>
-<li><p><code>n_message</code>: A positive integer number of frequency of iterations
-to output a progress message. For example, <code>n_message = 50</code>
-outputs progress messages every 50 iterations.</p></li>
-</ul></td>
-    </tr>
-    <tr>
-      <th>priors</th>
-      <td><p>is the list of prior settings.</p></td>
-    </tr>
-    <tr>
-      <th>n_cores</th>
-      <td><p>is the number of cores for parallel computation using openMP.</p></td>
-    </tr>
-    <tr>
-      <th>inits</th>
-      <td><p>is the list of intial values if the user wishes to specify initial values. If these values are not specified, then the intital values will be randomly sampled from the prior.</p></td>
-    </tr>
-    <tr>
-      <th>config</th>
-      <td><p>is the list of configuration values if the user wishes to specify initial values. If these values are not specified, then default a configuration will be used.</p></td>
-    </tr>
-    <tr>
-      <th>n_chain</th>
-      <td><p>is the MCMC chain id. The default is 1.</p></td>
-    </tr>
-    <tr>
-      <th>sample_rmvn</th>
-      <td><p>is an indicator whether the faster multivariate normal sampler is used.</p></td>
+      <th>Mi</th>
+      <td><p>is a \(n \times J-1\) matrix of transformed observations for Polya-gamma that is the output of the <code><a href='calc_Mi.html'>calc_Mi()</a></code> function</p></td>
     </tr>
     </table>
 

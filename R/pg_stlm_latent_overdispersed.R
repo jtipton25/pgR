@@ -1009,7 +1009,7 @@ pg_stlm_latent_overdispersed <- function(
                     }
                     ## guarantee that A is symmetric
                     A            <- (A + t(A)) / 2
-                    eta[, j, tt] <- rmvn_arma(A, b)
+                    psi[, j, tt] <- rmvn_arma(A, b)
                 }
             }
         }

@@ -19,16 +19,22 @@ locs <- expand.grid(
 )
 D <- fields::rdist(locs)
 # use the same parameters for each of the J-1 components
-tau2 <- 4.5
-theta <- log(0.5) 
+tau2 <- runif(J-1, 0.5, 4.5)
+theta <- matrix(c(rnorm(J-1, log(4.5), 0.2), rnorm(J-1, log(0.5), 0.2)), J-1, 2)
 rho <- 0.9
-sigma <- 0.7
-Sigma <- tau2 * correlation_function(D, theta, corr_fun = "exponential")
+sigma <- runif(J-1, 0.5, 4)
+Sigma <- array(0, dim = c(J-1, N, N))
+for (j in 1:(J-1)) {
+    Sigma[j, , ] <- tau2[j] * correlation_function(D, theta[j, ], corr_fun = "matern")
+}
 psi <- array(0, dim = c(N, J-1, n_time))
-psi[, , 1] <- t(rmvn(J-1, rep(0, N), Sigma))
+for (j in 1:(J-1)) {
+    psi[, j, 1] <- t(rmvn(1, rep(0, N), Sigma[j, , ]))    
+}
+
 for (tt in 2:n_time) {
     for (j in 1:(J-1)) {
-        psi[, j, tt] <- drop(rmvn(1, rho * psi[, j, tt-1], Sigma))
+        psi[, j, tt] <- drop(rmvn(1, rho * psi[, j, tt-1], Sigma[j, , ]))
     }
 }
 
@@ -47,7 +53,9 @@ beta[1, ] <- beta[1, ] - seq(from = 2, to = 0, length.out = J-1) - 2
 eta <- array(0, dim = c(N, J-1, n_time))
 pi <- array(0, dim = c(N, J, n_time))
 for (tt in 1:n_time) {
-    eta[, , tt] <- X %*% beta + psi[, , tt] + rnorm(N * (J-1), 0, sigma)
+    for (j in 1:(J-1)) {
+        eta[, j, tt] <- X %*% beta[, j] + psi[, j, tt] + rnorm(N, 0, sigma[j])
+    }
     pi[, , tt] <- eta_to_pi(eta[, , tt])
 }
 
@@ -154,35 +162,38 @@ pi_map
 
 # fit model with covariates ----------------------------------------------------
 params <- default_params()
-params$n_adapt <- 200#1000
-params$n_mcmc <- 200#1000
+params$n_adapt <- 500#1000
+params$n_mcmc <- 500#1000
 params$n_message <- 50
 params$n_thin <- 1
-priors <- default_priors_pg_stlm(Y, X)
-inits  <- default_inits_pg_stlm(Y, X, priors, shared_covariance_params = FALSE)
+priors <- default_priors_pg_stlm(Y, X, corr_fun = "matern")
+inits  <- default_inits_pg_stlm(Y, X, priors, shared_covariance_params = FALSE, corr_fun = "matern")
+config <- NULL
 
 if (file.exists(here::here("results", "pg_stlm-latent-overdispersed.RData"))) {
     load(here::here("results", "pg_stlm-latent-overdispersed.RData"))
 } else {
     
-    inits <- list(
-        beta = beta,
-                  eta = eta,
-                  psi = psi,
-                  sigma2 = rep(sigma^2, J-1), 
-                  theta = rep(theta, J-1),
-                  tau2 = rep(tau2, J-1),
-                  rho = rho)
-    # config <- list(sample_beta = FALSE,
-    #                sample_eta = FALSE,
-    #                sample_psi = FALSE,
-    #                sample_sigma2 = FALSE,
-    #                sample_theta = FALSE,
-    #                sample_tau2 = FALSE,
-    #                sample_rho = FALSE)
+    # inits <- list(
+    #     beta = beta,
+    #     eta = eta,
+    #     psi = psi,
+    #     sigma2 = sigma^2,
+    #     theta = theta,
+    #     tau2 = tau2,
+    #     rho = rho)
+    # config <- list(
+    #     sample_beta = FALSE,
+    #     sample_eta = FALSE,
+    #     sample_psi = FALSE,
+    #     sample_sigma2 = FALSE,
+    #     sample_theta = FALSE,
+    #     sample_tau2 = FALSE,
+    #     sample_rho = FALSE)
     start <- Sys.time()
     out <- pg_stlm_latent_overdispersed(Y, as.matrix(X), as.matrix(locs), params, 
-                                        inits = inits, 
+                                        corr_fun = "matern",
+                                        inits = inits, config = config,
                                         priors, n_cores = 1L, shared_covariance_params = FALSE)
     stop <- Sys.time()
     runtime <- stop - start
@@ -382,30 +393,45 @@ dat_plot %>%
     ggtitle("Estimated vs. simulated pi")
 
 # plot sigma2 ----
-data.frame(sigma2 = c(out$sigma2),
-           iteration = 1:nrow(out$sigma2), 
-           parameter = rep(1:ncol(out$sigma2), each = nrow(out$sigma2))) %>%
-    ggplot(aes(x = sqrt(sigma2))) +
+data.frame(sigma_truth = c(sigma), 
+           parameter = 1:(J-1)) %>% 
+    left_join(
+        data.frame(sigma = sqrt(c(out$sigma2)),
+                   iteration = 1:nrow(out$sigma2), 
+                   parameter = rep(1:ncol(out$sigma2), each = nrow(out$sigma2)))) %>%
+    ggplot(aes(x = sigma)) +
     geom_histogram() +
     facet_wrap(~parameter) +
-    geom_vline(aes(xintercept = sigma, color = "red"))
+    geom_vline(aes(xintercept = sigma_truth, color = "red"))
 
 # plot theta ----
-data.frame(theta_truth = theta,
-           theta = c(out$theta),
-           iteration = 1:nrow(out$theta), 
-           parameter = rep(1:ncol(out$theta), each = nrow(out$theta))) %>%
+thetas <- out$theta
+dimnames(thetas) <- list(
+    iteration = 1:dim(thetas)[1],
+    species = 1:dim(thetas)[2],
+    parameter = 1:dim(thetas)[3]
+)
+
+data.frame(theta_truth = c(theta),
+           species = 1:(J-1), 
+           parameter = rep(1:2, each = J-1)) %>%
+    left_join(as.data.frame.table(thetas, responseName = "theta") %>%
+                  mutate(iteration = as.integer(iteration), 
+                         species = as.integer(species), 
+                         parameter = as.integer(parameter))) %>%
     ggplot(aes(x = theta)) +
     geom_histogram() +
-    facet_wrap(~parameter) +
+    facet_grid(species~parameter) +
     geom_vline(aes(xintercept = theta_truth, color = "red"))
 
 
 # plot tau2 ----
-data.frame(tau2_truth = tau2,
-           tau2 = c(out$tau2),
-           iteration = 1:nrow(out$tau2), 
-           parameter = rep(1:ncol(out$tau2), each = nrow(out$tau2))) %>%
+data.frame(tau2_truth = c(tau2), 
+           parameter = 1:(J-1)) %>% 
+    left_join(
+        data.frame(tau2 = c(out$tau2),
+                   iteration = 1:nrow(out$tau2), 
+                   parameter = rep(1:ncol(out$tau2), each = nrow(out$tau2)))) %>%
     ggplot(aes(x = tau2)) +
     geom_histogram() +
     facet_wrap(~parameter) +

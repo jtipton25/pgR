@@ -853,7 +853,7 @@ pg_stlm <- function(
                             b <- Sigma_inv %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
                         } else {
                             A <- (1 + rho^2) * Sigma_inv[j, , ] + diag(omega[, j, tt])
-                            b <- Sigma_inv[j,,] %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
+                            b <- Sigma_inv[j, , ] %*% ((1 - rho + rho^2) * Xbeta[, j] + rho * eta[, j, tt + 1]) + kappa[, j, tt]
                         }
                     } else if (tt == n_time) {
                         if (shared_covariance_params) {
@@ -861,7 +861,7 @@ pg_stlm <- function(
                             b     <- Sigma_inv %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
                         } else {
                             A <- Sigma_inv[j, , ] + diag(omega[, j, tt])
-                            b <- Sigma_inv[j,,] %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
+                            b <- Sigma_inv[j, , ] %*% ((1 - rho) * Xbeta[, j] + rho * eta[, j, tt - 1]) + kappa[, j, tt]
                         }
                     } else {
                         if (shared_covariance_params) {
@@ -869,7 +869,7 @@ pg_stlm <- function(
                             b <- Sigma_inv %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
                         } else {
                             A <- (1 + rho^2) * Sigma_inv[j, , ] + diag(omega[, j, tt])
-                            b <- Sigma_inv[j,,] %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
+                            b <- Sigma_inv[j, , ] %*% ((1 - rho)^2 * Xbeta[, j] + rho * (eta[, j, tt - 1] +  eta[, j, tt + 1])) + kappa[, j, tt]
                         }
                         ## is this (1 - rho) * Xbeta[, j] or (1 + rho) * Xbeta[, j]???
                     }

@@ -7,6 +7,7 @@
 #' @param out is a list of MCMC outputs from `pg_lm()`
 #' 
 #' @importFrom stats dmultinom
+#' @importFrom mgcv choldrop
 #' 
 #' @export 
 
@@ -118,7 +119,84 @@ calc_ll_pg_splm <- function(Y, X, out) {
 #' 
 #' @export 
 
-calc_ll_pg_stlm <- function(Y, X, locs, out) {
+calc_ll_pg_stlm <- function(Y, X, out) {
+    ##
+    ## check the inputs 
+    ##
+    if (!(inherits(out, "pg_stlm") || inherits(out, "pg_stlm_overdispersed") || inherits(out, "pg_stlm_mra")))
+        stop("The MCMC object out must be of class pg_stlm, pg_stlm_overdispersed, or pg_stlm_mra which are the output of the pg_stlm(), pg_stlm_overdispersed(), or pg_stlm_mra() functions, respectively.")
+    
+    if (!is.array(Y)) 
+        stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    if (length(dim(Y)) != 3)
+        stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    missing_idx <- matrix(FALSE, dim(Y)[1], dim(Y)[3])
+    for (i in 1:dim(Y)[1]) {
+        for (tt in 1:dim(Y)[3]) {
+            if(!any(is.na(Y[i, , tt])))
+                if(sum(Y[i, , tt]) == 0)
+                    stop ("There must not be an observation vector that is all 0s. Please change any observations that have 0 total count to a vector of NAs.")
+        }
+    }
+    na_idx <- which(is.na(Y))
+    if(length(na_idx) == 0) { 
+        if (!is_integer(Y, length(Y)))
+            stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    } else {
+        if (!is_integer(Y[-na_idx], length(Y[-na_idx])))
+            stop("Y must be a 3 dimensional array of integer values with rows representing the locations, columns representing the species, and the third dimension representing time.")
+    }    
+    if (!is_numeric_matrix(X, nrow(X), ncol(X))) 
+        stop("X must be a numeric matrix.")
+    
+    N  <- dim(Y)[1]
+    J  <- dim(Y)[2]
+    n_time <- dim(Y)[3]
+    p  <- ncol(X)
+    
+    eta      <- out$eta
+    n_samples <- dim(out$eta)[1]    
+    ## convert from eta to pi
+    pi <- array(0, dim = c(n_samples, N, J, n_time))
+    for (k in 1:n_samples) {
+        for(tt in 1:n_time) {
+            pi[k, , , tt] <- eta_to_pi(eta[k, , , tt])
+        }
+    }
+    
+    # log-likelihood
+    ll <- array(0, dim = c(n_samples, N, tt))
+    ## parallelize/vectorize this later
+    for (k in 1:n_samples) {
+        for (i in 1:N) {
+            for (tt in 1:n_time) {
+                if (any(is.na(Y[i, , tt]))) {
+                    ll[k, i, tt] <- NA
+                } else {
+                    ll[k, i, tt] <- dmultinom(Y[i, , tt], prob = pi[k, i, , tt], log = TRUE)
+                }
+            }
+        }
+    }
+    
+    return(list(ll = ll, pi = pi))
+}
+
+
+#' Leave-one-out log-likelihood for pg_stlm() model for use in model selection
+#' 
+#' this function generates the log-likelihood for data fit using the pg_splm() 
+#' function. The log-likelihood can be used for model selection and evaluation.
+#' @param Y is a \eqn{N \times J \times T}{N x J x T} array of compositional count data.
+#' @param X is a \eqn{N \times p}{n_sites x p} matrix of climate variables.
+#' @param locs is a \eqn{N \times 2}{N x 2} matrix of observation locations
+#' #' @param out is a list of MCMC outputs from `pg_stlm()`, `pg_stlm_overdispersed`, or `pg_stlm_latent_overdispersed`
+#' 
+#' @importFrom stats dmultinom
+#' 
+#' @export 
+
+calc_ll_pg_stlm_loo <- function(Y, X, locs, out, n_message = 50) {
     ##
     ## check the inputs 
     ##
@@ -149,30 +227,34 @@ calc_ll_pg_stlm <- function(Y, X, locs, out) {
         stop("X must be a numeric matrix.")
     
     ##
-    ## TODO add checks for locs
+    ## TODO add checks for locs?
     ##
     
 
     # calculate the ll    
     ll <- NULL
     
-    if (inherit(out, "pg_stlm"))
-        ll <- calc_ll_pg_stlm_matern(Y, X, locs, out)
+    if (inherits(out, "pg_stlm")) {
+        ll <- calc_ll_pg_stlm_matern(Y, X, locs, out, n_message)
+    }
     
-    if (inherit(out, "pg_stlm_overdispersed"))
-        ll <- calc_ll_pg_stlm_overdispersed(Y, X, locs, out)
+    if (inherits(out, "pg_stlm_overdispersed")) {
+        ll <- calc_ll_pg_stlm_overdispersed(Y, X, locs, out, n_message)
+    }
     
-    if (inherit(out, "pg_stlm_latent_overdispersed"))
-        ll <- calc_ll_pg_stlm_latent_overdispersed(Y, X, locs, out)
+    if (inherits(out, "pg_stlm_latent_overdispersed")) {
+        ll <- calc_ll_pg_stlm_latent_overdispersed(Y, X, locs, out, n_message)
+    }
     
-    if (inherit(out, "pg_stlm_mra"))
-        ll <- calc_ll_pg_stlm_mra(Y, X, locs, out)
-
+    if (inherits(out, "pg_stlm_mra")) {
+        stop("the MRA loo-ll has not been completed")
+        ll <- calc_ll_pg_stlm_mra(Y, X, locs, out, n_message)
+    }
         
     return(ll)
 }
 
-calc_ll_pg_stlm_matern <- function(Y, X, out, n_message = 50) {
+calc_ll_pg_stlm_matern <- function(Y, X, locs, out, n_message = 50) {
     
     # TODO For now, this only supports non-shared covariance parameters
     
@@ -205,28 +287,41 @@ calc_ll_pg_stlm_matern <- function(Y, X, out, n_message = 50) {
     D <- fields::rdist(locs)
     
     # initialized non-shared covariance matrices
+    Sigma <- array(D, dim = c(N, N, J-1))
+    Sigma_chol <- array(D, dim = c(N, N, J-1))
+
+    
     Sigma_obs_unobs <- array(D, dim = c(N-1, 1, J-1))
     Sigma_unobs_unobs <- array(D, dim = c(N-1, N-1, J-1))
     Sigma_unobs_unobs_inv <- array(D, dim = c(N-1, N-1, J-1))
     Sigma_obs_obs     <- rep(0, J-1)
+    Sigma_obs_unobs_Sigma_unobs_unobs_inv <- array(D, dim = c(N-1, 1, J-1))
+    
+    message("Starting loo likelihood, running for ", n_samples, " iterations")
     for (k in 1:n_samples) {
         if (k %% n_message == 0) {
             message("On iteration ", k, " out of ", n_samples)
         }
+        
+        for (j in 1:(J-1)) {
+            if (corr_fun == "exponential") {
+                Sigma[, , j] <- correlation_function(D, theta[k, j], corr_fun = corr_fun)
+            } else {
+                Sigma[, , j] <- correlation_function(D, theta[k, j, ], corr_fun = corr_fun)
+            }
+            Sigma_chol[, , j] <- chol(Sigma[, , j])
+        }
+        
         for (i in 1:N) {
-            message("iteration ", i)
+            
+            # message("iteration ", i)
             for(j in 1:(J-1)) {
-                if (corr_fun == "exponential") {
-                    Sigma_obs_unobs[, , j]  <- correlation_function(D[i, -i, drop = FALSE], theta[k, j], corr_fun = corr_fun)
-                    Sigma_unobs_unobs[, , j] <- correlation_function(D[-i, -i], theta[k, j], corr_fun = corr_fun)
-                    Sigma_obs_obs[j] <- correlation_function(D[i, i, drop = FALSE], theta[k, j], corr_fun = corr_fun)
-                } else {
-                    Sigma_obs_unobs[, , j]  <- correlation_function(D[i, -i, drop = FALSE], theta[k, j, ], corr_fun = corr_fun)
-                    Sigma_unobs_unobs[, , j] <- correlation_function(D[-i, -i], theta[k, j, ], corr_fun = corr_fun)          
-                    Sigma_obs_obs[j] <- correlation_function(D[i, i, drop = FALSE], theta[k, j, ], corr_fun = corr_fun)
-                }
-                Sigma_unobs_unobs_chol <- chol(Sigma_unobs_unobs[, , j])
+                Sigma_obs_unobs[, , j]  <- Sigma[i, -i, j]
+                Sigma_unobs_unobs[, , j] <- Sigma[-i, -i, j]
+                Sigma_obs_obs[j] <- Sigma[i, i, j]
+                Sigma_unobs_unobs_chol <- choldrop(Sigma_chol[, , j], i)
                 Sigma_unobs_unobs_inv[, , j] <- chol2inv(Sigma_unobs_unobs_chol)
+                Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] <- Sigma_obs_unobs[, , j] %*% Sigma_unobs_unobs_inv[, , j] 
             }
             
             for(tt in 1:n_time) {
@@ -234,20 +329,18 @@ calc_ll_pg_stlm_matern <- function(Y, X, out, n_message = 50) {
                     mu_bar <- X[i, ] %*% beta[k, , j]
                     tmp <- eta[k, -i, j, tt] - X[-i, , drop = FALSE] %*% beta[k, , j]
                     if (tt > 1) {
-                        mu_bar <- mu_bar + rho[k] * eta[k, i, j, tt-1]
-                        tmp <- tmp - rho[k] *  eta[k, -i, j, tt-1]
+                        mu_bar <- mu_bar + rho[k] * (eta[k, i, j, tt-1] - X[i, ] %*% beta[k, , j])
+                        tmp <- tmp - rho[k] * (eta[k, -i, j, tt-1] - X[-i, , drop = FALSE] %*% beta[k, , j])
                     }
                     if (tt < n_time) {
-                        mu_bar <- mu_bar + rho[k] * eta[k, i, j, tt+1]
-                        tmp <- tmp - rho[k] *  eta[k, -i, j, tt+1]
+                        mu_bar <- mu_bar + rho[k] * (eta[k, i, j, tt+1] - X[i, ] %*% beta[k, , j])
+                        tmp <- tmp - rho[k] * (eta[k, -i, j, tt+1] - X[-i, , drop = FALSE] %*% beta[k, , j])
                     }
-                    mu_bar <- mu_bar + Sigma_obs_unobs[, , j] %*% (Sigma_unobs_unobs_inv[, , j] %*% tmp)
-                    sigma_bar <- sqrt(Sigma_obs_obs[j] - Sigma_obs_unobs[, , j] %*% (Sigma_unobs_unobs_inv[, , j] %*% Sigma_obs_unobs[, , j]))
+                    mu_bar <- mu_bar + Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] %*% tmp
+                    sigma_bar <- sqrt(Sigma_obs_obs[j] - Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] %*% Sigma_obs_unobs[, , j])
                     eta_loo[k, i, j, tt] <- rnorm(1, mu_bar, sigma_bar)
                 }
             }
-            
-        
         }
     }
     
@@ -280,7 +373,7 @@ calc_ll_pg_stlm_matern <- function(Y, X, out, n_message = 50) {
     return(list(ll = ll, pi = pi, ll_loo = ll_loo, pi_loo = pi_loo))
 }
 
-calc_ll_pg_stlm_overdispersed <- function(Y, X, out, n_message = 50) {
+calc_ll_pg_stlm_overdispersed <- function(Y, X, locs, out, n_message = 50) {
     
     # TODO For now, this only supports non-shared covariance parameters
     
@@ -316,44 +409,55 @@ calc_ll_pg_stlm_overdispersed <- function(Y, X, out, n_message = 50) {
     D <- fields::rdist(locs)
     
     # initialized non-shared covariance matrices
+    Sigma <- array(D, dim = c(N, N, J-1))
+    Sigma_chol <- array(D, dim = c(N, N, J-1))
+    
     Sigma_obs_unobs <- array(D, dim = c(N-1, 1, J-1))
     Sigma_unobs_unobs <- array(D, dim = c(N-1, N-1, J-1))
     Sigma_unobs_unobs_inv <- array(D, dim = c(N-1, N-1, J-1))
     Sigma_obs_obs     <- rep(0, J-1)
+    Sigma_obs_unobs_Sigma_unobs_unobs_inv <- array(D, dim = c(N-1, 1, J-1))
+    
+    message("Starting loo likelihood, running for ", n_samples, " iterations")
     for (k in 1:n_samples) {
         if (k %% n_message == 0) {
             message("On iteration ", k, " out of ", n_samples)
         }
-        for (i in 1:N) {
-            message("iteration ", i)
-            for(j in 1:(J-1)) {
-                if (corr_fun == "exponential") {
-                    Sigma_obs_unobs[, , j]  <- correlation_function(D[i, -i, drop = FALSE], theta[k, j], corr_fun = corr_fun)
-                    Sigma_unobs_unobs[, , j] <- correlation_function(D[-i, -i], theta[k, j], corr_fun = corr_fun) + sigma2[k, j] * I_Nm1 
-                    Sigma_obs_obs[j] <- correlation_function(D[i, i, drop = FALSE], theta[k, j], corr_fun = corr_fun) + sigma2[k, j]
-                } else {
-                    Sigma_obs_unobs[, , j]  <- correlation_function(D[i, -i, drop = FALSE], theta[k, j, ], corr_fun = corr_fun)
-                    Sigma_unobs_unobs[, , j] <- correlation_function(D[-i, -i], theta[k, j, ], corr_fun = corr_fun) + sigma2[k, j] * I_Nm1 
-                    Sigma_obs_obs[j] <- correlation_function(D[i, i, drop = FALSE], theta[k, j, ], corr_fun = corr_fun) + sigma2[k, j]
-                }
-                Sigma_unobs_unobs_chol <- chol(Sigma_unobs_unobs[, , j])
-                Sigma_unobs_unobs_inv[, , j] <- chol2inv(Sigma_unobs_unobs_chol)
+        
+        for (j in 1:(J-1)) {
+            if (corr_fun == "exponential") {
+                Sigma[, , j] <- correlation_function(D, theta[k, j], corr_fun = corr_fun) + sigma2[k, j] * I_N
+            } else {
+                Sigma[, , j] <- correlation_function(D, theta[k, j, ], corr_fun = corr_fun) + sigma2[k, j] * I_N
             }
+            Sigma_chol[, , j] <- chol(Sigma[, , j])
+        }
+
+        for (i in 1:N) {
+            # message("iteration ", i)
+            for(j in 1:(J-1)) {
+                Sigma_obs_unobs[, , j]  <- Sigma[i, -i, j]
+                Sigma_unobs_unobs[, , j] <- Sigma[-i, -i, j]
+                Sigma_obs_obs[j] <- Sigma[i, i, j]
+                Sigma_unobs_unobs_chol <- choldrop(Sigma_chol[, , j], i)
+                Sigma_unobs_unobs_inv[, , j] <- chol2inv(Sigma_unobs_unobs_chol)
+                Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] <- Sigma_obs_unobs[, , j] %*% Sigma_unobs_unobs_inv[, , j] 
+            } 
             
             for(tt in 1:n_time) {
                 for (j in 1:(J-1)) {
                     mu_bar <- X[i, ] %*% beta[k, , j]
                     tmp <- eta[k, -i, j, tt] - X[-i, , drop = FALSE] %*% beta[k, , j]
                     if (tt > 1) {
-                        mu_bar <- mu_bar + rho[k] * eta[k, i, j, tt-1]
-                        tmp <- tmp - rho[k] *  eta[k, -i, j, tt-1]
+                        mu_bar <- mu_bar + rho[k] * (eta[k, i, j, tt-1] - X[i, ] %*% beta[k, , j])
+                        tmp <- tmp - rho[k] * (eta[k, -i, j, tt-1] - X[-i, , drop = FALSE] %*% beta[k, , j])
                     }
                     if (tt < n_time) {
-                        mu_bar <- mu_bar + rho[k] * eta[k, i, j, tt+1]
-                        tmp <- tmp - rho[k] *  eta[k, -i, j, tt+1]
+                        mu_bar <- mu_bar + rho[k] * (eta[k, i, j, tt+1] - X[i, ] %*% beta[k, , j])
+                        tmp <- tmp - rho[k] * (eta[k, -i, j, tt+1] - X[-i, , drop = FALSE] %*% beta[k, , j])
                     }
-                    mu_bar <- mu_bar + Sigma_obs_unobs[, , j] %*% (Sigma_unobs_unobs_inv[, , j] %*% tmp)
-                    sigma_bar <- sqrt(Sigma_obs_obs[j] - Sigma_obs_unobs[, , j] %*% (Sigma_unobs_unobs_inv[, , j] %*% Sigma_obs_unobs[, , j]))
+                    mu_bar <- mu_bar + Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] %*% tmp
+                    sigma_bar <- sqrt(Sigma_obs_obs[j] - Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] %*% Sigma_obs_unobs[, , j])
                     eta_loo[k, i, j, tt] <- rnorm(1, mu_bar, sigma_bar)
                 }
             }
@@ -392,7 +496,7 @@ calc_ll_pg_stlm_overdispersed <- function(Y, X, out, n_message = 50) {
 }
 
 
-calc_ll_pg_stlm_latent <- function(Y, X, out, n_message = 50) {
+calc_ll_pg_stlm_latent_overdispersed <- function(Y, X, locs, out, n_message = 50) {
     
     # TODO For now, this only supports non-shared covariance parameters
     
@@ -430,29 +534,42 @@ calc_ll_pg_stlm_latent <- function(Y, X, out, n_message = 50) {
     D <- fields::rdist(locs)
     
     # initialized non-shared covariance matrices
+    Sigma <- array(D, dim = c(N, N, J-1))
+    Sigma_chol <- array(D, dim = c(N, N, J-1))
+    
     Sigma_obs_unobs <- array(D, dim = c(N-1, 1, J-1))
     Sigma_unobs_unobs <- array(D, dim = c(N-1, N-1, J-1))
     Sigma_unobs_unobs_inv <- array(D, dim = c(N-1, N-1, J-1))
     Sigma_obs_obs     <- rep(0, J-1)
+    Sigma_obs_unobs_Sigma_unobs_unobs_inv <- array(D, dim = c(N-1, 1, J-1))
+    
+    message("Starting loo likelihood, running for ", n_samples, " iterations")
     for (k in 1:n_samples) {
         if (k %% n_message == 0) {
             message("On iteration ", k, " out of ", n_samples)
         }
-        for (i in 1:N) {
-            message("iteration ", i)
-            for(j in 1:(J-1)) {
-                if (corr_fun == "exponential") {
-                    Sigma_obs_unobs[, , j]  <- correlation_function(D[i, -i, drop = FALSE], theta[k, j], corr_fun = corr_fun)
-                    Sigma_unobs_unobs[, , j] <- correlation_function(D[-i, -i], theta[k, j], corr_fun = corr_fun)
-                    Sigma_obs_obs[j] <- correlation_function(D[i, i, drop = FALSE], theta[k, j], corr_fun = corr_fun)
-                } else {
-                    Sigma_obs_unobs[, , j]  <- correlation_function(D[i, -i, drop = FALSE], theta[k, j, ], corr_fun = corr_fun)
-                    Sigma_unobs_unobs[, , j] <- correlation_function(D[-i, -i], theta[k, j, ], corr_fun = corr_fun) 
-                    Sigma_obs_obs[j] <- correlation_function(D[i, i, drop = FALSE], theta[k, j, ], corr_fun = corr_fun)
-                }
-                Sigma_unobs_unobs_chol <- chol(Sigma_unobs_unobs[, , j])
-                Sigma_unobs_unobs_inv[, , j] <- chol2inv(Sigma_unobs_unobs_chol)
+        
+        for (j in 1:(J-1)) {
+            if (corr_fun == "exponential") {
+                Sigma[, , j] <- correlation_function(D, theta[k, j], corr_fun = corr_fun)
+            } else {
+                Sigma[, , j] <- correlation_function(D, theta[k, j, ], corr_fun = corr_fun)
             }
+            Sigma_chol[, , j] <- chol(Sigma[, , j])
+        }
+        
+        
+        for (i in 1:N) {
+            # message("iteration ", i)
+            for(j in 1:(J-1)) {
+                Sigma_obs_unobs[, , j]  <- Sigma[i, -i, j]
+                Sigma_unobs_unobs[, , j] <- Sigma[-i, -i, j]
+                Sigma_obs_obs[j] <- Sigma[i, i, j]
+                Sigma_unobs_unobs_chol <- choldrop(Sigma_chol[, , j], i)
+                Sigma_unobs_unobs_inv[, , j] <- chol2inv(Sigma_unobs_unobs_chol)
+                Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] <- Sigma_obs_unobs[, , j] %*% Sigma_unobs_unobs_inv[, , j] 
+            } 
+            
             
             for(tt in 1:n_time) {
                 for (j in 1:(J-1)) {
@@ -466,8 +583,8 @@ calc_ll_pg_stlm_latent <- function(Y, X, out, n_message = 50) {
                         mu_bar <- mu_bar + rho[k] * psi[k, i, j, tt+1]
                         tmp <- tmp - rho[k] * psi[k, -i, j, tt+1]
                     }
-                    mu_bar <- mu_bar + Sigma_obs_unobs[, , j] %*% (Sigma_unobs_unobs_inv[, , j] %*% tmp)
-                    sigma_bar <- sqrt(Sigma_obs_obs[j] - Sigma_obs_unobs[, , j] %*% (Sigma_unobs_unobs_inv[, , j] %*% Sigma_obs_unobs[, , j]))
+                    mu_bar <- mu_bar + Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] %*% tmp
+                    sigma_bar <- sqrt(Sigma_obs_obs[j] - Sigma_obs_unobs_Sigma_unobs_unobs_inv[, , j] %*% Sigma_obs_unobs[, , j])
                     psi_loo[k, i, j, tt] <- rnorm(1, mu_bar, sigma_bar)
                     eta_loo[k, i, j, tt] <- X[i, ] %*% beta[k, , j] + psi_loo[k, i, j, tt] + rnorm(1, 0, sqrt(sigma2[k, j]))
                 }

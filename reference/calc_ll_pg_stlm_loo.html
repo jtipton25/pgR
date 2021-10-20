@@ -149,8 +149,17 @@ function. The log-likelihood can be used for model selection and evaluation.</p>
     </tr>
     <tr>
       <th>locs</th>
-      <td><p>is a \(N \times 2\) matrix of observation locations
-#' @param out is a list of MCMC outputs from <code><a href='pg_stlm.html'>pg_stlm()</a></code>, <code>pg_stlm_overdispersed</code>, or <code>pg_stlm_latent_overdispersed</code></p></td>
+      <td><p>is a \(N \times 2\) matrix of observation locations</p></td>
+    </tr>
+    <tr>
+      <th>out</th>
+      <td><p>is a list of MCMC outputs from <code><a href='pg_stlm.html'>pg_stlm()</a></code>, <code>pg_stlm_overdispersed</code>, or <code>pg_stlm_latent_overdispersed</code></p></td>
+    </tr>
+    <tr>
+      <th>n_message</th>
+      <td><p>A positive integer number of frequency of iterations
+to output a progress message. For example, <code>n_message = 50</code>
+outputs progress messages every 50 iterations.</p></td>
     </tr>
     </table>
 

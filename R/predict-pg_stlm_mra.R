@@ -6,8 +6,6 @@
 #' @param X_pred is a \eqn{n_{pred} \times p}{n_{pred} x p} matrix of covariates at the locations where predictions are to be made. 
 #' @param locs is a \eqn{n \times 2}{n x 2} matrix of locations where observations were taken.
 #' @param locs_pred is a \eqn{n_pred \times 2}{n_pred x 2} matrix of locations where predictions are to be made.
-#' @param corr_fun is a character that denotes the correlation function form. Current options include "matern" and "exponential".
-#' @param shared_covariance_params is a logicial input that determines whether to fit the spatial process with component specifice parameters. If TRUE, each component has conditionally independent Gaussian process parameters theta and tau2. If FALSE, all components share the same Gaussian process parameters theta and tau2. 
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' @param force is a logicial input that determines whether to allow for predictions at more locations than 10000. The default is FALSE

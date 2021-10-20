@@ -1,14 +1,12 @@
 Package: pgR
 Type: Package
-Title: Bayesian Polya-gamma Regression
+Title: Bayesian Polya-Gamma Regression
 Version: 1.0.0
-Date: 2020-08-06
+Date: 2021-10-20
 Authors@R: c(
     person("John", "Tipton", email = "jrtipton@uark.edu", role = c("aut", "cre")),
     person("Andria", "Dawson", role = "ctb", comment = "Contribued code and code review"),
-    person("Alissa", "Brown", role = "ctb", comment = "Contribued code and code review"),
-    person("Daniel F.", "Schmidt", role = "ctb", comment = "Author of included pgdraw code fragments"),
-    person("Enes", "Makalic", role = "ctb", comment = "Author of included pgdraw code fragments")
+    person("Alissa", "Brown", role = "ctb", comment = "Contribued code and code review")
     )
 Description: Software for fitting Bayesian Polya-gamma regression
     models including multinomial regression, multinomial spatial
@@ -26,6 +24,7 @@ Imports:
     LaplacesDemon,
     MASS,
     Matrix,
+    mgcv,
     mvnfast, 
     Rcpp (>= 1.0.4.6),
     spam,
@@ -36,7 +35,7 @@ LinkingTo:
     Rcpp,
     RcppArmadillo
 Roxygen: list(markdown = TRUE)    
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Suggests: 
     knitr,
     rmarkdown,

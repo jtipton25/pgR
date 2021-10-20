@@ -9,6 +9,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // dmvnrm_arma_mc
 arma::vec dmvnrm_arma_mc(arma::mat const& x, arma::rowvec const& mean, arma::mat const& sigma, bool const logd, int const cores);
 RcppExport SEXP _pgR_dmvnrm_arma_mc(SEXP xSEXP, SEXP meanSEXP, SEXP sigmaSEXP, SEXP logdSEXP, SEXP coresSEXP) {

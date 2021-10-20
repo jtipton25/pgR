@@ -1,11 +1,12 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^_pkgdown\.yml$
-^docs$
-^pkgdown$
-^scripts$
-^results$
 ^doc$
+^docs$
+^output$
+^pkgdown$
+^results$
+^scripts$
 ^Meta$
 ^README\.Rmd$
 ^\.github$

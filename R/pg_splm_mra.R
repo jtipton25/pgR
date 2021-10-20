@@ -385,7 +385,7 @@ pg_splm_mra <- function(
     sigma2_save <- matrix(0, n_save, J-1)
     omega_save <- NULL
     if (save_omega) {
-        omega_save   <- array(0, dim = c(n_save, N, J-1, n_time))
+        omega_save   <- array(0, dim = c(n_save, N, J-1))
     }
     
     

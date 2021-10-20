@@ -190,8 +190,10 @@ calc_ll_pg_stlm <- function(Y, X, out) {
 #' @param Y is a \eqn{N \times J \times T}{N x J x T} array of compositional count data.
 #' @param X is a \eqn{N \times p}{n_sites x p} matrix of climate variables.
 #' @param locs is a \eqn{N \times 2}{N x 2} matrix of observation locations
-#' #' @param out is a list of MCMC outputs from `pg_stlm()`, `pg_stlm_overdispersed`, or `pg_stlm_latent_overdispersed`
-#' 
+#' @param out is a list of MCMC outputs from `pg_stlm()`, `pg_stlm_overdispersed`, or `pg_stlm_latent_overdispersed`
+#' @param n_message A positive integer number of frequency of iterations
+#'  to output a progress message. For example, \code{n_message = 50}
+#'  outputs progress messages every 50 iterations.
 #' @importFrom stats dmultinom
 #' 
 #' @export 
@@ -624,7 +626,7 @@ calc_ll_pg_stlm_latent_overdispersed <- function(Y, X, locs, out, n_message = 50
 }
 
 
-calc_ll_pg_stlm_mra <- function(Y, X, out) {
+calc_ll_pg_stlm_mra <- function(Y, X, out, locs, n_message = 50) {
     N  <- dim(Y)[1]
     J  <- dim(Y)[2]
     n_time <- dim(Y)[3]
@@ -644,6 +646,10 @@ calc_ll_pg_stlm_mra <- function(Y, X, out) {
     ll <- array(0, dim = c(n_samples, N, tt))
     ## parallelize/vectorize this later
     for (k in 1:n_samples) {
+        if (k %% n_message == 0) {
+            message("On iteration ", k, " out of ", n_samples)
+        }
+        
         for (i in 1:N) {
             for (tt in 1:n_time) {
                 if (any(is.na(Y[i, , tt]))) {

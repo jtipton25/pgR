@@ -9,7 +9,7 @@ test_that("pg_splm_mra", {
     params <- default_params()
     expect_error(pg_splm_mra(Y, X, locs), 'argument "params" is missing, with no default')
     params <- default_params()
-    expect_error(pg_splm_mra(Y, X, locs, params), 'argument "priors" is missing, with no default')
+    suppressMessages(expect_error(pg_splm_mra(Y, X, locs, params), 'argument "priors" is missing, with no default'))
     params$n_adapt <- 50
     params$n_mcmc <- 50
     

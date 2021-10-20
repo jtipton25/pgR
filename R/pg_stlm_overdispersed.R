@@ -23,7 +23,7 @@
 #' @param n_chain is the MCMC chain id. The default is 1.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
-#' @importFrom stats rmultinom
+#' @importFrom stats rmultinom dgamma
 #' @importFrom hms as_hms
 #' @export
 

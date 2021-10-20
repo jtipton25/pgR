@@ -265,6 +265,7 @@ pg_mvgp_univariate_mra <- function(
     
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
+    n_nonzero   <- sum(nonzero_idx)
     
     ##
     ## setup MRA spatial basis

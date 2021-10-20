@@ -226,6 +226,7 @@ pg_mvgp_univariate <- function(
     
     ## create an index for nonzero values
     nonzero_idx <- Mi != 0
+    n_nonzero   <- sum(nonzero_idx)
     
     ##
     ## initial values

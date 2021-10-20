@@ -11,8 +11,13 @@ calc_ll_pg_stlm_loo(Y, X, locs, out, n_message = 50)
 
 \item{X}{is a \eqn{N \times p}{n_sites x p} matrix of climate variables.}
 
-\item{locs}{is a \eqn{N \times 2}{N x 2} matrix of observation locations
-#' @param out is a list of MCMC outputs from \code{pg_stlm()}, \code{pg_stlm_overdispersed}, or \code{pg_stlm_latent_overdispersed}}
+\item{locs}{is a \eqn{N \times 2}{N x 2} matrix of observation locations}
+
+\item{out}{is a list of MCMC outputs from \code{pg_stlm()}, \code{pg_stlm_overdispersed}, or \code{pg_stlm_latent_overdispersed}}
+
+\item{n_message}{A positive integer number of frequency of iterations
+to output a progress message. For example, \code{n_message = 50}
+outputs progress messages every 50 iterations.}
 }
 \description{
 this function generates the log-likelihood for data fit using the pg_splm()

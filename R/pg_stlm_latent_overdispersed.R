@@ -25,6 +25,7 @@
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' @importFrom stats rmultinom
 #' @importFrom hms as_hms
+#' @importFrom BayesLogit rpg
 #' @export
 
 ## polya-gamma spatial linear regression model

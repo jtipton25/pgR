@@ -27,6 +27,7 @@
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @importFrom fields rdist
 #' @importFrom mvnfast rmvn dmvn
+#' @importFrom BayesLogit rpg
 #' @import BayesMRA
 #' @import spam  
 #'  

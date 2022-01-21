@@ -35,6 +35,7 @@
 #' @importFrom sparseMVN rmvn.sparse
 #' @importFrom Matrix Cholesky
 #' @importFrom MASS ginv
+#' @importFrom BayesLogit rpg
 #' @import BayesMRA
 #' @import spam  
 

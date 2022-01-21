@@ -47,6 +47,8 @@ pg_lm <- function(
     J  <- ncol(Y)
     p  <- ncol(X)
     
+    tX <- t(X)
+    
     ## We assume a partially missing observation is the same as 
     ## fully missing. The index allows for fast accessing of missing
     ## observations
@@ -66,6 +68,8 @@ pg_lm <- function(
     
     # Calculate kappa
     kappa <- calc_kappa(Y, Mi)
+    tXkappa <- t(X) %*% kappa
+
     
     ##
     ## initial values
@@ -90,6 +94,7 @@ pg_lm <- function(
     }
     Sigma_beta_chol <- chol(Sigma_beta)
     Sigma_beta_inv  <- chol2inv(Sigma_beta_chol)
+    Sigma_beta_inv_mu_beta <- Sigma_beta_inv %*% mu_beta
     
     ##
     ## initialize beta
@@ -201,10 +206,11 @@ pg_lm <- function(
         if (sample_beta) {
             for (j in 1:(J-1)) {
                 ## use the efficient Cholesky sampler
-                A <- Sigma_beta_inv + t(X) %*% (omega[, j] * X)
-                b <- as.vector(Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j])
+                # A <- Sigma_beta_inv + t(X) %*% (omega[, j] * X)
+                A <- Sigma_beta_inv + tX %*% (omega[, j] * X)
+                # b <- as.vector(Sigma_beta_inv %*% mu_beta + t(X) %*% kappa[, j])
+                b <- as.vector(Sigma_beta_inv_mu_beta + tXkappa[, j])
                 beta[, j]   <- rmvn_arma(A, b)
-                
             }
             # update eta
             eta <- X %*% beta

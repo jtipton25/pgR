@@ -24,6 +24,7 @@
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
 #' @importFrom stats rmultinom dgamma
+#' @importFrom BayesLogit rpg
 #' @importFrom hms as_hms
 #' @export
 

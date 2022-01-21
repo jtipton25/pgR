@@ -19,6 +19,8 @@
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
+    
+
     <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -31,18 +33,12 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">pgR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.0.0</span>
       </span>
     </div>
 
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-<li>
-  <a href="../index.html">
-    <span class="fas fa-home fa-lg"></span>
-     
-  </a>
-</li>
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
@@ -64,7 +60,7 @@
       </ul>
 <ul class="nav navbar-nav navbar-right">
 <li>
-  <a href="https://github.com/jtipton25/pgR/">
+  <a href="https://github.com/jtipton25/pgR/" class="external-link">
     <span class="fab fa-github fa-lg"></span>
      
   </a>
@@ -86,7 +82,7 @@
 </h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/jtipton25/pgR/blob/master/vignettes/pg_lm.Rmd"><code>vignettes/pg_lm.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/jtipton25/pgR/blob/HEAD/vignettes/pg_lm.Rmd" class="external-link"><code>vignettes/pg_lm.Rmd</code></a></small>
       <div class="hidden name"><code>pg_lm.Rmd</code></div>
 
     </div>
@@ -94,43 +90,43 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/jtipton25/pgR">pgR</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">splines</span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></code></pre></div>
-<pre><code>## ── Attaching packages ──────────────────────────── tidyverse 1.3.0 ──</code></pre>
-<pre><code>## ✓ ggplot2 3.3.3     ✓ purrr   0.3.4
-## ✓ tibble  3.0.6     ✓ dplyr   1.0.3
-## ✓ tidyr   1.1.2     ✓ forcats 0.5.1
-## ✓ readr   1.4.0</code></pre>
-<pre><code>## ── Conflicts ─────────────────────────────── tidyverse_conflicts() ──
-## x dplyr::all_equal() masks filesstrings::all_equal()
-## x dplyr::filter()    masks stats::filter()
-## x purrr::is_null()   masks testthat::is_null()
-## x dplyr::lag()       masks stats::lag()
-## x dplyr::matches()   masks tidyr::matches(), testthat::matches()</code></pre>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/jtipton25/pgR" class="external-link">pgR</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">splines</span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org" class="external-link">tidyverse</a></span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">## ── Attaching packages ──────────────────────────── tidyverse 1.3.0 ──</span></code></pre>
+<pre><code><span class="co">## ✓ ggplot2 3.3.3     ✓ purrr   0.3.4</span>
+<span class="co">## ✓ tibble  3.0.6     ✓ dplyr   1.0.3</span>
+<span class="co">## ✓ tidyr   1.1.2     ✓ forcats 0.5.1</span>
+<span class="co">## ✓ readr   1.4.0</span></code></pre>
+<pre><code><span class="co">## ── Conflicts ─────────────────────────────── tidyverse_conflicts() ──</span>
+<span class="co">## x dplyr::all_equal() masks filesstrings::all_equal()</span>
+<span class="co">## x dplyr::filter()    masks stats::filter()</span>
+<span class="co">## x purrr::is_null()   masks testthat::is_null()</span>
+<span class="co">## x dplyr::lag()       masks stats::lag()</span>
+<span class="co">## x dplyr::matches()   masks tidyr::matches(), testthat::matches()</span></code></pre>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com">patchwork</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">dagitty</span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">ggdag</span><span class="op">)</span></code></pre></div>
-<pre><code>## 
-## Attaching package: 'ggdag'</code></pre>
-<pre><code>## The following object is masked from 'package:stats':
-## 
-##     filter</code></pre>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://www.dagitty.net" class="external-link">dagitty</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/malcolmbarrett/ggdag" class="external-link">ggdag</a></span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">## </span>
+<span class="co">## Attaching package: 'ggdag'</span></code></pre>
+<pre><code><span class="co">## The following object is masked from 'package:stats':</span>
+<span class="co">## </span>
+<span class="co">##     filter</span></code></pre>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">cowplot</span><span class="op">)</span></code></pre></div>
-<pre><code>## 
-## Attaching package: 'cowplot'</code></pre>
-<pre><code>## The following object is masked from 'package:patchwork':
-## 
-##     align_plots</code></pre>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://wilkelab.org/cowplot/" class="external-link">cowplot</a></span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">## </span>
+<span class="co">## Attaching package: 'cowplot'</span></code></pre>
+<pre><code><span class="co">## The following object is masked from 'package:patchwork':</span>
+<span class="co">## </span>
+<span class="co">##     align_plots</span></code></pre>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/stefano-meschiari/latex2exp">latex2exp</a></span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org" class="external-link">tidyverse</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/stefano-meschiari/latex2exp" class="external-link">latex2exp</a></span><span class="op">)</span></code></pre></div>
 <p>This vignette demonstrates how to perform multinomial regression using the function <code><a href="../reference/pg_lm.html">pg_lm()</a></code>.</p>
-<div id="the-multinomial-regression-model" class="section level1">
-<h1 class="hasAnchor">
-<a href="#the-multinomial-regression-model" class="anchor"></a>The multinomial regression model</h1>
+<div class="section level2">
+<h2 id="the-multinomial-regression-model">The multinomial regression model<a class="anchor" aria-label="anchor" href="#the-multinomial-regression-model"></a>
+</h2>
 <p>Let <span class="math inline">\(\mathbf{y}_i = (y_{i, 1}, \ldots, y_{i, J})'\)</span> be a <span class="math inline">\(J\)</span>-dimensional vector of counts where <span class="math inline">\(M_i = \sum_{j=1}^J y_{ij}\)</span> is the total count and <span class="math inline">\(\boldsymbol{\pi}_i = ( \pi_{i, 1}, \ldots, \pi_{i, J})'\)</span> is a vector of probabilities with <span class="math inline">\(\sum_{j=1}^J \pi_{i, j} = 1\)</span>. Then, the likelihood of <span class="math inline">\(\mathbf{y}_i\)</span> is given by</p>
 <p><span class="math display">\[\begin{align}
 [\mathbf{y}_i | M_i, \boldsymbol{\pi}_i] &amp; = \frac{M_i!} {\prod_{j=1}^J y_{i, j}!} \pi_{i1}^{y_{i, 1}} \cdots \pi_{iJ}^{y_{i, J}}
@@ -145,13 +141,13 @@
 [\boldsymbol{\beta} | \mathbf{y}] &amp; \propto \prod_{i=1}^N [\mathbf{y}_i | \boldsymbol{\beta}] \prod_{j=1}^{J-1} [\boldsymbol{\beta}_j].
 \end{align*}\]</span></p>
 <p>The difficulty in evaluating the above posterior is that the distribution is not available in closed form and sampling requires a Metropolis-Hastings update (or some other non-conjugate sampler). This motivates the following data augmentation scheme.</p>
-<pre><code>## Warning in is.na(x): is.na() applied to non-(list or vector) of type
-## 'expression'</code></pre>
+<pre><code><span class="co">## Warning in is.na(x): is.na() applied to non-(list or vector) of type</span>
+<span class="co">## 'expression'</span></code></pre>
 <p><img src="plot-dag-1.png" title="Directed acyclic graph (DAG) representation of the multinomial regression model" alt="Directed acyclic graph (DAG) representation of the multinomial regression model" style="display: block; margin: auto;"></p>
 </div>
-<div id="the-multinomial-likelihood-as-a-product-of-binomial-distributions-" class="section level1">
-<h1 class="hasAnchor">
-<a href="#the-multinomial-likelihood-as-a-product-of-binomial-distributions-" class="anchor"></a>The multinomial likelihood as a product of binomial distributions.</h1>
+<div class="section level2">
+<h2 id="the-multinomial-likelihood-as-a-product-of-binomial-distributions-">The multinomial likelihood as a product of binomial distributions.<a class="anchor" aria-label="anchor" href="#the-multinomial-likelihood-as-a-product-of-binomial-distributions-"></a>
+</h2>
 <p>We can re-write the multinomial distribution in @ref(eq:multinomial) as a recursive product of <span class="math inline">\(J-1\)</span> binomial distributions</p>
 <p><span class="math display">\[\begin{align*}
 [\mathbf{y}_i | M_i, \boldsymbol{\pi}_i] &amp; = \operatorname{Mult} \left(M_i, \pi_i \right) \\
@@ -178,9 +174,9 @@
 \frac{e^{ \eta_{i, j}} }{ \prod_{k \leq j} 1 + e^{ \eta_{i, j} } }.
 \end{align*}\]</span></p>
 <!-- For compactness, we can write $\mathbf{\widetilde{M}}_i = \left( \widetilde{M}_{i, 1}, \widetilde{M}_{i, 2}, \cdots, \widetilde{M}_{i, J-1} \right)'$ and $\widetilde{\boldsymbol{\pi}}_i = (\widetilde{\pi}_{i,1}, \ldots, \widetilde{\pi}_{i,J-1})'$. -->
-<div id="pólya-gamma-data-augmentation" class="section level2">
-<h2 class="hasAnchor">
-<a href="#p%C3%B3lya-gamma-data-augmentation" class="anchor"></a>Pólya-gamma data augmentation</h2>
+<div class="section level3">
+<h3 id="pólya-gamma-data-augmentation">Pólya-gamma data augmentation<a class="anchor" aria-label="anchor" href="#p%C3%B3lya-gamma-data-augmentation"></a>
+</h3>
 <!-- P$\'{o}$lya-gamma -->
 <!-- # The P&oacute;lya-gamma -->
 <p>The key idea for the Pólya-gamma data augmentation is that the multinomial likelihood can be written as</p>
@@ -209,76 +205,75 @@
 \end{align*}\]</span></p>
 </div>
 </div>
-<div id="pólya-gamma-regression" class="section level1">
-<h1 class="hasAnchor">
-<a href="#p%C3%B3lya-gamma-regression" class="anchor"></a>Pólya-gamma regression</h1>
+<div class="section level2">
+<h2 id="pólya-gamma-regression">Pólya-gamma regression<a class="anchor" aria-label="anchor" href="#p%C3%B3lya-gamma-regression"></a>
+</h2>
 <p>To perform regression on the multinomial vector given an <span class="math inline">\(N \times q\)</span> design matrix <span class="math inline">\(\mathbf{X}\)</span>, we assume that <span class="math inline">\(\eta_{i j} = \mathbf{X}_i \boldsymbol{\beta}_j\)</span> and <span class="math inline">\(\boldsymbol{\beta}_j \sim \operatorname{N}(\boldsymbol{\mu}_\beta, \boldsymbol{\Sigma}_\beta)\)</span>.</p>
 <!-- **Check this -- not sure I follow this...** -->
 <p>Defining <span class="math inline">\(\boldsymbol{\Omega}_i = \operatorname{diag}(\omega_{i, 1}, \ldots, \omega_{i, J-1})\)</span>, we can calculate the full conditional distributions.</p>
 <!-- the density $[\mathbf{y}_i, \boldsymbol{\Omega}_i | \boldsymbol{\eta}_i] = \prod_{j=1}^{J-1} [y_{i, j} | \eta_{i, j}, \omega_{i, j}] \sim \operatorname{N}(\boldsymbol{\Omega}^{-1} \kappa(\mathbf{y}_i), \boldsymbol{\Omega})$ -->
-<pre><code>## Warning in is.na(x): is.na() applied to non-(list or vector) of type
-## 'expression'</code></pre>
+<pre><code><span class="co">## Warning in is.na(x): is.na() applied to non-(list or vector) of type</span>
+<span class="co">## 'expression'</span></code></pre>
 <p><img src="plot-dag-pg-1.png" title="Directed acyclic graph (DAG) representation of the Polya-gamma multinoimial regression model" alt="Directed acyclic graph (DAG) representation of the Polya-gamma multinoimial regression model" style="display: block; margin: auto;"></p>
 </div>
-<div id="simulate-some-data" class="section level1">
-<h1 class="hasAnchor">
-<a href="#simulate-some-data" class="anchor"></a>Simulate some data</h1>
+<div class="section level2">
+<h2 id="simulate-some-data">Simulate some data<a class="anchor" aria-label="anchor" href="#simulate-some-data"></a>
+</h2>
 <p>To explore the performance of the model, we start by simulating some data to test the model performance. The <code>pgR</code> function <code><a href="../reference/eta_to_pi.html">eta_to_pi()</a></code> transforms the latent intensity variable <code>eta</code> to a sum-to-one probability <code>pi</code> using a stick-breaking transformation.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span>
 <span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">5000</span>
 <span class="va">J</span> <span class="op">&lt;-</span> <span class="fl">6</span>
-<span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>
+<span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>
 <span class="va">df</span> <span class="op">&lt;-</span> <span class="fl">4</span>
-<span class="va">Xbs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/splines/bs.html">bs</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">df</span><span class="op">)</span>
-<span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="va">df</span><span class="op">)</span>, <span class="va">df</span>, <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>
+<span class="va">Xbs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/splines/bs.html" class="external-link">bs</a></span><span class="op">(</span><span class="va">X</span>, <span class="va">df</span><span class="op">)</span>
+<span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="va">df</span><span class="op">)</span>, <span class="va">df</span>, <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>
 <span class="co">## make the intercepts smaller to reduce stochastic ordering effect</span>
-<span class="va">beta</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">beta</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span>from <span class="op">=</span> <span class="fl">4</span>, to <span class="op">=</span> <span class="fl">0</span>, length.out <span class="op">=</span> <span class="va">J</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>
-<span class="va">eta</span> <span class="op">&lt;-</span> <span class="va">Xbs</span> <span class="op">%*%</span> <span class="va">beta</span> 
+<span class="va">beta</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">beta</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span>from <span class="op">=</span> <span class="fl">4</span>, to <span class="op">=</span> <span class="fl">0</span>, length.out <span class="op">=</span> <span class="va">J</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>
+<span class="va">eta</span> <span class="op">&lt;-</span> <span class="va">Xbs</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">beta</span> 
 <span class="va">pi</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/eta_to_pi.html">eta_to_pi</a></span><span class="op">(</span><span class="va">eta</span><span class="op">)</span>
 
-<span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">N</span>, <span class="va">J</span><span class="op">)</span>
+<span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">N</span>, <span class="va">J</span><span class="op">)</span>
 
 <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">N</span><span class="op">)</span> <span class="op">{</span>
-    <span class="va">Y</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">500</span>, <span class="va">pi</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span>
+    <span class="va">Y</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html" class="external-link">rmultinom</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">500</span>, <span class="va">pi</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
-<div id="plot-the-simulated-data" class="section level2">
-<h2 class="hasAnchor">
-<a href="#plot-the-simulated-data" class="anchor"></a>Plot the simulated data</h2>
+<div class="section level3">
+<h3 id="plot-the-simulated-data">Plot the simulated data<a class="anchor" aria-label="anchor" href="#plot-the-simulated-data"></a>
+</h3>
 <p>To plot the simulate data, the count data is first transformed to proportional data with <code><a href="../reference/counts_to_proportions.html">counts_to_proportions()</a></code> so that the observations can be plotted on a common scale</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">Y_prop</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/counts_to_proportions.html">counts_to_proportions</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>
 
-<span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>
-  y        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">Y_prop</span><span class="op">)</span>,
+<span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>
+  y        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">Y_prop</span><span class="op">)</span>,
   x        <span class="op">=</span> <span class="va">X</span>,
-  species  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="va">J</span>, each <span class="op">=</span> <span class="va">N</span><span class="op">)</span><span class="op">)</span>
+  species  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="va">J</span>, each <span class="op">=</span> <span class="va">N</span><span class="op">)</span><span class="op">)</span>
 <span class="op">)</span>
 
-<span class="va">dat_truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>
-  y        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">pi</span><span class="op">)</span>,
+<span class="va">dat_truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>
+  y        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pi</span><span class="op">)</span>,
   x        <span class="op">=</span> <span class="va">X</span>,
-  species  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="va">J</span>, each <span class="op">=</span> <span class="va">N</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
+  species  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="va">J</span>, each <span class="op">=</span> <span class="va">N</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
 
-<span class="va">dat</span> <span class="op">%&gt;%</span>
-  <span class="fu">group_by</span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">sample_n</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">ggplot</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span>, group <span class="op">=</span> <span class="va">species</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_point</span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">ylab</span><span class="op">(</span><span class="st">"Proportion of count"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_line</span><span class="op">(</span>data <span class="op">=</span> <span class="va">dat_truth</span>, <span class="fu">aes</span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span>, group <span class="op">=</span> <span class="va">species</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"black"</span>, lwd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">facet_wrap</span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Simulated data"</span><span class="op">)</span></code></pre></div>
+<span class="va">dat</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">species</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/sample_n.html" class="external-link">sample_n</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span>, group <span class="op">=</span> <span class="va">species</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"Proportion of count"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">dat_truth</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span>, group <span class="op">=</span> <span class="va">species</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"black"</span>, lwd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Simulated data"</span><span class="op">)</span></code></pre></div>
 <p><img src="plot-data-1.png" title="plot of chunk plot-data" alt="plot of chunk plot-data" style="display: block; margin: auto;"></p>
 </div>
 </div>
-<div id="multinomial-regression" class="section level1">
-<h1 class="hasAnchor">
-<a href="#multinomial-regression" class="anchor"></a>Multinomial regression</h1>
-<div id="full-conditional-for-omega_i-j" class="section level3">
-<h3 class="hasAnchor">
-<a href="#full-conditional-for-omega_i-j" class="anchor"></a>Full Conditional for <span class="math inline">\(\omega_{i, j}\)</span>
-</h3>
+<div class="section level2">
+<h2 id="multinomial-regression">Multinomial regression<a class="anchor" aria-label="anchor" href="#multinomial-regression"></a>
+</h2>
+<div class="section level4">
+<h4 id="full-conditional-for-omega_i-j">Full Conditional for <span class="math inline">\(\omega_{i, j}\)</span><a class="anchor" aria-label="anchor" href="#full-conditional-for-omega_i-j"></a>
+</h4>
 <p>If <span class="math inline">\(\widetilde{M}_{i, j} = 0\)</span>, then <span class="math inline">\(\omega_{i, j} | \mathbf{y}, \boldsymbol{\beta} \equiv 0\)</span>. Otherwise, for <span class="math inline">\(\widetilde{M}_{i, j} &gt; 0\)</span>, we have</p>
 <p><span class="math display">\[\begin{align*}
 \omega_{i, j} | \mathbf{y}, \boldsymbol{\beta} &amp; \propto \frac{e^{- \frac{1}{2} \omega_{i, j} \mathbf{x}_i' \boldsymbol{\beta}_j}[\omega_{i, j}]}{\int_{0}^{\infty} e^{- \frac{1}{2} \omega_{i, j} \mathbf{x}_i' \boldsymbol{\beta}_j}[\omega_{i, j}] \,d\omega_{i, j}}
@@ -294,53 +289,53 @@
 <span class="va">params</span><span class="op">$</span><span class="va">n_thin</span> <span class="op">&lt;-</span> <span class="fl">1</span>
 <span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/default_priors_pg_lm.html">default_priors_pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="va">Xbs</span><span class="op">)</span>
 <span class="va">inits</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/default_inits_pg_lm.html">default_inits_pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="va">Xbs</span>, <span class="va">priors</span><span class="op">)</span>
-<span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm.RData"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/load.html">load</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
+<span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm.RData"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/load.html" class="external-link">load</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span>
-    <span class="va">start</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
-    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">6L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
-    <span class="va">stop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
+    <span class="va">start</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
+    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">6L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
+    <span class="va">stop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
     <span class="va">runtime</span> <span class="op">&lt;-</span> <span class="va">stop</span> <span class="op">-</span> <span class="va">start</span>
 
-    <span class="fu"><a href="https://rdrr.io/r/base/save.html">save</a></span><span class="op">(</span><span class="va">out</span>, <span class="va">runtime</span>, file <span class="op">=</span> <span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/save.html" class="external-link">save</a></span><span class="op">(</span><span class="va">out</span>, <span class="va">runtime</span>, file <span class="op">=</span> <span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/layout.html">layout</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, <span class="fl">3</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/layout.html" class="external-link">layout</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, <span class="fl">3</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span>
 <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">)</span> <span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/graphics/matplot.html">matplot</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span>, , <span class="va">i</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">'l'</span>, main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="va">i</span><span class="op">)</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html">abline</a></span><span class="op">(</span>h <span class="op">=</span> <span class="va">beta</span><span class="op">[</span>, <span class="va">i</span><span class="op">]</span>, col <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span><span class="op">)</span>
+  <span class="fu"><a href="https://rdrr.io/r/graphics/matplot.html" class="external-link">matplot</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span>, , <span class="va">i</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">'l'</span>, main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="va">i</span><span class="op">)</span><span class="op">)</span>
+  <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>h <span class="op">=</span> <span class="va">beta</span><span class="op">[</span>, <span class="va">i</span><span class="op">]</span>, col <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
-<pre><code>## Error in out$beta[, , i]: subscript out of bounds</code></pre>
+<pre><code><span class="co">## Error in out$beta[, , i]: subscript out of bounds</span></code></pre>
 <p><img src="plot-trace-1.png" title="plot of chunk plot-trace" alt="plot of chunk plot-trace" style="display: block; margin: auto;"> The model runtime was 3.61785566806793</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co">## plot beta estimates</span>
-<span class="va">dat_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>
-    beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>
-        <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span><span class="op">)</span>, 
-        <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span>
+<span class="va">dat_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>
+    beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>
+        <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span><span class="op">)</span>, 
+        <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span>
     <span class="op">)</span>,
-    type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"truth"</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span>,
-    species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
-    knots <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>
+    type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"truth"</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span>,
+    species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
+    knots <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>
 <span class="op">)</span>
 
-<span class="va">dat_plot</span> <span class="op">%&gt;%</span>
-    <span class="fu">pivot_wider</span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">beta</span><span class="op">)</span> <span class="op">%&gt;%</span>
-    <span class="fu">ggplot</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">estimate</span>, y <span class="op">=</span> <span class="va">truth</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">scale_color_viridis_d</span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">geom_point</span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">facet_wrap</span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">geom_abline</span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></code></pre></div>
+<span class="va">dat_plot</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+    <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">beta</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">estimate</span>, y <span class="op">=</span> <span class="va">truth</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></code></pre></div>
 <p><img src="plot-beta-1.png" title="plot of chunk plot-beta" alt="plot of chunk plot-beta" style="display: block; margin: auto;"></p>
 </div>
-<div id="prediction-code-testing" class="section level2">
-<h2 class="hasAnchor">
-<a href="#prediction-code-testing" class="anchor"></a>prediction code testing</h2>
+<div class="section level3">
+<h3 id="prediction-code-testing">prediction code testing<a class="anchor" aria-label="anchor" href="#prediction-code-testing"></a>
+</h3>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">44</span><span class="op">)</span>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">44</span><span class="op">)</span>
 <span class="co">## subsample the simulated data</span>
 <span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">2000</span>
-<span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html">sample</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">n</span><span class="op">)</span>
+<span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">n</span><span class="op">)</span>
 <span class="va">Y_s</span>     <span class="op">&lt;-</span> <span class="va">Y</span><span class="op">[</span><span class="va">s</span>, <span class="op">]</span>
 <span class="va">Y_oos</span>   <span class="op">&lt;-</span> <span class="va">Y</span><span class="op">[</span><span class="op">-</span><span class="va">s</span>, <span class="op">]</span>
 <span class="va">Xbs_s</span>   <span class="op">&lt;-</span> <span class="va">Xbs</span><span class="op">[</span><span class="va">s</span>, <span class="op">]</span>
@@ -358,107 +353,107 @@
 <span class="va">params</span><span class="op">$</span><span class="va">n_thin</span> <span class="op">&lt;-</span> <span class="fl">1</span>
 <span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/default_priors_pg_lm.html">default_priors_pg_lm</a></span><span class="op">(</span><span class="va">Y_s</span>, <span class="va">Xbs_s</span><span class="op">)</span>
 <span class="va">inits</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/default_inits_pg_lm.html">default_inits_pg_lm</a></span><span class="op">(</span><span class="va">Y_s</span>, <span class="va">Xbs_s</span>, <span class="va">priors</span><span class="op">)</span>
-<span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm-sample.RData"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/load.html">load</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm-sample.RData"</span><span class="op">)</span><span class="op">)</span>
+<span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm-sample.RData"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/load.html" class="external-link">load</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm-sample.RData"</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span>
     <span class="co">## need to parallelize the polya-gamma random variables</span>
     <span class="co">## can I do this efficiently using openMP?</span>
     <span class="co">## Q: faster to parallelize using openMP or foreach?</span>
-    <span class="va">start</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
-    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y_s</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs_s</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">6L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
-    <span class="va">stop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
+    <span class="va">start</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
+    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y_s</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs_s</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">6L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
+    <span class="va">stop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span>
     <span class="va">runtime</span> <span class="op">&lt;-</span> <span class="va">stop</span> <span class="op">-</span> <span class="va">start</span>
 
-    <span class="fu"><a href="https://rdrr.io/r/base/save.html">save</a></span><span class="op">(</span><span class="va">out</span>, <span class="va">runtime</span>, file <span class="op">=</span> <span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm-sample.RData"</span><span class="op">)</span><span class="op">)</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/save.html" class="external-link">save</a></span><span class="op">(</span><span class="va">out</span>, <span class="va">runtime</span>, file <span class="op">=</span> <span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"pg_lm-sample.RData"</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/layout.html">layout</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span>, <span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/layout.html" class="external-link">layout</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span>, <span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>
 <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">9</span><span class="op">)</span> <span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/graphics/matplot.html">matplot</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span>, , <span class="va">i</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">'l'</span>, main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="va">i</span><span class="op">)</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html">abline</a></span><span class="op">(</span>h <span class="op">=</span> <span class="va">beta</span><span class="op">[</span>, <span class="va">i</span><span class="op">]</span><span class="op">)</span>
+  <span class="fu"><a href="https://rdrr.io/r/graphics/matplot.html" class="external-link">matplot</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span>, , <span class="va">i</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">'l'</span>, main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="va">i</span><span class="op">)</span><span class="op">)</span>
+  <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>h <span class="op">=</span> <span class="va">beta</span><span class="op">[</span>, <span class="va">i</span><span class="op">]</span><span class="op">)</span>
 <span class="op">}</span></code></pre></div>
-<pre><code>## Error in out$beta[, , i]: subscript out of bounds</code></pre>
+<pre><code><span class="co">## Error in out$beta[, , i]: subscript out of bounds</span></code></pre>
 <p><img src="trace-plot-sampled-data-1.png" title="plot of chunk trace-plot-sampled-data" alt="plot of chunk trace-plot-sampled-data" style="display: block; margin: auto;"></p>
 <p>The model runtime was 12.5134330670039</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co">## plot beta estimates</span>
-<span class="va">dat_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>
-    beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>
-        <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span><span class="op">)</span>, 
-        <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span>
+<span class="va">dat_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>
+    beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>
+        <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span><span class="op">)</span>, 
+        <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">beta</span><span class="op">)</span>
     <span class="op">)</span>,
-    type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"truth"</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span>,
-    species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
-    knots <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>
+    type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"truth"</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span>,
+    species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
+    knots <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>
 <span class="op">)</span>
 
-<span class="va">dat_plot</span> <span class="op">%&gt;%</span>
-    <span class="fu">pivot_wider</span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">beta</span><span class="op">)</span> <span class="op">%&gt;%</span>
-    <span class="fu">ggplot</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">estimate</span>, y <span class="op">=</span> <span class="va">truth</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">scale_color_viridis_d</span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">geom_point</span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">facet_wrap</span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span>
-    <span class="fu">geom_abline</span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></code></pre></div>
+<span class="va">dat_plot</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+    <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">beta</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">estimate</span>, y <span class="op">=</span> <span class="va">truth</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span>
+    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></code></pre></div>
 <p><img src="plot-beta-sampled-data-1.png" title="plot of chunk plot-beta-sampled-data" alt="plot of chunk plot-beta-sampled-data" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co">## predict from the model</span>
 <span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/predict_pg_lm.html">predict_pg_lm</a></span><span class="op">(</span><span class="va">out</span>, <span class="va">Xbs_oos</span><span class="op">)</span></code></pre></div>
-<pre><code>## Error in predict_pg_lm(out, Xbs_oos): THe MCMC object out must be of class pg_lm which is the output of the pg_lm() function.</code></pre>
+<pre><code><span class="co">## Error in predict_pg_lm(out, Xbs_oos): THe MCMC object out must be of class pg_lm which is the output of the pg_lm() function.</span></code></pre>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">pi_pred_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">preds</span><span class="op">$</span><span class="va">pi</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span></code></pre></div>
-<pre><code>## Error in apply(preds$pi, c(2, 3), mean): object 'preds' not found</code></pre>
+<code class="sourceCode R"><span class="va">pi_pred_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">preds</span><span class="op">$</span><span class="va">pi</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">## Error in apply(preds$pi, c(2, 3), mean): object 'preds' not found</span></code></pre>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">dat_pi_pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>
-  pi   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">pi_oos</span><span class="op">)</span>,
-    <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">pi_pred_mean</span><span class="op">)</span>
+<code class="sourceCode R"><span class="va">dat_pi_pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>
+  pi   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pi_oos</span><span class="op">)</span>,
+    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">pi_pred_mean</span><span class="op">)</span>
   <span class="op">)</span>,
-  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"observed"</span>, <span class="st">"predicted"</span><span class="op">)</span>, each <span class="op">=</span> <span class="va">J</span> <span class="op">*</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span>,
-  species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="va">J</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
+  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"observed"</span>, <span class="st">"predicted"</span><span class="op">)</span>, each <span class="op">=</span> <span class="va">J</span> <span class="op">*</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span>,
+  species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="va">J</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
   obs     <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span> 
 <span class="op">)</span></code></pre></div>
-<pre><code>## Error in data.frame(pi = c(c(pi_oos), c(pi_pred_mean)), type = rep(c("observed", : object 'pi_pred_mean' not found</code></pre>
+<pre><code><span class="co">## Error in data.frame(pi = c(c(pi_oos), c(pi_pred_mean)), type = rep(c("observed", : object 'pi_pred_mean' not found</span></code></pre>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">p_pi_pred</span> <span class="op">&lt;-</span> <span class="va">dat_pi_pred</span> <span class="op">%&gt;%</span>
-  <span class="fu">pivot_wider</span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">pi</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">ggplot</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">observed</span>, y <span class="op">=</span> <span class="va">predicted</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">scale_color_viridis_d</span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_point</span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">facet_wrap</span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_abline</span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Predicted vs simulated latent probability pi"</span><span class="op">)</span></code></pre></div>
-<pre><code>## Error in pivot_wider(., names_from = type, values_from = pi): object 'dat_pi_pred' not found</code></pre>
+<code class="sourceCode R"><span class="va">p_pi_pred</span> <span class="op">&lt;-</span> <span class="va">dat_pi_pred</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">pi</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">observed</span>, y <span class="op">=</span> <span class="va">predicted</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Predicted vs simulated latent probability pi"</span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">## Error in pivot_wider(., names_from = type, values_from = pi): object 'dat_pi_pred' not found</span></code></pre>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">eta_pred_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">preds</span><span class="op">$</span><span class="va">eta</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span></code></pre></div>
-<pre><code>## Error in apply(preds$eta, c(2, 3), mean): object 'preds' not found</code></pre>
+<code class="sourceCode R"><span class="va">eta_pred_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">preds</span><span class="op">$</span><span class="va">eta</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">mean</span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">## Error in apply(preds$eta, c(2, 3), mean): object 'preds' not found</span></code></pre>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">dat_eta_pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>
-  eta   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">eta_oos</span><span class="op">)</span>,
-    <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">eta_pred_mean</span><span class="op">)</span>
+<code class="sourceCode R"><span class="va">dat_eta_pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>
+  eta   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">eta_oos</span><span class="op">)</span>,
+    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">eta_pred_mean</span><span class="op">)</span>
   <span class="op">)</span>,
-  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"observed"</span>, <span class="st">"predicted"</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span>,
-  species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
+  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"observed"</span>, <span class="st">"predicted"</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span>,
+  species <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">J</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span>, each <span class="op">=</span> <span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,
   obs     <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="op">(</span><span class="va">N</span><span class="op">-</span><span class="va">n</span><span class="op">)</span> 
 <span class="op">)</span></code></pre></div>
-<pre><code>## Error in data.frame(eta = c(c(eta_oos), c(eta_pred_mean)), type = rep(c("observed", : object 'eta_pred_mean' not found</code></pre>
+<pre><code><span class="co">## Error in data.frame(eta = c(c(eta_oos), c(eta_pred_mean)), type = rep(c("observed", : object 'eta_pred_mean' not found</span></code></pre>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">p_eta_pred</span> <span class="op">&lt;-</span> <span class="va">dat_eta_pred</span> <span class="op">%&gt;%</span>
-  <span class="fu">pivot_wider</span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">eta</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">ggplot</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">observed</span>, y <span class="op">=</span> <span class="va">predicted</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">scale_color_viridis_d</span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_point</span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">facet_wrap</span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_abline</span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">ggtitle</span><span class="op">(</span><span class="st">"Predicted vs simulated latent intensity eta"</span><span class="op">)</span></code></pre></div>
-<pre><code>## Error in pivot_wider(., names_from = type, values_from = eta): object 'dat_eta_pred' not found</code></pre>
+<code class="sourceCode R"><span class="va">p_eta_pred</span> <span class="op">&lt;-</span> <span class="va">dat_eta_pred</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>names_from <span class="op">=</span> <span class="va">type</span>, values_from <span class="op">=</span> <span class="va">eta</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">observed</span>, y <span class="op">=</span> <span class="va">predicted</span>, color <span class="op">=</span> <span class="va">species</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span>begin <span class="op">=</span> <span class="fl">0</span>, end <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">species</span>, nrow <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_abline</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Predicted vs simulated latent intensity eta"</span><span class="op">)</span></code></pre></div>
+<pre><code><span class="co">## Error in pivot_wider(., names_from = type, values_from = eta): object 'dat_eta_pred' not found</span></code></pre>
 <div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">p_pi_pred</span> <span class="op">+</span> <span class="va">p_eta_pred</span></code></pre></div>
-<pre><code>## Error in eval(expr, envir, enclos): object 'p_pi_pred' not found</code></pre>
+<pre><code><span class="co">## Error in eval(expr, envir, enclos): object 'p_pi_pred' not found</span></code></pre>
 </div>
-<div id="verifying-openmp-timings" class="section level2">
-<h2 class="hasAnchor">
-<a href="#verifying-openmp-timings" class="anchor"></a>verifying openMP timings</h2>
+<div class="section level3">
+<h3 id="verifying-openmp-timings">verifying openMP timings<a class="anchor" aria-label="anchor" href="#verifying-openmp-timings"></a>
+</h3>
 <div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">params</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/default_params.html">default_params</a></span><span class="op">(</span><span class="op">)</span>
 <span class="va">params</span><span class="op">$</span><span class="va">n_adapt</span> <span class="op">&lt;-</span> <span class="fl">100</span>
@@ -469,35 +464,35 @@
 <span class="va">inits</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/default_inits_pg_lm.html">default_inits_pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="va">Xbs</span>, <span class="va">priors</span><span class="op">)</span>
 <span class="co"># check_inits_pg_lm(Y, Xbs, params, inits)</span>
 
-<span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"timings-pg_lm.RData"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/load.html">load</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"timings-pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
+<span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"timings-pg_lm.RData"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/load.html" class="external-link">load</a></span><span class="op">(</span><span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"timings-pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span>
   <span class="co">## need to parallelize the polya-gamma random variables</span>
   <span class="co">## can I do this efficiently using openMP?</span>
   <span class="co">## Q: faster to parallelize using openMP or foreach?</span>
   
-  <span class="va">time_8</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span>
-    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">8L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
+  <span class="va">time_8</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span>
+    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">8L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
   <span class="op">)</span>
-  <span class="va">time_6</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span>
-    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">6L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
+  <span class="va">time_6</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span>
+    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">6L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
   <span class="op">)</span>
-  <span class="va">time_4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span>
-    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">4L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
+  <span class="va">time_4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span>
+    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">4L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
   <span class="op">)</span>
-  <span class="va">time_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span>
-    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">2L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
+  <span class="va">time_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span>
+    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">2L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
   <span class="op">)</span>
-  <span class="va">time_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span>
-    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">1L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
+  <span class="va">time_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span>
+    <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, n_cores <span class="op">=</span> <span class="fl">1L</span>, sample_rmvn <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
   <span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/save.html">save</a></span><span class="op">(</span><span class="va">time_1</span>, <span class="va">time_2</span>, <span class="va">time_4</span>, <span class="va">time_6</span>, <span class="va">time_8</span>, file <span class="op">=</span> <span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"timings-pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
+  <span class="fu"><a href="https://rdrr.io/r/base/save.html" class="external-link">save</a></span><span class="op">(</span><span class="va">time_1</span>, <span class="va">time_2</span>, <span class="va">time_4</span>, <span class="va">time_6</span>, <span class="va">time_8</span>, file <span class="op">=</span> <span class="fu">here</span><span class="fu">::</span><span class="fu">here</span><span class="op">(</span><span class="st">"results"</span>, <span class="st">"timings-pg_lm.RData"</span><span class="op">)</span><span class="op">)</span>
 <span class="op">}</span>
 
 <span class="co">## Note: a large amount of computation time is not parallel -- sampling of the beta variable</span>
 <span class="co">## need to figure out why the faster comptuation version is giving issues</span>
-<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span>
-    <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span>
+<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>
+    <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>
         <span class="va">time_1</span>,
         <span class="va">time_2</span>,
         <span class="va">time_4</span>,
@@ -506,15 +501,15 @@
     <span class="op">)</span>
 <span class="op">)</span></code></pre></div>
 </div>
-<div id="code-profiling" class="section level2">
-<h2 class="hasAnchor">
-<a href="#code-profiling" class="anchor"></a>code profiling</h2>
+<div class="section level3">
+<h3 id="code-profiling">code profiling<a class="anchor" aria-label="anchor" href="#code-profiling"></a>
+</h3>
 <div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co">## not run -- diagnostic profiling</span>
 <span class="va">params</span><span class="op">$</span><span class="va">n_adapt</span> <span class="op">&lt;-</span> <span class="fl">50</span>
 <span class="va">params</span><span class="op">$</span><span class="va">n_mcmc</span> <span class="op">&lt;-</span> <span class="fl">50</span>
-<span class="fu">profvis</span><span class="fu">::</span><span class="fu">profvis</span><span class="op">(</span><span class="fu">pg_lm_cores</span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, cores <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span><span class="op">)</span>
-<span class="fu">profvis</span><span class="fu">::</span><span class="fu">profvis</span><span class="op">(</span><span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, cores <span class="op">=</span> <span class="fl">8L</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<span class="fu">profvis</span><span class="fu">::</span><span class="fu">profvis</span><span class="op">(</span><span class="fu">pg_lm_cores</span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, cores <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span><span class="op">)</span>
+<span class="fu">profvis</span><span class="fu">::</span><span class="fu">profvis</span><span class="op">(</span><span class="fu"><a href="../reference/pg_lm.html">pg_lm</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">Xbs</span><span class="op">)</span>, <span class="va">params</span>, <span class="va">priors</span>, cores <span class="op">=</span> <span class="fl">8L</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 </div>
 </div>
   </div>
@@ -530,11 +525,13 @@
 
 
       <footer><div class="copyright">
-  <p>Developed by John Tipton.</p>
+  <p></p>
+<p>Developed by John Tipton.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
 </div>
 
       </footer>
@@ -542,6 +539,8 @@
 
   
 
+
+  
 
   </body>
 </html>

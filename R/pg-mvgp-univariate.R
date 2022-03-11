@@ -30,6 +30,7 @@
 #' @importFrom stats rmultinom
 #' @importFrom hms as_hms
 #' @importFrom fields rdist
+#' @importFrom BayesLogit rpg
 
 ## polya-gamma spatial linear regression model
 pg_mvgp_univariate <- function(

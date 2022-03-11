@@ -27,6 +27,7 @@
 #' @importFrom stats rmultinom
 #' @importFrom truncnorm rtruncnorm
 #' @importFrom hms as_hms
+#' @importFrom BayesLogit rpg
 #' @import BayesMRA
 #' @import spam  
 #' @export

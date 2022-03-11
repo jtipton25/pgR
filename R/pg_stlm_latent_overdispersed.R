@@ -799,8 +799,9 @@ pg_stlm_latent_overdispersed <- function(
                         theta_mh <- theta[j]                        
                     }
                     mh2 <- mvnfast::dmvn(psi[, j, 1], rep(0, N), Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores) +
-                        sum(sapply(2:n_time, function(tt) {
-                            mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
+                        sum(
+                            sapply(2:n_time, function(tt) {
+                                mvnfast::dmvn(psi[, j, tt], rho * psi[, j, tt - 1], Sigma_chol[j, , ], isChol = TRUE, log = TRUE, ncores = n_cores)
                         })) +
                         ## prior
                         mvnfast::dmvn(theta_mh, theta_mean, theta_var, log = TRUE)

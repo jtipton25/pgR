@@ -21,5 +21,5 @@ range parameter on the log-scale.}
 \item{corr_fun}{is the correlation function}
 }
 \description{
-A function for generatingg the Matern covariance matrix
+A function for generating the Matern covariance matrix
 }

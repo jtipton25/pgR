@@ -219,7 +219,7 @@ predict_pg_stlm <- function(
                 if (posterior_mean_only) {
                     eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) 
                 } else {
-                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
+                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + t(pred_var_chol_space) %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% pred_var_chol_time
                 }
                 # microbenchmark::microbenchmark(
                 #     matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time),
@@ -313,7 +313,7 @@ predict_pg_stlm <- function(
                 if (posterior_mean_only) {
                     eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) 
                 } else {
-                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
+                    eta_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + t(pred_var_chol_space) %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% pred_var_chol_time
                 }
             } 
         }

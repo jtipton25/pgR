@@ -18,6 +18,8 @@ pg_stlm_mra(
   n_chain = 1,
   progress = FALSE,
   verbose = FALSE,
+  store_R = TRUE,
+  rho_mh = FALSE,
   use_spam = TRUE
 )
 }

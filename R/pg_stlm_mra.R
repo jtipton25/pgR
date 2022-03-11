@@ -46,10 +46,58 @@ pg_stlm_mra <- function(
     n_chain       = 1,
     progress      = FALSE,
     verbose       = FALSE,
+    store_R       = TRUE, ## cache the cholesky outside the loop over time
+    rho_mh        = FALSE, ## sped up sampler for rho to greatly improve the model
     use_spam      = TRUE ## use spam or Matrix for sparse matrix operations
 ) {
     
     start <- Sys.time()
+    
+    
+    ## 
+    ## Define helper function ----
+    ## 
+    
+    # function to calculate LL for MH update of rho
+    rho_ll <- function(j, alpha, rho, Q_alpha_tau2,n_time) {
+        devs <- alpha[, j, 2:n_time] - rho[j] * alpha[, j, 1:(n_time-1)]
+        return(-0.5 * sum(sapply(1:(n_time-1), function(tt) {
+            devs[, tt] %*% Q_alpha_tau2[[j]] %*% devs[, tt]})))
+    }
+    
+    
+    ## 
+    ## Define helper function - make this internal later ----
+    ## 
+    
+    rmvnorm.canonical.const.R <- function(n, b, R, A, a, U = NULL, ...) {
+        N = dim(R)[1]
+        if (!identical(dim(A)[2], N)) 
+            stop("Incorrect constraint specification")
+        if (is(R, "spam.chol.NgPeyton")) {
+            mu <- drop(solve.spam(R, b))
+        }
+        else {
+            mu <- backsolve(R, forwardsolve(t(R), b))
+        }
+        x <- backsolve(R, array(rnorm(n * N), c(N, n)), k = N) + 
+            mu
+        if (is.null(U)) {
+            tV <- t(backsolve(R, forwardsolve(R, t(A)), k = N))
+            W <- tcrossprod(A, tV)
+            U <- solve(W, tV)
+        }
+        correct <- A %*% x - a
+        return(t(x - t(U) %*% correct))
+    }
+    
+    ##
+    ## end of helper function
+    ##
+    
+    
+    
+    
     
     ##
     ## Run error checks
@@ -62,11 +110,11 @@ pg_stlm_mra <- function(
         stop("The only sparse matrix pacakage available is spam")
     if (!is_positive_integer(n_cores, 1))
         stop("n_cores must be a positive integer")
-
+    
     # check_inits_pgLM(params, inits)
     # check_config(params, config)
     
-
+    
     ## 
     ## setup config
     ##
@@ -130,7 +178,7 @@ pg_stlm_mra <- function(
     ## This is useful in correcting for numerical errors resulting in 
     ## covariance matrices that are not full rank
     num_chol_failures <- 0
-
+    
     
     ## We assume a partially missing observation is the same as 
     ## fully missing. The index allows for fast accesing of missing
@@ -210,7 +258,7 @@ pg_stlm_mra <- function(
     beta_sigma2  <- 1
     
     sigma2 <- pmin(rgamma(J-1, alpha_sigma2, beta_sigma2), 5)
-
+    
     ##
     ## initialized temporal autocorrelation
     ##
@@ -282,7 +330,7 @@ pg_stlm_mra <- function(
             tau2 <- inits[['tau2']]
         }
     }
-
+    
     Q_alpha_tau2 <- vector(mode = "list", length = J-1)
     for (j in 1:(J-1)) {
         Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
@@ -302,12 +350,19 @@ pg_stlm_mra <- function(
     # eta <- kappa   ## default initial value based on data Y to get started
     
     eta <- array(0, dim = dim(kappa))
+    A_alpha_1      <- vector(mode = "list", length = J-1)
+    A_alpha        <- vector(mode = "list", length = J-1)
+    A_alpha_n_time <- vector(mode = "list", length = J-1)
+    
+    R1       <- vector(mode = "list", length = J-1)
+    R        <- vector(mode = "list", length = J-1)
+    R_n_time <- vector(mode = "list", length = J-1)
     if (use_spam) {
         for (j in 1:(J-1)) {
-            A_alpha_1  <- 1 / sigma2[j] * tWW + (1 + rho[j]^2) * Q_alpha_tau2[[j]]
+            A_alpha_1[[j]]  <- 1 / sigma2[j] * tWW + (1 + rho[j]^2) * Q_alpha_tau2[[j]]
             b_alpha    <- 1 / sigma2[j] * tW %*% (eta[, j, 1] - Xbeta[, j]) 
-            alpha[, j, 1] <- rmvnorm.canonical.const(1, b_alpha, A_alpha_1, 
-                                                  A = A_constraint, a = a_constraint)
+            alpha[, j, 1] <- rmvnorm.canonical.const(1, b_alpha, A_alpha_1[[j]], 
+                                                     A = A_constraint, a = a_constraint)
         }
         for (tt in 2:n_time) {
             for (j in 1:(J-1)) {
@@ -357,7 +412,7 @@ pg_stlm_mra <- function(
         W_alpha[, , tt] <- W %*% alpha[, , tt]
     }
     
- 
+    
     ##
     ## initialize the latent random process eta
     ##
@@ -435,7 +490,7 @@ pg_stlm_mra <- function(
     if (save_omega) {
         omega_save   <- array(0, dim = c(n_save, N, J-1, n_time))
     }
-
+    
     ##
     ## initialize tuning variables for adaptive MCMC
     ##
@@ -501,19 +556,25 @@ pg_stlm_mra <- function(
         ##
         ## sample spatial random effects alpha ----
         ##
-
+        
         if (sample_alpha) {
             if (verbose)
                 message("sample alpha")
             
             ## double check this full conditional
-            A_alpha_1      <- vector(mode = "list", length = J-1)
-            A_alpha        <- vector(mode = "list", length = J-1)
-            A_alpha_n_time <- vector(mode = "list", length = J-1)
             for (j in 1:(J-1)) {
                 A_alpha_1[[j]]      <- 1 / sigma2[j] * tWW + (1 + rho[j]^2) * Q_alpha_tau2[[j]]
                 A_alpha[[j]]        <- 1 / sigma2[j] * tWW + (1 + rho[j]^2) * Q_alpha_tau2[[j]]
                 A_alpha_n_time[[j]] <- 1 / sigma2[j] * tWW + Q_alpha_tau2[[j]]
+            }
+            
+            if (store_R){ 
+                for (j in 1:(J-1)) {
+                    ## update the Cholesky factor and reuse
+                    R1[[j]] <- update.spam.chol.NgPeyton(Rstruct_1, A_alpha_1[[j]])
+                    R[[j]]  <- update.spam.chol.NgPeyton(Rstruct, A_alpha[[j]])
+                    R_n_time[[j]]  <- update.spam.chol.NgPeyton(Rstruct_n_time, A_alpha_n_time[[j]])
+                }
             }
             
             ## parallelize this
@@ -522,45 +583,87 @@ pg_stlm_mra <- function(
                     if (tt == 1) {
                         b_alpha <- 1 / sigma2[j] * tW %*% (eta[, j, 1] - Xbeta[, j]) +
                             Q_alpha_tau2[[j]] %*% as.vector(rho[j] * alpha[, j, 2])
-                        alpha[, j, 1] <- tryCatch(
-                            as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_1[[j]], Rstruct = Rstruct_1, A = A_constraint, a = a_constraint)),
-                            error = function(e) {
-                                if (verbose)
-                                    message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
-                                num_chol_failures <- num_chol_failures + 1
-                                A_alpha_1[[j]] <<- A_alpha_1[[j]] + 1e-8 * diag(sum(n_dims))
-                                return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_1[[j]], Rstruct = Rstruct_1, A = A_constraint, a = a_constraint)))
-                            })
+                        if (store_R) {
+                            ## use the stored cholesky R
+                            alpha[, j, 1] <- tryCatch(
+                                as.vector(rmvnorm.canonical.const.R(1, b_alpha, R1[[j]], A_constraint, a_constraint)),
+                                error = function(e) {
+                                    if (verbose)
+                                        message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
+                                    num_chol_failures <- num_chol_failures + 1
+                                    A_alpha_1[[j]] <<- A_alpha_1[[j]] + 1e-8 * spam_diag(sum(n_dims))
+                                    R1[[j]] <<- update.spam.chol.NgPeyton(Rstruct_1, A_alpha_1[[j]])
+                                    return(as.vector( rmvnorm.canonical.const.R(1, b_alpha, R1[[j]], A_constraint, a_constraint)))
+                                })
+                        } else {
+                            ## update the cholesky each iteration over time
+                            alpha[, j, 1] <- tryCatch(
+                                as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_1[[j]], Rstruct = Rstruct_1, A = A_constraint, a = a_constraint)),
+                                error = function(e) {
+                                    if (verbose)
+                                        message("The Cholesky decomposition conditional precision for alpha_1 was ill-conditioned and mildy regularized.")
+                                    num_chol_failures <- num_chol_failures + 1
+                                    A_alpha_1[[j]] <<- A_alpha_1[[j]] + 1e-8 * spam_diag(sum(n_dims))
+                                    return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_1[[j]], Rstruct = Rstruct_1, A = A_constraint, a = a_constraint)))
+                                })
+                        }
                         
                     } else if (tt == n_time) {
                         b_alpha <- 1 / sigma2[j] * tW %*% (eta[, j, n_time] - Xbeta[, j]) +
                             Q_alpha_tau2[[j]] %*% as.vector(rho[j] * alpha[, j, n_time - 1])
-                        alpha[, j, tt] <- tryCatch(
-                            # as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)),
-                            as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time)),
-                            error = function(e) {
-                                if (verbose)
-                                    message("The Cholesky decomposition conditional precision for alpha_n_time was ill-conditioned and mildy regularized.")
-                                num_chol_failures <- num_chol_failures + 1
-                                A_alpha_n_time[[j]] <<- A_alpha_n_time[[j]] + 1e-8 * diag(sum(n_dims))
-                                # return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)))
-                                return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time)))
-                            })
+                        if (store_R) { 
+                            ## use the stored cholesky R
+                            alpha[, j, tt] <- tryCatch(
+                                as.vector(rmvnorm.canonical.const.R(1, b_alpha, R_n_time[[j]], A = A_constraint, a = a_constraint)),
+                                error = function(e) {
+                                    if (verbose)
+                                        message("The Cholesky decomposition conditional precision for alpha_n_time was ill-conditioned and mildy regularized.")
+                                    num_chol_failures <- num_chol_failures + 1
+                                    A_alpha_n_time[[j]] <<- A_alpha_n_time[[j]] + 1e-8 * spam_diag(sum(n_dims))
+                                    R_n_time[[j]] <- update.spam.chol.NgPeyton(Rstruct_1, A_alpha_n_time[[j]])
+                                    return(as.vector(rmvnorm.canonical.const.R(1, b_alpha, R_n_time[[j]], A = A_constraint, a = a_constraint)))
+                                })
+                        } else {
+                            ## update the cholesky each iteration over time
+                            alpha[, j, tt] <- tryCatch(
+                                as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)),
+                                # as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time)),
+                                error = function(e) {
+                                    if (verbose)
+                                        message("The Cholesky decomposition conditional precision for alpha_n_time was ill-conditioned and mildy regularized.")
+                                    num_chol_failures <- num_chol_failures + 1
+                                    A_alpha_n_time[[j]] <<- A_alpha_n_time[[j]] + 1e-8 * spam_diag(sum(n_dims))
+                                    return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time, A = A_constraint, a = a_constraint)))
+                                    # return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha_n_time[[j]], Rstruct = Rstruct_n_time)))
+                                })
+                        }
                         
                     } else {
                         b_alpha <- 1 / sigma2[j] * tW %*% (eta[, j, tt] - Xbeta[, j]) +
                             Q_alpha_tau2[[j]] %*% as.vector(rho[j] * (alpha[, j, tt - 1] + alpha[, j, tt + 1]))
-                        alpha[, j, tt] <- tryCatch(
-                            # as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)),
-                            as.vector(rmvnorm.canonical(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct)),
-                            error = function(e) {
-                                if (verbose)
-                                    message("The Cholesky decomposition conditional precision for alpha_t was ill-conditioned and mildy regularized.")
-                                num_chol_failures <- num_chol_failures + 1
-                                A_alpha[[j]] <<- A_alpha[[j]] + 1e-8 * diag(sum(n_dims))
-                                # return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)))
-                                return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct)))
-                            })
+                        if (store_R) {
+                            alpha[, j, tt] <- tryCatch(
+                                as.vector(rmvnorm.canonical.const.R(1, b_alpha, R[[j]], A = A_constraint, a = a_constraint)),
+                                error = function(e) {
+                                    if (verbose)
+                                        message("The Cholesky decomposition conditional precision for alpha_t was ill-conditioned and mildy regularized.")
+                                    num_chol_failures <- num_chol_failures + 1
+                                    A_alpha[[j]] <<- A_alpha[[j]] + 1e-8 * spam_diag(sum(n_dims))
+                                    R[[j]] <- update.spam.chol.NgPeyton(Rstruct_1, A_alpha[[j]])
+                                    return(as.vector(rmvnorm.canonical.const.R(1, b_alpha, R[[j]], A = A_constraint, a = a_constraint)))
+                                })
+                        } else {
+                            alpha[, j, tt] <- tryCatch(
+                                as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)),
+                                error = function(e) {
+                                    if (verbose)
+                                        message("The Cholesky decomposition conditional precision for alpha_t was ill-conditioned and mildy regularized.")
+                                    num_chol_failures <- num_chol_failures + 1
+                                    A_alpha[[j]] <<- A_alpha[[j]] + 1e-8 * spam_diag(sum(n_dims))
+                                    return(as.vector(rmvnorm.canonical.const(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct, A = A_constraint, a = a_constraint)))
+                                    # return(as.vector(rmvnorm.canonical(1, b_alpha, A_alpha[[j]], Rstruct = Rstruct)))
+                                })
+                        }
                     }       
                 }
                 ## update the latent process variable
@@ -590,7 +693,7 @@ pg_stlm_mra <- function(
                 Q_alpha_tau2[[j]] <- make_Q_alpha_tau2(Q_alpha, tau2[, j], use_spam = use_spam)
             }
         }        
-
+        
         ##
         ## sample eta ----
         ##
@@ -603,14 +706,7 @@ pg_stlm_mra <- function(
                 eta[, , tt] <- sapply(1:(J-1), function(j) {
                     sigma2_tilde <- 1 / (1 / sigma2[j] + omega[, j, tt])
                     mu_tilde     <- 1 / sigma2[j] * (Xbeta[, j] + W_alpha[, j, tt]) + kappa[, j, tt]
-                    
-                    return(
-                        rnorm(
-                            N, 
-                            sigma2_tilde * mu_tilde,
-                            sqrt(sigma2_tilde)
-                        )
-                    )
+                    return(rnorm(N, sigma2_tilde * mu_tilde, sqrt(sigma2_tilde)))
                 })
             }
         }
@@ -623,22 +719,69 @@ pg_stlm_mra <- function(
             if (verbose)
                 message("sample rho")
             
-            for (j in 1:(J-1)) {
-                rho_vals <- rowSums(
-                    sapply(2:n_time, function(tt) {
-                        t_alpha_Q <- t(alpha[, j, tt-1]) %*% Q_alpha_tau2[[j]]
-                        return(
-                            c(
-                                t_alpha_Q %*% alpha[, j, tt-1],
-                                t_alpha_Q %*% alpha[, j, tt]
-                            )
-                        )
-                    })
-                )
+            if (rho_mh) {
+                for (j in 1:(J-1)) {
+                    rho_star <- rho
+                    rho_star[j] <- rnorm(1, rho[j], rho_tune[j])
+                    if (rho_star[j] < 1 & rho_star[j] > -1) {
+                        mh1 <- rho_ll(j, alpha, rho_star, Q_alpha_tau2, n_time)
+                        mh2 <- rho_ll(j, alpha, rho, Q_alpha_tau2, n_time)
+                        
+                        mh <- exp(mh1 - mh2)
+                        if (length(mh) > 1)
+                            stop("error in mh for rho")
+                        if (mh > runif(1, 0.0, 1.0)) {
+                            rho   <- rho_star
+                            if (k <= params$n_adapt) {
+                                rho_accept_batch[j] <- rho_accept_batch[j] + 1.0 / 50.0
+                            } else {
+                                rho_accept[j] <- rho_accept[j] + 1.0 / params$n_mcmc
+                            }
+                        }
+                    }
+                }
                 
-                a_rho  <- rho_vals[1]
-                b_rho  <- rho_vals[2]
-                rho[j] <- rtruncnorm(1, a = -1, b = 1, mean = b_rho / a_rho, sd = sqrt(1 / a_rho))
+                ## update tuning
+                if (k <= params$n_adapt) {
+                    if (k %% 50 == 0){
+                        out_tuning <- update_tuning_vec(
+                            k,
+                            rho_accept_batch,
+                            rho_tune
+                        )
+                        rho_tune         <- out_tuning$tune
+                        rho_accept_batch <- out_tuning$accept
+                    }
+                }
+                
+            } else {
+                ## update rho using a truncated-normal update
+                # for (j in 1:(J-1)) {
+                #     rho_vals <- rowSums(
+                #         sapply(2:n_time, function(tt) {
+                #             t_alpha_Q <- t(alpha[, j, tt-1]) %*% Q_alpha_tau2[[j]]
+                #             return(c(t_alpha_Q %*% alpha[, j, tt-1],
+                #                      t_alpha_Q %*% alpha[, j, tt]))
+                #         })
+                #     )
+                #     
+                #     a_rho  <- rho_vals[1]
+                #     b_rho  <- rho_vals[2]
+                
+                ## Revised code (experimental -- delete commented code above once tested)
+                for (j in 1:(J-1)) {
+                    alpha_minus_n_time <- alpha[, j, 1:(n_time - 1)]
+                    alpha_minus_1 <- alpha[, j, 2:n_time]
+                    
+                    rho_vals <- rowSums(sapply(1:(n_time - 1), function(tt) {
+                        A <- alpha_minus_1[, tt] %*% Q_alpha_tau2[[j]]
+                        return(c(A %*% alpha_minus_1[, tt], A %*% alpha_minus_n_time[, tt]))
+                    }))
+                    
+                    a_rho  <- rho_vals[1]
+                    b_rho  <- rho_vals[2]
+                    rho[j] <- rtruncnorm(1, a = -1, b = 1, mean = b_rho / a_rho, sd = sqrt(1 / a_rho))
+                }
             }
         }
         
@@ -728,15 +871,15 @@ pg_stlm_mra <- function(
         out <- list(
             beta   = beta_save,
             alpha  = alpha_save,
-            tau2   = tau2_save,
+            tau2   = tau2_saveve,
             eta    = eta_save,
             pi     = pi_save,
             sigma2 = sigma2_save,
             rho    = rho_save,
             MRA    = MRA)
     }
-
-
+    
+    
     class(out) <- "pg_stlm_mra"
     
     return(out)

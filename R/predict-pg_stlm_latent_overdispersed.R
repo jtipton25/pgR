@@ -108,24 +108,11 @@ predict_pg_stlm_latent_overdispersed <- function(
             
             pred_var_chol_time  <- NULL
             pred_var_chol_space <- NULL
-            ## only calculate if we are estimating the full posterior distribution
             
             ## time covariance matrix
             W_time <- toeplitz(c(0, 1, rep(0, n_time - 2)))
-            D_time <- rowSums(W_time)
-            # Q_time <- diag(D_time) - rho[k] * W_time
             Q_time <- diag(c(1, rep(1 + rho[k]^2, n_time - 2), 1)) - rho[k] * W_time
             Sigma_time <- solve(Q_time)
-            
-            # pred_var <-  kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))
-            # pred_var2 <- kronecker(Sigma_time, Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))
-            # all.equal(pred_var, pred_var2)
-            # microbenchmark::microbenchmark(
-            #     kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
-            #     kronecker(Sigma_time, Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
-            #     times = 5
-            # )
-            
             
             pred_var_chol_time <- tryCatch(
                 chol(Sigma_time),
@@ -134,8 +121,7 @@ predict_pg_stlm_latent_overdispersed <- function(
                         message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
                     num_chol_failures <- num_chol_failures + 1
                     chol(Sigma_time + 1e-8 * diag(n_pred))                    
-                }
-            )     
+                })     
             pred_var_chol_space <- tryCatch(
                 chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
                 error = function(e) {
@@ -143,83 +129,15 @@ predict_pg_stlm_latent_overdispersed <- function(
                         message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
                     num_chol_failures <- num_chol_failures + 1
                     chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)) + 1e-8 * diag(n_pred))                    
-                }
-            )     
-            
-            # pred_var_chol <- kronecker(pred_var_chol_time, pred_var_chol_space)
-            
-            # pred_var_chol <- tryCatch(
-            #     chol(pred_var),
-            #     error = function(e) {
-            #         if (verbose)
-            #             message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-            #         num_chol_failures <- num_chol_failures + 1
-            #         chol(pred_var + 1e-8 * diag(n_pred))                    
-            #     }
-            # )               
-            # pred_var <- kronecker(Sigma_time, Sigma_unobs) - (kronecker(Sigma_time, Sigma_unobs_obs) %*% kronecker(Q_time, Sigma_inv)) %*% t(kronecker(Sigma_time, Sigma_unobs_obs))
-            
-            # all.equal(
-            #     kronecker(Sigma_time, Sigma_unobs) - (kronecker(Sigma_time, Sigma_unobs_obs) %*% kronecker(Q_time, Sigma_inv)) %*% t(kronecker(Sigma_time, Sigma_unobs_obs)),
-            #     kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))
-            # )
-            # 
-            # microbenchmark::microbenchmark(
-            #     kronecker(Sigma_time, Sigma_unobs) - (kronecker(Sigma_time, Sigma_unobs_obs) %*% kronecker(Q_time, Sigma_inv)) %*% t(kronecker(Sigma_time, Sigma_unobs_obs)),
-            #     kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
-            #     chol(kronecker(Sigma_time, Sigma_unobs) - (kronecker(Sigma_time, Sigma_unobs_obs) %*% kronecker(Q_time, Sigma_inv)) %*% t(kronecker(Sigma_time, Sigma_unobs_obs))),
-            #     chol(kronecker(Sigma_time, Sigma_unobs) - kronecker(Sigma_time %*% Q_time %*% Sigma_time, Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)))),
-            #     times  = 1
-            # )
+                })     
             
             for (j in 1:(J - 1)) {
-                # pred_mean     <- Sigma_unobs_obs %*% (Sigma_inv %*% (eta[k, , j, ] - X %*% beta[k, , j])) + X_pred %*% beta[k, , j]
-                # pred_mean <- kronecker(Sigma_time, Sigma_unobs_obs) %*% (kronecker(Q_time, Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])
-                # pred_mean <- kronecker(Sigma_time %*% Q_time, Sigma_unobs_obs %*% Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j])) + as.vector(X_pred %*% beta[k, , j])
                 pred_mean <- as.vector(Sigma_unobs_obs %*% Sigma_inv %*% psi[k, , j, ])
+                psi_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + t(pred_var_chol_space) %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% (pred_var_chol_time)
                 
-                # all.equal(
-                #     as.vector(kronecker(Sigma_time, Sigma_unobs_obs) %*% (kronecker(Q_time, Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])),
-                #     as.vector(Sigma_unobs_obs %*% Sigma_inv %*% (eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])
-                # )
-                # all.equal(
-                #     as.vector(kronecker(Sigma_time %*% Q_time, Sigma_unobs_obs %*% Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j])) + as.vector(X_pred %*% beta[k, , j])),
-                #     as.vector(Sigma_unobs_obs %*% Sigma_inv %*% (eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])
-                # )
-                # 
-                # microbenchmark::microbenchmark(
-                #     as.vector(kronecker(Sigma_time, Sigma_unobs_obs) %*% (kronecker(Q_time, Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])),
-                #     as.vector(kronecker(Sigma_time %*% Q_time, Sigma_unobs_obs %*% Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j])) + as.vector(X_pred %*% beta[k, , j])),
-                #     as.vector(Sigma_unobs_obs %*% Sigma_inv %*% (eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j]),
-                #     times = 10
-                # )
-                
-                # all.equal(
-                # )
-                # microbenchmark::microbenchmark(     
-                #     kronecker(Sigma_time, Sigma_unobs_obs) %*% (kronecker(Q_time, Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j]),
-                #     kronecker(Sigma_time %*% Q_time, Sigma_unobs_obs %*% Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j])) + as.vector(X_pred %*% beta[k, , j]),
-                #     times = 5
-                # )
-                #     
-                # all.equal(kronecker(Sigma_time, Sigma_unobs_obs) %*% kronecker(Q_time, Sigma_inv), kronecker(Sigma_time %*% Q_time, Sigma_unobs_obs %*% Sigma_inv))
-                # microbenchmark::microbenchmark(
-                #     kronecker(Sigma_time, Sigma_unobs_obs) %*% kronecker(Q_time, Sigma_inv),
-                #     kronecker(Sigma_time %*% Q_time, Sigma_unobs_obs %*% Sigma_inv), 
-                #     times = 5)
-                
-                
-                # eta_pred[k, , j, ] <- matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time)
-                
-                psi_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
-                # microbenchmark::microbenchmark(
-                #     matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time),
-                #     matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time),
-                #     times = 10
-                # )
-            } 
-            for (tt in 1:n_time) {
-                eta_pred[k, , j, tt] <- X_pred %*% beta[k, , j] + psi_pred[k, , j, tt] + rnorm(n_pred, 0, sqrt(sigma2[k, j]))
+                for (tt in 1:n_time) {
+                    eta_pred[k, , j, tt] <- X_pred %*% beta[k, , j] + psi_pred[k, , j, tt] + rnorm(n_pred, 0, sqrt(sigma2[k, j]))
+                }
             }
         } else {
             
@@ -227,8 +145,6 @@ predict_pg_stlm_latent_overdispersed <- function(
             
             ## time covariance matrix
             W_time <- toeplitz(c(0, 1, rep(0, n_time - 2)))
-            D_time <- rowSums(W_time)
-            # Q_time <- diag(D_time) - rho[k] * W_time
             Q_time <- diag(c(1, rep(1 + rho[k]^2, n_time - 2), 1)) - rho[k] * W_time
             Sigma_time <- solve(Q_time)
             
@@ -239,8 +155,7 @@ predict_pg_stlm_latent_overdispersed <- function(
                         message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
                     num_chol_failures <- num_chol_failures + 1
                     chol(Sigma_time + 1e-8 * diag(n_pred))                    
-                }
-            )     
+                })     
             
             for (j in 1:(J - 1)) {
                 Sigma           <- NULL
@@ -268,8 +183,7 @@ predict_pg_stlm_latent_overdispersed <- function(
                 Sigma_inv       <- chol2inv(Sigma_chol)
                 
                 pred_var_chol_space <- NULL
-                ## only calculate if we are estimating the full posterior distribution
-                
+            
                 pred_var_chol_space <- tryCatch(
                     chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs))),
                     error = function(e) {
@@ -277,23 +191,10 @@ predict_pg_stlm_latent_overdispersed <- function(
                             message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
                         num_chol_failures <- num_chol_failures + 1
                         chol(Sigma_unobs -  Sigma_unobs_obs %*% (Sigma_inv %*% t(Sigma_unobs_obs)) + 1e-8 * diag(n_pred))                    
-                    }
-                )     
+                    })     
                 
-                pred_mean <- as.vector(Sigma_unobs_obs %*% Sigma_inv %*% psi[k, , j, ])
-                # pred_mean <- kronecker(Sigma_time, Sigma_unobs_obs) %*% (kronecker(Q_time, Sigma_inv) %*% as.vector(eta[k, , j, ] - as.vector(X %*% beta[k, , j]))) + as.vector(X_pred %*% beta[k, , j])
-                # pred_var  <- kronecker(Sigma_time, Sigma_unobs) - (kronecker(Sigma_time, Sigma_unobs_obs) %*% kronecker(Q_time, Sigma_inv)) %*% t(kronecker(Sigma_time, Sigma_unobs_obs))
-                # pred_var_chol <- tryCatch(
-                #     chol(pred_var),
-                #     error = function(e) {
-                #         if (verbose)
-                #             message("The Cholesky decomposition of the prediction covariance Sigma was ill-conditioned and mildy regularized.")
-                #         num_chol_failures <- num_chol_failures + 1
-                #         chol(pred_var + 1e-8 * diag(n_pred * n_time))                    
-                #     }
-                # )
-                # eta_pred[k, , j, ] <- matrix(mvnfast::rmvn(1, pred_mean, pred_var_chol, isChol = TRUE), n_pred, n_time)
-                psi_pred[k, , j, ] <- matrix(pred_mean, n_pred, n_time) + pred_var_chol_space %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% t(pred_var_chol_time)
+                pred_mean <- Sigma_unobs_obs %*% Sigma_inv %*% psi[k, , j, ]
+                psi_pred[k, , j, ] <- pred_mean + t(pred_var_chol_space) %*% matrix(rnorm(n_pred * n_time), n_pred, n_time) %*% (pred_var_chol_time)
                 for (tt in 1:n_time) {
                     eta_pred[k, , j, tt] <- X_pred %*% beta[k, , j] + psi_pred[k, , j, tt] + rnorm(n_pred, 0, sqrt(sigma2[k, j]))
                 }

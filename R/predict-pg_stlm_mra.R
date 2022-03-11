@@ -91,8 +91,6 @@ predict_pg_stlm_mra <- function(
     return(
         list(
             eta = eta_pred, 
-            pi  = pi_pred
-        )
-    )
+            pi  = pi_pred))
 }
 

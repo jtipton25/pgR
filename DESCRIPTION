@@ -1,8 +1,8 @@
 Package: pgR
 Type: Package
 Title: Bayesian Polya-Gamma Regression
-Version: 1.0.0
-Date: 2021-10-20
+Version: 1.0.1
+Date: 2022-07-02
 Authors@R: c(
     person("John", "Tipton", email = "jrtipton@uark.edu", role = c("aut", "cre")),
     person("Andria", "Dawson", role = "ctb", comment = "Contribued code and code review"),
@@ -29,6 +29,7 @@ Imports:
     Rcpp (>= 1.0.4.6),
     spam,
     sparseMVN,
+    tidyverse,
     truncnorm
 Remotes: github::jtipton25/BayesMRA
 LinkingTo:

@@ -305,7 +305,7 @@ if (file.exists(here::here("results", "pg_lm.RData"))) {
     load(here::here("results", "pg_lm.RData"))
 } else {
     start <- Sys.time()
-    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 1L, sample_rmvn = FALSE)
+    out <- pg_lm(Y, as.matrix(Xbs), params, priors, n_cores = 1L)
     stop <- Sys.time()
     runtime <- stop - start
 

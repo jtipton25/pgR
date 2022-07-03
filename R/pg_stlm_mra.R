@@ -23,6 +23,8 @@
 #' @param n_chain is the MCMC chain id. The default is 1.
 #' @param progress is a logicial input that determines whether to print a progress bar.
 #' @param verbose is a logicial input that determines whether to print more detailed messages.
+#' @param store_R is a logical input of whether cache the cholesky outside the loop over time
+#' @param rho_mh  is a logical input of whether to sample rho using MH or a truncated normal proposal
 #' @param use_spam is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).
 #' @importFrom stats rmultinom
 #' @importFrom truncnorm rtruncnorm
@@ -75,7 +77,7 @@ pg_stlm_mra <- function(
         N = dim(R)[1]
         if (!identical(dim(A)[2], N)) 
             stop("Incorrect constraint specification")
-        if (is(R, "spam.chol.NgPeyton")) {
+        if (inherits(R, "spam.chol.NgPeyton")) {
             mu <- drop(solve.spam(R, b))
         }
         else {
@@ -872,7 +874,7 @@ pg_stlm_mra <- function(
         out <- list(
             beta   = beta_save,
             alpha  = alpha_save,
-            tau2   = tau2_saveve,
+            tau2   = tau2_save,
             eta    = eta_save,
             pi     = pi_save,
             sigma2 = sigma2_save,

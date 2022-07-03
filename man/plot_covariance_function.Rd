@@ -19,6 +19,8 @@ plot_covariance_function(
 \arguments{
 \item{d}{is an \eqn{n \times 1}{n x 1} vector of distances}
 
+\item{tau}{is the partial sill standard deviation}
+
 \item{theta}{is the correlation function parameters. If
 \code{corr_fun} is "matern", then \code{theta} is a
 \eqn{2}{2}-dimensional vector of Matern covariance parameter inputs
@@ -28,7 +30,7 @@ on the log-scale with the first element the Matern range parameter
 a positive number representing the exponential correlation function
 range parameter on the log-scale.}
 
-\item{sigma}{is the partial sill standard deviation}
+\item{sigma}{is the nugget standard deviation}
 
 \item{corr_fun}{is the correlation function}
 

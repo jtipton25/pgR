@@ -27,7 +27,7 @@ predict_pg_stlm_mra <- function(
     ## check the inputs
     ##
     
-    if (class(out) != "pg_stlm_mra")
+    if (!inherits(out, "pg_stlm_mra"))
         stop("The MCMC object out must be of class pg_stlm_mra which is the output of the pg_stlm_mra() function.")
     
     ## 

@@ -28,7 +28,7 @@ predict_pg_stlm_latent_overdispersed <- function(
     ## check the inputs
     check_corr_fun(corr_fun)
     
-    if (class(out) != "pg_stlm_latent_overdispersed")
+    if (!inherits(out, "pg_stlm_latent_overdispersed"))
         stop("The MCMC object out must be of class pg_stlm_latent_overdispersed which is the output of the pg_stlm_latent_overdispersed() function.")
     
     ## 

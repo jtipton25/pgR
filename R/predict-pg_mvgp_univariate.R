@@ -39,7 +39,7 @@ predict_pg_mvgp_univariate <- function(
     if (corr_fun != "exponential") 
         stop('The only currently valid option for corr_fun is "exponential"')
     
-    if (class(out) != "pg_mvgp_univariate")
+    if (!inherits(out, "pg_mvgp_univariate"))
         stop("THe MCMC object out must be of class pg_mvgp_univariate which is the output of the pg_mvgp_univariate() function.")
 
     

@@ -61,6 +61,10 @@ outputs progress messages every 50 iterations.
 
 \item{verbose}{is a logicial input that determines whether to print more detailed messages.}
 
+\item{store_R}{is a logical input of whether cache the cholesky outside the loop over time}
+
+\item{rho_mh}{is a logical input of whether to sample rho using MH or a truncated normal proposal}
+
 \item{use_spam}{is a boolean flag to determine whether the output is a list of spam matrix objects (\code{use_spam = TRUE}) or a an \eqn{n \times n}{n x n} sparse Matrix of class "dgCMatrix" \code{use_spam = FALSE} (see spam and Matrix packages for details).}
 }
 \description{

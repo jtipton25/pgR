@@ -31,7 +31,7 @@ predict_pg_stlm <- function(
     ## check the inputs
     check_corr_fun(corr_fun)
     
-    if (class(out) != "pg_stlm")
+    if (!inherits(out, "pg_stlm"))
         stop("The MCMC object out must be of class pg_stlm which is the output of the pg_stlm() function.")
 
     ## 

@@ -31,7 +31,7 @@ predict_pg_mvgp_univariate_mra <- function(
     # }
     
 
-    if (class(out) != "pg_mvgp_univariate_mra")
+    if(!inherits(out, "pg_mvgp_univariate_mra"))
         stop("THe MCMC object out must be of class pg_mvgp_univariate_mra which is the output of the pg_mvgp_univariate_mra() function.")
 
     

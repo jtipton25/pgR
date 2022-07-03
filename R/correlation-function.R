@@ -73,7 +73,7 @@ check_corr_fun <- function(corr_fun) {
 #' @return Either a ggplot object of the model trace plots (if `file = NULL`) or a saved image file with no return (`file` is not NULL)
 #' @export
 #'
-#' @import tidyverse
+#' @import ggplot2
 #'  
 
 plot_correlation_function <- function(d, theta, corr_fun = "exponential", base_size = 12, file = NULL, width = 16, height = 9) {
@@ -84,7 +84,7 @@ plot_correlation_function <- function(d, theta, corr_fun = "exponential", base_s
     R <- correlation_function(d, theta, corr_fun)
     
     p <- ggplot(data.frame(correlation = R, distance = d)) +
-        geom_line(aes(x = distance, y = correlation))
+        geom_line(aes(x = .data$distance, y = .data$correlation))
     
     if (is.null(file)) {
         return(p)
@@ -103,7 +103,7 @@ plot_correlation_function <- function(d, theta, corr_fun = "exponential", base_s
 #'
 #' @param d is an \eqn{n \times 1}{n x 1} vector of distances 
 #' @param sigma is the nugget standard deviation
-#' @param sigma is the partial sill standard deviation
+#' @param tau is the partial sill standard deviation
 #' @param theta is the correlation function parameters. If 
 #' \code{corr_fun} is "matern", then \code{theta} is a 
 #' \eqn{2}{2}-dimensional vector of Matern covariance parameter inputs
@@ -122,7 +122,7 @@ plot_correlation_function <- function(d, theta, corr_fun = "exponential", base_s
 #' @return Either a ggplot object of the model trace plots (if `file = NULL`) or a saved image file with no return (`file` is not NULL)
 #' @export
 #'
-#' @import tidyverse
+#' @import ggplot2
 #'  
 
 plot_covariance_function <- function(d, tau, theta, sigma = NULL, corr_fun = "exponential", base_size = 12, file = NULL, width = 16, height = 9) {
@@ -136,7 +136,7 @@ plot_covariance_function <- function(d, tau, theta, sigma = NULL, corr_fun = "ex
     
     
     p <- ggplot(data.frame(correlation = R, distance = d)) +
-        geom_line(aes(x = distance, y = correlation))
+        geom_line(aes(x = .data$distance, y = .data$correlation))
     
     if (is.null(file)) {
         return(p)

@@ -25,8 +25,8 @@ A vector of samples from the Polya-Gamma distribution, one for each entry of \co
 Generate random samples from the Polya-Gamma distribution
 }
 \note{
-\preformatted{To cite this package please reference: 
-}
+\if{html}{\out{<div class="sourceCode">}}\preformatted{To cite this package please reference: 
+}\if{html}{\out{</div>}}
 
 Makalic, E. & Schmidt, D. F.
 High-Dimensional Bayesian Regularised Regression with the BayesReg Package
